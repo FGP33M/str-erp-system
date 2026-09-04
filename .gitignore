@@ -1,0 +1,12 @@
+# Environment & Secrets
+.env
+*service_account*.json
+*str-erp-system*.json
+
+# Dependencies
+node_modules/
+
+# Logs & scratch
+*.log
+scratch/
+.system_generated/
