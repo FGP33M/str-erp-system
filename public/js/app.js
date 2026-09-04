@@ -180,11 +180,6 @@ async function handleLogin(e) {
   }
 }
 
-function fillAndLogin(u, p) {
-  document.getElementById('login-username').value = u;
-  document.getElementById('login-password').value = p;
-  handleLogin();
-}
 
 function togglePasswordVisibility() {
   const pwd = document.getElementById('login-password');
