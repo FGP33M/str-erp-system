@@ -20,7 +20,7 @@ const ROLE_COLORS = {
   'admin': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
   'manager': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   'senior_staff': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  'staff': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+  'staff': 'bg-blue-500/20 text-blue-300 border-blue-500/30'
 };
 
 // Initialize App
@@ -78,7 +78,7 @@ function showToast(msg, isSuccess = true) {
 
   toastMsg.innerText = msg;
   toast.className = `fixed bottom-5 right-5 z-50 transition-all duration-300 pointer-events-none bg-slate-800 border ${
-    isSuccess ? 'border-emerald-500/50 text-emerald-300' : 'border-red-500/50 text-red-300'
+    isSuccess ? 'border-blue-500/50 text-blue-300' : 'border-red-500/50 text-red-300'
   } text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5`;
 
   toast.classList.remove('translate-y-20', 'opacity-0');
@@ -444,7 +444,7 @@ function renderProductItems(items, isManagerOrAdmin) {
 
     const stockNum = parseInt(p.stock_qty) || 0;
     const stockBadge = stockNum > 0
-      ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${p.stock_qty || 0}</span>`
+      ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-emerald-500/30">${p.stock_qty || 0}</span>`
       : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/30">หมด</span>`;
 
     // Desktop Row
@@ -456,7 +456,7 @@ function renderProductItems(items, isManagerOrAdmin) {
       costTd = `
         <td class="py-3 px-4 text-right font-mono">
           <div class="text-xs font-semibold text-amber-400">฿${p.cost_price || '0'}</div>
-          ${p.profit && p.profit !== '-' ? `<div class="text-[10px] text-emerald-400 font-medium">+฿${p.profit}</div>` : ''}
+          ${p.profit && p.profit !== '-' ? `<div class="text-[10px] text-blue-400 font-medium">+฿${p.profit}</div>` : ''}
         </td>
       `;
     }
@@ -473,7 +473,7 @@ function renderProductItems(items, isManagerOrAdmin) {
       </td>
       <td class="py-3 px-4">${detailsHtml}</td>
       ${costTd}
-      <td class="py-3 px-4 text-right font-mono font-bold text-emerald-400 text-sm">
+      <td class="py-3 px-4 text-right font-mono font-bold text-blue-400 text-sm">
         ฿${p.sale_price || '0'}
       </td>
       <td class="py-3 px-4 text-center">${stockBadge}</td>
@@ -491,7 +491,7 @@ function renderProductItems(items, isManagerOrAdmin) {
           <span class="text-slate-400">ราคาทุน:</span>
           <div class="text-right">
             <span class="font-mono font-semibold text-amber-400">฿${p.cost_price || '0'}</span>
-            ${p.profit && p.profit !== '-' ? `<span class="text-[10px] text-emerald-400 ml-1.5">(กำไร ฿${p.profit})</span>` : ''}
+            ${p.profit && p.profit !== '-' ? `<span class="text-[10px] text-blue-400 ml-1.5">(กำไร ฿${p.profit})</span>` : ''}
           </div>
         </div>
       `;
@@ -499,7 +499,7 @@ function renderProductItems(items, isManagerOrAdmin) {
 
     card.innerHTML = `
       <div class="flex items-start justify-between gap-2 mb-2">
-        <div class="font-mono text-xs font-semibold text-emerald-400 select-all">${p.barcode || '-'}</div>
+        <div class="font-mono text-xs font-semibold text-blue-400 select-all">${p.barcode || '-'}</div>
         <div>${stockBadge}</div>
       </div>
       <div class="font-bold text-slate-100 text-sm mb-2 leading-snug">${p.name || '-'}</div>
@@ -508,7 +508,7 @@ function renderProductItems(items, isManagerOrAdmin) {
         <span class="text-slate-400">ร้านค้า: <strong class="text-slate-200">${p.supplier || '-'}</strong></span>
         <div class="text-right">
           <span class="text-[10px] text-slate-400 mr-1">ราคาขาย:</span>
-          <span class="font-mono font-bold text-base text-emerald-400">฿${p.sale_price || '0'}</span>
+          <span class="font-mono font-bold text-base text-blue-400">฿${p.sale_price || '0'}</span>
         </div>
       </div>
       ${mobileCostHtml}
@@ -619,7 +619,7 @@ function renderUsersTable(users) {
     </span>`;
 
     const statusBadge = u.is_active
-      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ใช้งาน</span>`
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-emerald-500/30"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> ใช้งาน</span>`
       : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-400 border border-red-500/30"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> ระงับ</span>`;
 
     // Action buttons
@@ -627,7 +627,7 @@ function renderUsersTable(users) {
       <button onclick='openUserModal(${JSON.stringify(u)})' class="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs transition">
         แก้ไข
       </button>
-      <button onclick="toggleUserStatus('${u.user_id}', ${u.is_active})" class="px-2.5 py-1 rounded-lg ${u.is_active ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'} text-xs transition">
+      <button onclick="toggleUserStatus('${u.user_id}', ${u.is_active})" class="px-2.5 py-1 rounded-lg ${u.is_active ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-emerald-500/30'} text-xs transition">
         ${u.is_active ? 'ระงับ' : 'เปิดใช้'}
       </button>
     `;
@@ -822,7 +822,7 @@ function renderLogsTable(logs) {
 
     const isSuccess = l.status === 'SUCCESS';
     const statusBadge = isSuccess
-      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">สำเร็จ</span>`
+      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400">สำเร็จ</span>`
       : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400">${l.status}</span>`;
 
     tr.innerHTML = `
