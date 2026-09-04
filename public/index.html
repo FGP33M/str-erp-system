@@ -25,12 +25,20 @@
           },
           colors: {
             brand: {
-              50: '#f0fdf4',
-              100: '#dcfce7',
-              500: '#22c55e',
-              600: '#16a34a',
-              700: '#15803d',
-              900: '#14532d',
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              500: '#2563eb',
+              600: '#1d4ed8', // Deep Cobalt
+              700: '#1e40af', // Classic Cobalt
+              800: '#1e3a8a',
+              900: '#172554',
+            },
+            cobalt: {
+              400: '#60a5fa',
+              500: '#2563eb',
+              600: '#1d4ed8',
+              700: '#0047ab', // Pure Cobalt Blue
             }
           }
         }
@@ -52,20 +60,20 @@
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
 
   <!-- TOP NAVIGATION BAR -->
   <header id="app-header" class="hidden sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <!-- Logo & Brand -->
       <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('dashboard')">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-900/40 text-white font-bold text-lg tracking-wider">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-950/60 text-white font-bold text-lg tracking-wider">
           STR
         </div>
         <div>
           <div class="font-bold text-base tracking-wide flex items-center gap-2">
             <span>STR ERP SYSTEM</span>
-            <span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono">Phase 1</span>
+            <span class="text-[10px] bg-blue-600/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded font-mono">Phase 1</span>
           </div>
           <p class="text-xs text-slate-400">ระบบจัดการสินค้า & บัญชีร้าน</p>
         </div>
@@ -75,7 +83,7 @@
       <div class="flex items-center gap-3">
         <!-- Role Badge -->
         <div id="nav-user-badge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-medium">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
           <span id="nav-user-name" class="text-slate-200">User</span>
           <span id="nav-user-role" class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-slate-700 text-slate-300">Role</span>
         </div>
@@ -97,11 +105,11 @@
     <!-- ======================================================== -->
     <section id="view-login" class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div class="w-full max-w-md bg-slate-800/60 border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-        <div class="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 shadow-xl shadow-emerald-900/50 mb-4">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-700 to-blue-500 shadow-xl shadow-blue-950/60 mb-4">
             <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
           </div>
           <h1 class="text-2xl font-bold text-white tracking-wide">เข้าสู่ระบบ STR ERP</h1>
@@ -121,7 +129,7 @@
                 <i data-lucide="user" class="w-4 h-4"></i>
               </span>
               <input type="text" id="login-username" required placeholder="เช่น staff1, manager1, admin"
-                class="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition">
+                class="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
             </div>
           </div>
 
@@ -132,7 +140,7 @@
                 <i data-lucide="lock" class="w-4 h-4"></i>
               </span>
               <input type="password" id="login-password" required placeholder="••••••••"
-                class="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition">
+                class="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
               <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200">
                 <i data-lucide="eye" id="eye-icon" class="w-4 h-4"></i>
               </button>
@@ -140,7 +148,7 @@
           </div>
 
           <button type="submit" id="btn-login-submit"
-            class="w-full mt-2 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-xl shadow-lg shadow-emerald-900/30 transition duration-150 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+            class="w-full mt-2 py-3 px-4 bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-medium rounded-xl shadow-lg shadow-blue-950/50 transition duration-150 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
             <span>เข้าสู่ระบบ</span>
             <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </button>
@@ -154,18 +162,18 @@
     <!-- ======================================================== -->
     <section id="view-dashboard" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
       <!-- Welcome Banner -->
-      <div class="bg-gradient-to-r from-slate-800 via-slate-800 to-emerald-950/40 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl relative overflow-hidden">
+      <div class="bg-gradient-to-r from-slate-800 via-slate-800 to-blue-950/40 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl relative overflow-hidden">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">ยินดีต้อนรับสู่ระบบ</span>
-              <span id="dash-role-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Role</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-blue-400">ยินดีต้อนรับสู่ระบบ</span>
+              <span id="dash-role-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/30">Role</span>
             </div>
             <h2 id="dash-welcome-name" class="text-2xl font-bold text-white">คุณผู้ใช้งาน</h2>
             <p id="dash-role-desc" class="text-xs sm:text-sm text-slate-400 mt-1">สิทธิ์ปัจจุบัน: กำลังโหลด...</p>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="navigateTo('search')" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-emerald-900/30 flex items-center gap-2">
+            <button onclick="navigateTo('search')" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-blue-950/50 flex items-center gap-2">
               <i data-lucide="search" class="w-4 h-4"></i>
               <span>ค้นหาข้อมูลสินค้า</span>
             </button>
@@ -183,18 +191,18 @@
       <div id="dashboard-menu-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         
         <!-- CARD 1: PRODUCT SEARCH (Everyone sees this) -->
-        <div id="card-menu-search" onclick="navigateTo('search')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/40 relative flex flex-col justify-between">
+        <div id="card-menu-search" onclick="navigateTo('search')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-blue-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-950/50 relative flex flex-col justify-between">
           <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">พร้อมใช้งาน</span>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/30">พร้อมใช้งาน</span>
           </div>
           <div>
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
+            <div class="w-12 h-12 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
               <i data-lucide="search" class="w-6 h-6"></i>
             </div>
-            <h4 class="text-base font-bold text-white group-hover:text-emerald-400 transition">ค้นหาข้อมูลสินค้า</h4>
+            <h4 class="text-base font-bold text-white group-hover:text-blue-400 transition">ค้นหาข้อมูลสินค้า</h4>
             <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">ค้นหาอะไหล่ 3,000 รายการ ดูตำแหน่งชั้นวาง สต็อก และราคาขาย</p>
           </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
+          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-blue-300">
             <span class="font-mono">ERP_PRODUCTS</span>
             <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </div>
@@ -295,12 +303,12 @@
       <!-- Quick Guide -->
       <div class="mt-8 bg-slate-800/50 border border-slate-700/60 rounded-xl p-5">
         <h4 class="text-sm font-semibold text-slate-200 flex items-center gap-2 mb-2">
-          <i data-lucide="info" class="w-4 h-4 text-emerald-400"></i>
+          <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
           <span>คู่มือสัญลักษณ์การถอดรหัสในช่องรายละเอียด:</span>
         </h4>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-300 mt-2">
           <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
-            <span class="font-semibold text-emerald-400">หน่วย/แพ็ค:</span> ตัวแรกก่อนเครื่องหมาย F
+            <span class="font-semibold text-blue-400">หน่วย/แพ็ค:</span> ตัวแรกก่อนเครื่องหมาย F
           </div>
           <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
             <span class="font-semibold text-amber-400">F, :</span> จำนวนสต็อกสูงสุด (Max)
@@ -327,7 +335,7 @@
 
         <div class="flex items-center gap-2">
           <button id="btn-refresh-cache" onclick="refreshProductsCache()" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1.5 transition" title="ดึงข้อมูลล่าสุดจาก Google Sheets">
-            <i data-lucide="refresh-cw" id="refresh-icon" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <i data-lucide="refresh-cw" id="refresh-icon" class="w-3.5 h-3.5 text-blue-400"></i>
             <span>รีเฟรชแคช</span>
           </button>
         </div>
@@ -340,7 +348,7 @@
               <i data-lucide="search" class="w-5 h-5"></i>
             </span>
             <input type="text" id="search-input" oninput="onSearchInput(event)" placeholder="พิมพ์ค้นหา: ชื่อสินค้า, บาร์โค้ด, รหัสอะไหล่, ชั้นวาง..."
-              class="w-full pl-11 pr-10 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition">
+              class="w-full pl-11 pr-10 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
             <button id="search-clear-btn" onclick="clearSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200">
               <i data-lucide="x" class="w-4 h-4"></i>
             </button>
@@ -348,7 +356,7 @@
 
           <div class="md:col-span-4">
             <select id="supplier-select" onchange="onSupplierChange(event)"
-              class="w-full py-3 px-3.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition">
+              class="w-full py-3 px-3.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition">
               <option value="">-- ร้านค้าทั้งหมด (ทุกร้าน) --</option>
             </select>
           </div>
@@ -357,10 +365,10 @@
         <div class="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div class="flex items-center gap-2 text-slate-400">
             <span>ผลการค้นหา:</span>
-            <span id="search-result-count" class="font-bold text-emerald-400 text-sm font-mono">0</span>
+            <span id="search-result-count" class="font-bold text-blue-400 text-sm font-mono">0</span>
             <span>รายการ</span>
             <span id="search-loader" class="hidden items-center gap-1.5 text-slate-400 ml-2">
-              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-emerald-400"></i>
+              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-blue-400"></i>
               <span>กำลังค้นหา...</span>
             </span>
           </div>
@@ -383,7 +391,7 @@
                 <th class="py-3 px-4 w-32">ร้านค้า</th>
                 <th class="py-3 px-4">รายละเอียด (หน่วย/ที่เก็บ)</th>
                 <th id="th-cost-price" class="hidden py-3 px-4 text-right w-28 text-amber-400">ราคาทุน</th>
-                <th class="py-3 px-4 text-right w-28 text-emerald-400">ราคาขาย</th>
+                <th class="py-3 px-4 text-right w-28 text-blue-400">ราคาขาย</th>
                 <th class="py-3 px-4 text-center w-24">สต็อก</th>
               </tr>
             </thead>
@@ -574,7 +582,7 @@
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
       <div>STR ERP System &copy; 2026 • ข้อมูลเชื่อมต่อ Google Sheets API ปลอดภัยผ่าน Cloudflare</div>
       <div class="flex items-center gap-2 font-mono text-[11px] text-slate-400">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
         <span>ระบบพร้อมใช้งาน</span>
       </div>
     </div>
@@ -582,7 +590,7 @@
 
   <!-- Toast Container -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-800 border border-slate-700 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5">
-    <i data-lucide="check-circle" id="toast-icon" class="w-4 h-4 text-emerald-400"></i>
+    <i data-lucide="check-circle" id="toast-icon" class="w-4 h-4 text-blue-400"></i>
     <span id="toast-msg">ข้อความแจ้งเตือน</span>
   </div>
 
