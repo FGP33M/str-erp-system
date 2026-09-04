@@ -89,7 +89,7 @@ export default {
             role: matchedUser.role,
             exp: Date.now() + 24 * 60 * 60 * 1000
           };
-          const sessionToken = btoa(JSON.stringify(sessionData));
+          const sessionToken = btoa(unescape(encodeURIComponent(JSON.stringify(sessionData))));
 
           return jsonResponse({
             success: true,
@@ -111,7 +111,9 @@ export default {
       let currentUser = null;
       if (authHeader.startsWith('Bearer ')) {
         try {
-          const parsed = JSON.parse(atob(authHeader.substring(7)));
+          const raw = authHeader.substring(7);
+          const jsonStr = decodeURIComponent(escape(atob(raw)));
+          const parsed = JSON.parse(jsonStr);
           if (parsed && parsed.exp > Date.now()) {
             currentUser = parsed;
           }
