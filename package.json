@@ -1,0 +1,13 @@
+{
+  "name": "str-erp-system",
+  "version": "1.0.0",
+  "description": "ร้านอะไหล่ & ฮาร์ดแวร์ ERP System (Cloudflare + Google Sheets)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["erp", "google-sheets", "cloudflare"],
+  "author": "",
+  "license": "ISC"
+}
