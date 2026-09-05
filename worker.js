@@ -704,11 +704,38 @@ export default {
       if (pathname === '/api/billing/payments' && method === 'GET') {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
         try {
-          const query = url.searchParams.get('q') || '';
-          const payments = await googleSheets.getPayments({ query });
+          const payments = await (googleSheets.getPaymentsList ? googleSheets.getPaymentsList() : []);
           return jsonResponse({ success: true, payments });
         } catch (err) {
           return jsonResponse({ success: false, message: err.message }, 500);
+        }
+      }
+
+      // 22. GET /api/settings (Store Settings)
+      if (pathname === '/api/settings' && method === 'GET') {
+        try {
+          const settings = await googleSheets.getStoreSettings();
+          return jsonResponse({ success: true, settings });
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 500);
+        }
+      }
+
+      // 23. POST /api/settings (Update Store Settings - Admin only)
+      if (pathname === '/api/settings' && method === 'POST') {
+        if (!currentUser || currentUser.role !== 'admin') {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น' }, 403);
+        }
+        try {
+          const body = await request.json();
+          const updated = await googleSheets.updateStoreSettings(body, currentUser);
+          return jsonResponse({
+            success: true,
+            message: 'บันทึกข้อมูลร้านค้าเรียบร้อย',
+            settings: updated
+          });
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 400);
         }
       }
 
