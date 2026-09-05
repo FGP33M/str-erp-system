@@ -327,8 +327,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { success: true, customers });
     }
 
-    // POST /api/delivery/inbox (Direct Bill Recording - Staff & higher)
-    if (pathname === '/api/delivery/inbox' && method === 'POST') {
+    // POST /api/delivery/inbox & /api/delivery/direct (Direct Bill Recording - Staff & higher)
+    if ((pathname === '/api/delivery/inbox' || pathname === '/api/delivery/direct') && method === 'POST') {
       const currentUser = getSessionUser(req);
       if (!currentUser) {
         return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
@@ -387,8 +387,8 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // GET /api/delivery/inbox/today & /api/delivery/bills/today
-    if ((pathname === '/api/delivery/inbox/today' || pathname === '/api/delivery/bills/today') && method === 'GET') {
+    // GET /api/delivery/inbox/today & /api/delivery/bills/today & /api/delivery/today
+    if ((pathname === '/api/delivery/inbox/today' || pathname === '/api/delivery/bills/today' || pathname === '/api/delivery/today') && method === 'GET') {
       const currentUser = getSessionUser(req);
       if (!currentUser) {
         return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
