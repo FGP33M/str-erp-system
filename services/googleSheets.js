@@ -578,6 +578,13 @@ class GoogleSheetsService {
 
     const creatorName = user.username || user.full_name || 'staff';
 
+    // Safety guard against Google Sheets 50,000 character cell limit
+    let safePhotoUrl = data.photoUrl || '';
+    if (safePhotoUrl.length > 5000 && safePhotoUrl.startsWith('data:image')) {
+      console.warn("Base64 photoUrl exceeds safe sheet cell size (>5000 chars), stripped to prevent Sheet 400 error");
+      safePhotoUrl = '';
+    }
+
     // Master row: [Bill_ID, วันที่บิล, ทะเบียนพาณิชย์, แหล่งที่มา, เลขที่บิลกระดาษ, รหัสลูกค้า, ชื่อลูกค้า, จำนวนเงิน, รูปถ่ายบิล, ผู้บันทึก, ผู้ยืนยัน, วันที่บันทึก, เลขที่ใบวางบิล, สถานะบิล, หมายเหตุ]
     const masterRow = [
       billId,
@@ -588,7 +595,7 @@ class GoogleSheetsService {
       data.customerId || '',
       data.customerName || 'ไม่ระบุชื่อ',
       formattedAmount,
-      data.photoUrl || '',
+      safePhotoUrl,
       creatorName,
       creatorName, // ยืนยันบันทึกโดยตรง
       timestampStr,
@@ -1485,6 +1492,12 @@ class GoogleSheetsService {
     const seq = (payCount + 1).toString().padStart(4, '0');
     const paymentNo = `PAY-${yy}${mm}-${seq}`;
 
+    // Safety guard against Google Sheets 50,000 character cell limit
+    let safeSlipUrl = slipUrl || '';
+    if (safeSlipUrl.length > 5000 && safeSlipUrl.startsWith('data:image')) {
+      safeSlipUrl = '';
+    }
+
     // 4. Append to PAYMENTS tab:
     // [Payment_No, วันที่รับเงิน, เลขที่ใบวางบิล, ชื่อลูกค้า, ยอดโอนจริง, ตัดบัญชีร้านค้า, ตัดบัญชีปั๊มน้ำมัน, ธนาคารที่รับโอน, สลิปโอนเงิน, ผู้บันทึกการรับเงิน, หมายเหตุ]
     const paymentRow = [
@@ -1496,7 +1509,7 @@ class GoogleSheetsService {
       cutStore.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       cutFuel.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       bankAccount || 'โอนผ่านธนาคาร',
-      slipUrl || '',
+      safeSlipUrl,
       user.username || user.full_name || 'cashier',
       notes || ''
     ];
