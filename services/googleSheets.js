@@ -670,6 +670,10 @@ class GoogleSheetsService {
 
   /**
    * Sync fuel bills from AppSheet (STRMRec sheet) starting from a specific date (default: 1st of current month)
+   * Supports:
+   * 1. Importing new fuel bills
+   * 2. Auto-Updating existing unbilled fuel bills ('รอวางบิล') if modified at source (STRMRec)
+   * 3. Protecting billed/paid bills from overwrite
    */
   async syncFuelBillsFromAppSheet({ startDate, user } = {}) {
     const token = await this.getAccessToken();
@@ -696,7 +700,7 @@ class GoogleSheetsService {
     const custMap = new Map();
     customers.forEach(c => custMap.set(c.id, c.name || c.fullName || c.id));
 
-    // 3. Fetch existing MASTER_BILLS to build duplicate prevention sets
+    // 3. Fetch existing MASTER_BILLS to build duplicate prevention & auto-update maps
     const masterRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A2:O`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -707,14 +711,27 @@ class GoogleSheetsService {
     const masterRows = masterData.values || [];
     let currentMasterCount = masterRows.length;
 
-    const existingMmidSet = new Set();
+    const existingMmidMap = new Map();
     const existingRefKeySet = new Set();
 
-    masterRows.forEach(r => {
+    masterRows.forEach((r, idx) => {
       const note = r[14] || '';
       const mmidMatch = note.match(/\[STRMRec ID:\s*([A-Za-z0-9_-]+)\]/);
       if (mmidMatch) {
-        existingMmidSet.add(mmidMatch[1]);
+        const mmid = mmidMatch[1];
+        existingMmidMap.set(mmid, {
+          rowIndex: idx + 2,
+          billId: r[0] || '',
+          date: r[1] || '',
+          companyRegistration: r[2] || '',
+          source: r[3] || '',
+          billRef: r[4] || '',
+          customerId: r[5] || '',
+          customerName: r[6] || '',
+          amount: (r[7] || '0').replace(/,/g, ''),
+          status: r[13] || 'รอวางบิล',
+          notes: r[14] || ''
+        });
       }
       const bDate = (r[1] || '').trim();
       const bReg = (r[2] || '').trim();
@@ -739,8 +756,10 @@ class GoogleSheetsService {
 
     let totalInScope = 0;
     let skippedCount = 0;
+    let updatedCount = 0;
     const newMasterRows = [];
     const importedBills = [];
+    const updateBatchData = [];
 
     for (let i = 0; i < strmRows.length; i++) {
       const r = strmRows[i];
@@ -761,12 +780,6 @@ class GoogleSheetsService {
 
       totalInScope++;
 
-      // Check duplicate by STRMRec ID
-      if (mmid && existingMmidSet.has(mmid)) {
-        skippedCount++;
-        continue;
-      }
-
       const custId = (r[3] || '').trim();
       const ref = (r[4] || '').trim();
       const carregit = (r[5] || '').trim();
@@ -784,6 +797,39 @@ class GoogleSheetsService {
       const thaiYear = y + 543;
       const thaiDateStr = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${thaiYear}`;
       const formattedAmount = numAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Check if already in MASTER_BILLS
+      if (mmid && existingMmidMap.has(mmid)) {
+        const existing = existingMmidMap.get(mmid);
+        if (existing.status === 'รอวางบิล') {
+          // Compare if source data in STRMRec was modified
+          const existingAmt = parseFloat(existing.amount) || 0;
+          const isDateDiff = existing.date !== thaiDateStr;
+          const isCustDiff = existing.customerId !== custId;
+          const isRefDiff = existing.billRef !== billRefText;
+          const isAmtDiff = Math.abs(existingAmt - numAmt) > 0.001;
+
+          if (isDateDiff || isCustDiff || isRefDiff || isAmtDiff) {
+            // Update the existing row in MASTER_BILLS (Col B: Date, E: BillRef, F: CustId, G: CustName, H: Amount)
+            updateBatchData.push({
+              range: `MASTER_BILLS!B${existing.rowIndex}:H${existing.rowIndex}`,
+              values: [[
+                thaiDateStr,
+                'ปั๊มน้ำมัน',
+                '3. ปั๊มน้ำมัน',
+                billRefText,
+                custId,
+                custName,
+                formattedAmount
+              ]]
+            });
+            updatedCount++;
+            continue;
+          }
+        }
+        skippedCount++;
+        continue;
+      }
 
       // Check compound key duplicate
       const compoundKey = `${thaiDateStr}_${custId}_${billRefText}_${formattedAmount}`;
@@ -830,11 +876,29 @@ class GoogleSheetsService {
         status: 'รอวางบิล'
       });
 
-      if (mmid) existingMmidSet.add(mmid);
+      if (mmid) existingMmidMap.set(mmid, { rowIndex: currentMasterCount + 1, status: 'รอวางบิล' });
       existingRefKeySet.add(compoundKey);
     }
 
-    // 5. Batch append if any new bills
+    // 5. Batch update modified rows if any
+    if (updateBatchData.length > 0) {
+      const batchRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values:batchUpdate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          valueInputOption: 'USER_ENTERED',
+          data: updateBatchData
+        })
+      });
+      if (!batchRes.ok) {
+        console.error('Batch update failed:', await batchRes.text());
+      }
+    }
+
+    // 6. Batch append new bills if any
     if (newMasterRows.length > 0) {
       const appendRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A:O:append?valueInputOption=USER_ENTERED`, {
         method: 'POST',
@@ -856,8 +920,98 @@ class GoogleSheetsService {
       cutoffDate: `${cutoff.getFullYear() + 543}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`,
       totalInScope,
       importedCount: newMasterRows.length,
+      updatedCount,
       skippedCount,
       importedBills
+    };
+  }
+
+  /**
+   * Directly edit a bill in MASTER_BILLS (Manager/Admin action)
+   */
+  async updateMasterBill({ billId, date, billRef, customerId, customerName, amount, notes, user }) {
+    const token = await this.getAccessToken();
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A2:O`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      throw new Error("Failed to read MASTER_BILLS for update");
+    }
+    const data = await res.json();
+    const rows = data.values || [];
+    const index = rows.findIndex(r => (r[0] || '').trim() === billId.trim());
+
+    if (index === -1) {
+      throw new Error(`ไม่พบบิลรหัส ${billId} ในฐานข้อมูล`);
+    }
+
+    const rowIndex = index + 2;
+    const current = rows[index];
+    const currentStatus = current[13] || 'รอวางบิล';
+
+    if (currentStatus === 'วางบิลแล้ว' || currentStatus === 'ชำระแล้ว') {
+      throw new Error(`บิลนี้อยู่ในสถานะ '${currentStatus}' แล้ว ไม่อนุญาตให้แก้ไขข้อมูลบิลโดยตรง`);
+    }
+
+    const numAmount = parseFloat(String(amount).replace(/,/g, '')) || 0;
+    const formattedAmount = numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const finalBillRef = (billRef !== undefined ? billRef : current[4]).trim();
+    const finalCustId = (customerId !== undefined ? customerId : current[5]).trim();
+    const finalCustName = (customerName !== undefined ? customerName : current[6]).trim();
+    const finalDate = (date !== undefined ? date : current[1]).trim();
+    const finalNotes = (notes !== undefined ? notes : (current[14] || '')).trim();
+
+    // Update Col B: Date, Col E: billRef, Col F: customerId, Col G: customerName, Col H: amount, Col O: notes
+    const batchData = [
+      {
+        range: `MASTER_BILLS!B${rowIndex}:B${rowIndex}`,
+        values: [[finalDate]]
+      },
+      {
+        range: `MASTER_BILLS!E${rowIndex}:H${rowIndex}`,
+        values: [[
+          finalBillRef,
+          finalCustId,
+          finalCustName,
+          formattedAmount
+        ]]
+      },
+      {
+        range: `MASTER_BILLS!O${rowIndex}:O${rowIndex}`,
+        values: [[finalNotes]]
+      }
+    ];
+
+    const putRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values:batchUpdate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        valueInputOption: 'USER_ENTERED',
+        data: batchData
+      })
+    });
+
+    if (!putRes.ok) {
+      const errText = await putRes.text();
+      throw new Error(`Failed to update bill in Google Sheets: ${errText}`);
+    }
+
+    return {
+      success: true,
+      message: `แก้ไขข้อมูลบิล ${billId} เรียบร้อยแล้ว`,
+      bill: {
+        billId,
+        date: finalDate,
+        billRef: finalBillRef,
+        customerId: finalCustId,
+        customerName: finalCustName,
+        amount: formattedAmount,
+        notes: finalNotes
+      }
     };
   }
 
