@@ -29,15 +29,23 @@ const ROLE_NAMES = {
 const ROLE_COLORS = {
   'admin': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
   'manager': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  'senior_staff': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  'senior_staff': 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
   'staff': 'bg-blue-500/20 text-blue-300 border-blue-500/30'
 };
 
 // Dual URL Portal Mode ('staff' | 'manager')
 let currentPortalMode = 'staff';
 
+function isSeniorStaffOrAbove() {
+  return currentUser && (currentUser.role === 'senior_staff' || currentUser.role === 'manager' || currentUser.role === 'admin');
+}
+
 function isManagerOrAdmin() {
   return currentUser && (currentUser.role === 'manager' || currentUser.role === 'admin');
+}
+
+function isAdmin() {
+  return currentUser && currentUser.role === 'admin';
 }
 
 function syncUrlRoute(path) {
@@ -177,10 +185,25 @@ function updateLiveDateDisplay() {
 
 // Navigation router
 function navigateTo(viewName) {
+  // Role Guard for customers view (Senior Staff, Manager, Admin)
+  if (viewName === 'customers' && !isSeniorStaffOrAbove()) {
+    showToast('คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (เฉพาะพนักงานอาวุโสขึ้นไป)', false);
+    navigateTo('delivery-bill');
+    return;
+  }
+
   // Role Guard for manager-only views
-  const managerOnlyViews = ['executive-dashboard', 'manager-audit', 'customers', 'users', 'logs', 'settings', 'billing-notes', 'daily-revenue'];
-  if (!isManagerOrAdmin() && managerOnlyViews.includes(viewName)) {
+  const managerOnlyViews = ['executive-dashboard', 'manager-audit', 'billing-notes', 'daily-revenue', 'users'];
+  if (managerOnlyViews.includes(viewName) && !isManagerOrAdmin()) {
     showToast('คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (เฉพาะผู้จัดการเท่านั้น)', false);
+    navigateTo('delivery-bill');
+    return;
+  }
+
+  // Role Guard for admin-only views
+  const adminOnlyViews = ['logs', 'settings'];
+  if (adminOnlyViews.includes(viewName) && !isAdmin()) {
+    showToast('คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (เฉพาะผู้ดูแลระบบเท่านั้น)', false);
     navigateTo('delivery-bill');
     return;
   }
@@ -248,6 +271,103 @@ function navigateTo(viewName) {
   refreshIcons();
 }
 
+// Apply role-based access permissions across sidebar, header, and dashboard
+function applyRolePermissions() {
+  if (!currentUser) return;
+  const role = currentUser.role || 'staff';
+  const isMgr = isManagerOrAdmin();
+  const isSenior = isSeniorStaffOrAbove();
+  const isAdminUser = isAdmin();
+
+  // 1. Sidebar items with data-portal
+  document.querySelectorAll('[data-portal]').forEach(el => {
+    const portal = el.getAttribute('data-portal');
+    if (portal === 'senior_staff') {
+      // Customer CRM: Senior staff, Manager, Admin
+      if (isSenior) {
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    } else if (portal === 'manager') {
+      // Manager views: Manager, Admin only and when in manager portal mode
+      if (isMgr && currentPortalMode === 'manager') {
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    } else if (portal === 'admin') {
+      // Admin only and when in manager portal mode
+      if (isAdminUser && currentPortalMode === 'manager') {
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+  });
+
+  // 2. Dashboard quick KPI bar & sections
+  const kpiBar = document.getElementById('dash-quick-kpi-bar');
+  const secFinance = document.getElementById('section-finance-billing');
+  const secAnalytics = document.getElementById('section-executive-analytics');
+  const secSecurity = document.getElementById('section-system-security');
+  const cardCustomers = document.getElementById('card-menu-customers');
+  const cardMaster = document.getElementById('card-menu-master');
+
+  if (kpiBar) {
+    if (isMgr && currentPortalMode === 'manager') kpiBar.classList.remove('hidden');
+    else kpiBar.classList.add('hidden');
+  }
+  if (secFinance) {
+    if (isMgr && currentPortalMode === 'manager') secFinance.classList.remove('hidden');
+    else secFinance.classList.add('hidden');
+  }
+  if (secAnalytics) {
+    if (isMgr && currentPortalMode === 'manager') secAnalytics.classList.remove('hidden');
+    else secAnalytics.classList.add('hidden');
+  }
+  if (secSecurity) {
+    if (isAdminUser && currentPortalMode === 'manager') secSecurity.classList.remove('hidden');
+    else secSecurity.classList.add('hidden');
+  }
+
+  // Dashboard cards in Sales & Inventory
+  if (cardCustomers) {
+    if (isSenior) cardCustomers.classList.remove('hidden');
+    else cardCustomers.classList.add('hidden');
+  }
+  if (cardMaster) {
+    if (isMgr && currentPortalMode === 'manager') cardMaster.classList.remove('hidden');
+    else cardMaster.classList.add('hidden');
+  }
+
+  // 3. Header portal switcher & staff badge
+  const portalSwitcher = document.getElementById('header-portal-switcher');
+  const staffBadge = document.getElementById('header-staff-badge');
+  const staffBadgeText = document.getElementById('header-staff-badge-text');
+  const sideToggleContainer = document.getElementById('side-portal-toggle-container');
+
+  if (isMgr) {
+    if (portalSwitcher) portalSwitcher.classList.remove('hidden');
+    if (staffBadge) staffBadge.classList.add('hidden');
+    if (sideToggleContainer) sideToggleContainer.classList.remove('hidden');
+  } else {
+    if (portalSwitcher) portalSwitcher.classList.add('hidden');
+    if (staffBadge) {
+      staffBadge.classList.remove('hidden');
+      staffBadge.classList.add('flex');
+    }
+    if (staffBadgeText) {
+      if (role === 'senior_staff') {
+        staffBadgeText.innerText = 'โหมดพนักงานอาวุโส (/staff)';
+      } else {
+        staffBadgeText.innerText = 'โหมดพนักงานหน้าร้าน (/staff)';
+      }
+    }
+    if (sideToggleContainer) sideToggleContainer.classList.add('hidden');
+  }
+}
+
 // Switch between /staff and /manager portal modes
 function switchPortalMode(mode, updateUrl = true) {
   if (mode === 'manager' && !isManagerOrAdmin()) {
@@ -271,7 +391,7 @@ function switchPortalMode(mode, updateUrl = true) {
     }
   }
 
-  // Sidebar banners & items visibility
+  // Sidebar banners
   const staffBanner = document.getElementById('sidebar-staff-banner');
   const managerBanner = document.getElementById('sidebar-manager-banner');
   const sideToggleText = document.getElementById('btn-side-portal-text');
@@ -282,22 +402,15 @@ function switchPortalMode(mode, updateUrl = true) {
     if (managerBanner) managerBanner.classList.add('hidden');
     if (sideToggleText) sideToggleText.innerText = 'สลับไปโหมดผู้บริหาร (/manager)';
     if (sideHomeText) sideHomeText.innerText = 'พื้นที่หน้าร้าน (เปิดบิล)';
-
-    // Filter sidebar menus: hide manager-only items
-    document.querySelectorAll('[data-portal="manager"]').forEach(el => {
-      el.classList.add('hidden');
-    });
   } else {
     if (managerBanner) managerBanner.classList.remove('hidden');
     if (staffBanner) staffBanner.classList.add('hidden');
     if (sideToggleText) sideToggleText.innerText = 'สลับไปโหมดหน้าร้าน (/staff)';
     if (sideHomeText) sideHomeText.innerText = 'ศูนย์บริหารผู้จัดการ';
-
-    // Show all manager items
-    document.querySelectorAll('[data-portal="manager"]').forEach(el => {
-      el.classList.remove('hidden');
-    });
   }
+
+  // Enforce role permissions & visibility
+  applyRolePermissions();
 
   if (updateUrl) {
     syncUrlRoute(mode === 'staff' ? '/staff' : '/manager');
@@ -547,6 +660,8 @@ function updateHeaderUser() {
     }
     if (sideToggleContainer) sideToggleContainer.classList.add('hidden');
   }
+
+  applyRolePermissions();
 }
 
 async function handleLogin(e) {
@@ -704,10 +819,8 @@ function renderDashboard() {
   const sideLogs = document.getElementById('side-item-logs');
   const sideSettings = document.getElementById('side-item-settings');
 
-  const role = currentUser.role || 'staff';
-
-  if (role === 'staff' || role === 'senior_staff') {
-    // พนักงาน: ค้นหาสินค้า + บันทึกใบส่งของ (เฉพาะงานขายหน้าร้าน)
+  if (role === 'staff') {
+    // พนักงานหน้าร้าน: ค้นหาสินค้า + บันทึกใบส่งของ (เฉพาะงานขายหน้าร้าน)
     if (secSales) secSales.classList.remove('hidden');
     if (cardSearch) cardSearch.classList.remove('hidden');
     if (cardDelivery) cardDelivery.classList.remove('hidden');
@@ -724,8 +837,28 @@ function renderDashboard() {
     if (sideGroupAnalytics) sideGroupAnalytics.classList.add('hidden');
     if (sideGroupSystem) sideGroupSystem.classList.add('hidden');
 
-    if (roleDesc) roleDesc.innerText = "สิทธิ์พนักงาน: เข้าถึงงานขายหน้าร้าน (ค้นหาสินค้า & สต็อก และ บันทึกใบส่งของ)";
-    if (menuScopeBadge) menuScopeBadge.innerText = "พนักงาน: เข้าถึง 2 เมนู";
+    if (roleDesc) roleDesc.innerText = "สิทธิ์พนักงานหน้าร้าน: เข้าถึงงานขายหน้าร้าน (ค้นหาสินค้า & สต็อก และ บันทึกใบส่งของ)";
+    if (menuScopeBadge) menuScopeBadge.innerText = "พนักงานหน้าร้าน: เข้าถึง 2 เมนู";
+  } else if (role === 'senior_staff') {
+    // พนักงานอาวุโส: งานขายหน้าร้าน + ทะเบียนข้อมูลลูกค้า CRM (ตรวจสอบ & เพิ่มข้อมูล)
+    if (secSales) secSales.classList.remove('hidden');
+    if (cardSearch) cardSearch.classList.remove('hidden');
+    if (cardDelivery) cardDelivery.classList.remove('hidden');
+    if (cardMaster) cardMaster.classList.add('hidden');
+
+    if (secFinance) secFinance.classList.add('hidden');
+    if (secAnalytics) secAnalytics.classList.add('hidden');
+    if (secSystem) secSystem.classList.add('hidden');
+
+    // Sidebar
+    if (sideGroupSales) sideGroupSales.classList.remove('hidden');
+    if (sideAudit) sideAudit.classList.add('hidden');
+    if (sideGroupFinance) sideGroupFinance.classList.add('hidden');
+    if (sideGroupAnalytics) sideGroupAnalytics.classList.add('hidden');
+    if (sideGroupSystem) sideGroupSystem.classList.add('hidden');
+
+    if (roleDesc) roleDesc.innerText = "สิทธิ์พนักงานอาวุโส: งานขายหน้าร้าน และทะเบียนข้อมูลลูกค้า (ตรวจสอบ & เพิ่มข้อมูล)";
+    if (menuScopeBadge) menuScopeBadge.innerText = "พนักงานอาวุโส: งานขาย & ข้อมูลลูกค้า CRM";
   } else if (role === 'manager') {
     // ผู้จัดการ: งานขายทุกรายการ, การเงิน & ลูกหนี้ครบวงจร, แดชบอร์ดผู้บริหาร, และจัดการพนักงาน
     if (secSales) secSales.classList.remove('hidden');
@@ -802,6 +935,7 @@ function renderDashboard() {
     if (menuScopeBadge) menuScopeBadge.innerText = "ผู้ดูแลระบบ: สิทธิ์เต็มรูปแบบ";
   }
 
+  applyRolePermissions();
   refreshIcons();
 }
 
@@ -1611,8 +1745,8 @@ function selectStoreCategory(cat) {
       btnGov.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
     }
     if (poContainer) poContainer.classList.add('hidden');
-    if (descEl) descEl.innerText = "สำหรับลูกค้าเงินสด, บิลเครดิตบุคคลทั่วไป, ผู้รับเหมา หรือร้านค้าช่วง";
-    if (labelRef) labelRef.innerText = "เลขที่บิลส่งของ (บิลกระดาษ) *";
+    if (descEl) descEl.innerText = "สำหรับลูกค้าเงินสด, ลูกหนี้การค้าบุคคลทั่วไป, ผู้รับเหมา หรือร้านค้าช่วง";
+    if (labelRef) labelRef.innerText = "เลขที่เอกสารอ้างอิงต้นฉบับ *";
   }
   refreshIcons();
 }
@@ -1668,7 +1802,7 @@ async function handleDeliveryBillSubmit(event) {
   const notes = document.getElementById('bill-notes') ? document.getElementById('bill-notes').value.trim() : '';
 
   if (!billRef) {
-    showToast("กรุณาระบุเลขที่บิลส่งของ (บิลกระดาษ)", false);
+    showToast("กรุณาระบุเลขที่เอกสารอ้างอิงต้นฉบับ", false);
     const refInput = document.getElementById('bill-ref-no');
     if (refInput) refInput.focus();
     return;
@@ -4626,7 +4760,7 @@ function renderDailyCreditBills() {
 
   if (listContainer) {
     if (!revCreditBillsData.bills || revCreditBillsData.bills.length === 0) {
-      listContainer.innerHTML = `<div class="py-3 text-center text-slate-500 text-xs">ไม่พบบิลเครดิตที่ออกในวันที่ ${revCurrentDate}</div>`;
+      listContainer.innerHTML = `<div class="py-3 text-center text-slate-500 text-xs">ไม่พบรายการขายเชื่อที่ออกในวันที่ ${revCurrentDate}</div>`;
     } else {
       listContainer.innerHTML = revCreditBillsData.bills.map((b, idx) => `
         <div class="py-2 flex items-center justify-between text-xs">
@@ -4651,10 +4785,10 @@ function toggleCreditBillsList() {
 
   if (container.classList.contains('hidden')) {
     container.classList.remove('hidden');
-    if (label) label.innerText = 'ซ่อนรายการบิลเครดิตของวันนี้';
+    if (label) label.innerText = 'ซ่อนรายการขายเชื่อของวันนี้';
   } else {
     container.classList.add('hidden');
-    if (label) label.innerText = 'แสดงรายการบิลเครดิตของวันนี้';
+    if (label) label.innerText = 'แสดงรายการขายเชื่อของวันนี้';
   }
 }
 
@@ -4823,15 +4957,15 @@ async function handleDailyClosingSubmit() {
 
   const confirmMsg = `ยืนยันการบันทึกปิดยอดรายรับประจำวัน ${dateVal} ?\n\n` +
     `- รวมเงินสดเก็บเข้าเซฟ: ${dropsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
-    `- เงินสดในลิ้นชักปิดกะ: ${drawerClose.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
-    `- หักเงินทอน: ${changeFloat.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- เงินสดในลิ้นชักปิดรอบ: ${drawerClose.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- หักเงินทอนเริ่มต้น: ${changeFloat.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
     `- เงินสดสุทธิ: ${cashNet.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
     `- เงินโอน: ${transferTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
-    `- บิลเครดิต: ${creditTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
-    `- หักค่าแรงช่างรวม: ${laborTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
-    `- รวมยอดขายสินค้า: ${goodsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- ขายเชื่อ/ลูกหนี้การค้า: ${creditTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- ปันส่วนค่าบริการและแรงงาน: ${laborTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- รวมรายได้ขายสินค้า: ${goodsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
     `=============================\n` +
-    `ยอดรับรวมทั้งสิ้น: ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    `รายได้รวมทั้งสิ้น: ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
   if (!confirm(confirmMsg)) return;
 
@@ -5113,10 +5247,17 @@ function renderCustomersTable() {
           <td class="p-3">${addressDisplay}</td>
           <td class="p-3">${contactHtml}</td>
           <td class="p-3 text-center">
-            <button onclick="openEditCustomerModal('${escapeHtml(c.id)}')" title="แก้ไขข้อมูลลูกค้า"
-              class="p-2 rounded-xl bg-slate-800 hover:bg-blue-600/20 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/40 transition">
-              <i data-lucide="edit-3" class="w-4 h-4"></i>
-            </button>
+            ${isManagerOrAdmin() ? `
+              <button onclick="openEditCustomerModal('${escapeHtml(c.id)}')" title="แก้ไขข้อมูลลูกค้า (ผู้จัดการ/แอดมิน)"
+                class="p-2 rounded-xl bg-slate-800 hover:bg-amber-600/20 text-slate-300 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 transition">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+              </button>
+            ` : `
+              <button onclick="openViewCustomerModal('${escapeHtml(c.id)}')" title="ดูรายละเอียดข้อมูลลูกค้า (โหมดตรวจสอบ)"
+                class="p-2 rounded-xl bg-slate-800 hover:bg-cyan-600/20 text-slate-300 hover:text-cyan-400 border border-slate-700 hover:border-cyan-500/40 transition">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            `}
           </td>
         </tr>
       `;
@@ -5140,16 +5281,78 @@ function changeCustomerPage(delta) {
   renderCustomersTable();
 }
 
-function openAddCustomerModal() {
+function openViewCustomerModal(id) {
+  const c = allCustomersCache.find(x => x.id === id);
+  if (!c) {
+    showToast('ไม่พบข้อมูลลูกค้า', false);
+    return;
+  }
+
   const modeInput = document.getElementById('cust-modal-mode');
   const modalTitle = document.getElementById('modal-customer-title');
   const idInput = document.getElementById('cust-modal-id');
   const autoHint = document.getElementById('cust-id-auto-hint');
+  const btnSave = document.getElementById('btn-save-customer');
+  const approvalNotice = document.getElementById('cust-modal-approval-notice');
+
+  if (modeInput) modeInput.value = 'view';
+  if (modalTitle) modalTitle.innerText = `ทะเบียนข้อมูลลูกค้า: ${c.id} (โหมดตรวจสอบ)`;
+  if (autoHint) {
+    autoHint.innerText = '(รหัสประจำตัว)';
+    autoHint.classList.remove('hidden');
+  }
+  if (btnSave) btnSave.classList.add('hidden');
+  if (approvalNotice) approvalNotice.classList.remove('hidden');
+
+  if (idInput) idInput.value = c.id;
+
+  const setVal = (fid, val) => {
+    const el = document.getElementById(fid);
+    if (el) {
+      el.value = val || '';
+      el.readOnly = true;
+      el.disabled = true;
+    }
+  };
+
+  setVal('cust-modal-taxid', c.taxId);
+  setVal('cust-modal-name', c.name);
+  setVal('cust-modal-fullname', c.fullName);
+  setVal('cust-modal-addressdetail', c.addressDetail);
+  setVal('cust-modal-village', c.village);
+  setVal('cust-modal-subdistrict', c.subdistrict);
+  setVal('cust-modal-district', c.district);
+  setVal('cust-modal-province', c.province);
+  setVal('cust-modal-zipcode', c.zipcode);
+  setVal('cust-modal-phone', c.phone);
+  setVal('cust-modal-contact', c.contact);
+  setVal('cust-modal-contactphone', c.contactPhone);
+  setVal('cust-modal-contactline', c.contactLine);
+
+  const modal = document.getElementById('modal-customer');
+  if (modal) modal.classList.remove('hidden');
+  refreshIcons();
+}
+
+function openAddCustomerModal() {
+  if (!isSeniorStaffOrAbove()) {
+    showToast('คุณไม่มีสิทธิ์เพิ่มข้อมูลลูกค้า (เฉพาะพนักงานอาวุโสขึ้นไป)', false);
+    return;
+  }
+
+  const modeInput = document.getElementById('cust-modal-mode');
+  const modalTitle = document.getElementById('modal-customer-title');
+  const idInput = document.getElementById('cust-modal-id');
+  const autoHint = document.getElementById('cust-id-auto-hint');
+  const btnSave = document.getElementById('btn-save-customer');
   const btnText = document.getElementById('btn-save-customer-text');
+  const approvalNotice = document.getElementById('cust-modal-approval-notice');
 
   if (modeInput) modeInput.value = 'add';
   if (modalTitle) modalTitle.innerText = 'เพิ่มลูกค้าใหม่';
   if (btnText) btnText.innerText = 'บันทึกข้อมูลลูกค้า';
+  if (btnSave) btnSave.classList.remove('hidden');
+  if (approvalNotice) approvalNotice.classList.add('hidden');
   if (autoHint) {
     autoHint.innerText = '(สร้างอัตโนมัติ)';
     autoHint.classList.remove('hidden');
@@ -5167,7 +5370,7 @@ function openAddCustomerModal() {
   const nextId = 'C' + String(maxNum + 1).padStart(4, '0');
   if (idInput) idInput.value = nextId;
 
-  // Clear fields
+  // Clear fields and enable
   const fields = [
     'cust-modal-taxid', 'cust-modal-name', 'cust-modal-fullname',
     'cust-modal-addressdetail', 'cust-modal-village', 'cust-modal-subdistrict',
@@ -5176,7 +5379,11 @@ function openAddCustomerModal() {
   ];
   fields.forEach(f => {
     const el = document.getElementById(f);
-    if (el) el.value = '';
+    if (el) {
+      el.value = '';
+      el.readOnly = false;
+      el.disabled = false;
+    }
   });
 
   const modal = document.getElementById('modal-customer');
@@ -5186,6 +5393,11 @@ function openAddCustomerModal() {
 }
 
 function openEditCustomerModal(id) {
+  if (!isManagerOrAdmin()) {
+    openViewCustomerModal(id);
+    return;
+  }
+
   const c = allCustomersCache.find(x => x.id === id);
   if (!c) {
     showToast('ไม่พบข้อมูลลูกค้า', false);
@@ -5196,11 +5408,15 @@ function openEditCustomerModal(id) {
   const modalTitle = document.getElementById('modal-customer-title');
   const idInput = document.getElementById('cust-modal-id');
   const autoHint = document.getElementById('cust-id-auto-hint');
+  const btnSave = document.getElementById('btn-save-customer');
   const btnText = document.getElementById('btn-save-customer-text');
+  const approvalNotice = document.getElementById('cust-modal-approval-notice');
 
   if (modeInput) modeInput.value = 'edit';
   if (modalTitle) modalTitle.innerText = `แก้ไขข้อมูลลูกค้า: ${c.id}`;
   if (btnText) btnText.innerText = 'บันทึกการแก้ไข';
+  if (btnSave) btnSave.classList.remove('hidden');
+  if (approvalNotice) approvalNotice.classList.add('hidden');
   if (autoHint) {
     autoHint.innerText = '(รหัสประจำตัว)';
     autoHint.classList.remove('hidden');
@@ -5210,7 +5426,11 @@ function openEditCustomerModal(id) {
 
   const setVal = (fid, val) => {
     const el = document.getElementById(fid);
-    if (el) el.value = val || '';
+    if (el) {
+      el.value = val || '';
+      el.readOnly = false;
+      el.disabled = false;
+    }
   };
 
   setVal('cust-modal-taxid', c.taxId);
@@ -5241,6 +5461,21 @@ function closeCustomerModal() {
 async function handleSaveCustomer(e) {
   e.preventDefault();
   const mode = document.getElementById('cust-modal-mode')?.value || 'add';
+
+  if (mode === 'view') {
+    closeCustomerModal();
+    return;
+  }
+
+  if (mode === 'edit' && !isManagerOrAdmin()) {
+    showToast('ไม่มีสิทธิ์แก้ไข: การแก้ไขข้อมูลลูกค้าต้องดำเนินการโดยผู้จัดการ หรือได้รับการอนุมัติเท่านั้น', false);
+    return;
+  }
+
+  if (mode === 'add' && !isSeniorStaffOrAbove()) {
+    showToast('คุณไม่มีสิทธิ์เพิ่มข้อมูลลูกค้า (เฉพาะพนักงานอาวุโสขึ้นไป)', false);
+    return;
+  }
   const id = (document.getElementById('cust-modal-id')?.value || '').trim();
   const name = (document.getElementById('cust-modal-name')?.value || '').trim();
   const fullName = (document.getElementById('cust-modal-fullname')?.value || '').trim();
