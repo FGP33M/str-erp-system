@@ -732,7 +732,8 @@ export default {
           return jsonResponse({
             success: true,
             message: `บันทึกการรับชำระเงิน ${result.paymentNo} สำเร็จ`,
-            payment: result
+            payment: result,
+            receiptNo: result.receiptNo
           }, 201);
         } catch (err) {
           return jsonResponse({ success: false, message: err.message }, 400);
@@ -747,6 +748,44 @@ export default {
           return jsonResponse({ success: true, payments });
         } catch (err) {
           return jsonResponse({ success: false, message: err.message }, 500);
+        }
+      }
+
+      // 22. GET /api/billing/receipts
+      if (pathname === '/api/billing/receipts' && method === 'GET') {
+        if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
+        try {
+          const q = url.searchParams.get('q') || '';
+          const receipts = await googleSheets.getReceipts({ q });
+          return jsonResponse({ success: true, receipts });
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 500);
+        }
+      }
+
+      // 23. GET /api/billing/receipts/:no
+      if (pathname.startsWith('/api/billing/receipts/') && method === 'GET') {
+        if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
+        const receiptNo = decodeURIComponent(pathname.replace('/api/billing/receipts/', '')).trim();
+        try {
+          const detail = await googleSheets.getReceiptDetail(receiptNo);
+          return jsonResponse({ success: true, ...detail });
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 404);
+        }
+      }
+
+      // 24. POST /api/billing/receipts/cash
+      if (pathname === '/api/billing/receipts/cash' && method === 'POST') {
+        if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
+        }
+        try {
+          const body = await request.json();
+          const receipt = await googleSheets.createCashReceipt(body, currentUser);
+          return jsonResponse({ success: true, message: 'ออกใบเสร็จรับเงินสดสำเร็จ', receipt }, 201);
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 400);
         }
       }
 
