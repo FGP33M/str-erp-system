@@ -1,6 +1,6 @@
 name = "erp"
 main = "worker.js"
-compatibility_date = "2024-09-01"
+compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 [assets]
@@ -11,3 +11,6 @@ binding = "ASSETS"
 AUTH_SHEET_ID = "1uM237XywBb0lFa9wavSP-rxNEOYUQldJp7AnLX09uM8"
 PRODUCT_SHEET_ID = "1pCuUFizx8K2VTjMGGXB4MYfVJQndIFseky_gKuzApPg"
 ACCOUNT_SHEET_ID = "10jTkGZMirCg8Pb3FsRGP_6LLiDbl8K4rmkZ31tCNSwY"
+CUSTOMERS_SHEET_ID = "1GvHnGGIrUt_H7sMlhwvG_u8jJQozVhzDQjl6G_GX1j4"
+DELIVERY_MASTER_SHEET_ID = "1DVGGWYvzTWRFtHgrm1fcgaXhk7luFYQu6myBBLLjYus"
+STRMREC_SHEET_ID = "19c8yjaRbxejRHMmRA-f4ZDiqwlp2_2rCf2dFAe4736Q"
