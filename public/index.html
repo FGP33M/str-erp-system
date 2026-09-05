@@ -177,7 +177,7 @@
         <!-- Staff Single Mode Badge (For Staff Users) -->
         <div id="header-staff-badge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
           <i data-lucide="store" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span class="hidden md:inline">โหมดหน้าร้าน</span>
+          <span id="header-staff-badge-text" class="hidden md:inline">โหมดหน้าร้าน</span>
           <span class="font-mono text-[10px] bg-emerald-500/20 px-1.5 py-0.2 rounded">/staff</span>
         </div>
 
@@ -261,7 +261,7 @@
 
         <!-- 1. SALES & INVENTORY -->
         <div id="side-group-sales" class="space-y-1">
-          <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">งานขาย & คลังสินค้า</div>
+          <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">งานขาย & สินค้าคงคลัง</div>
           <button onclick="navigateSidebar('search')" id="side-item-search" data-portal="all"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="search" class="w-4 h-4 text-blue-400 flex-shrink-0"></i>
@@ -275,62 +275,62 @@
           <button onclick="navigateSidebar('manager-audit')" id="side-item-manager-audit" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="database" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
-            <span>ทะเบียนบิลส่งของ</span>
+            <span>ทะเบียนการขาย & น้ำมัน</span>
           </button>
-          <button onclick="navigateSidebar('customers')" id="side-item-customers" data-portal="manager"
+          <button onclick="navigateSidebar('customers')" id="side-item-customers" data-portal="senior_staff"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="users-round" class="w-4 h-4 text-cyan-400 flex-shrink-0"></i>
-            <span>ทะเบียนข้อมูลลูกค้า</span>
+            <span>ทะเบียนข้อมูลลูกค้า (CRM)</span>
           </button>
         </div>
 
         <!-- 2. FINANCE & BILLING -->
-        <div id="side-group-finance" class="space-y-1">
+        <div id="side-group-finance" data-portal="manager" class="space-y-1">
           <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">การเงิน & ลูกหนี้การค้า</div>
-          <button onclick="navigateSidebar('daily-revenue')" id="side-item-daily-revenue" data-portal="all"
+          <button onclick="navigateSidebar('daily-revenue')" id="side-item-daily-revenue" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="wallet" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
-            <span>ปิดกะ & รายรับหน้าร้าน</span>
+            <span>ปิดรอบรายได้ประจำวัน</span>
           </button>
           <button onclick="navigateSidebar('billing-notes')" id="side-item-billing-notes" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="receipt" class="w-4 h-4 text-violet-400 flex-shrink-0"></i>
             <span>วางบิล & ลูกหนี้การค้า</span>
           </button>
-          <button onclick="navigateSidebarReceipts()" id="side-item-receipts" data-portal="all"
+          <button onclick="navigateSidebarReceipts()" id="side-item-receipts" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="receipt-text" class="w-4 h-4 text-sky-400 flex-shrink-0"></i>
-            <span>คลังใบเสร็จรับเงิน</span>
+            <span>ทะเบียนใบเสร็จรับเงิน</span>
           </button>
         </div>
 
         <!-- 3. EXECUTIVE & ANALYTICS -->
         <div id="side-group-analytics" data-portal="manager" class="space-y-1">
           <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">บริหาร & รายงาน</div>
-          <button onclick="navigateSidebar('executive-dashboard')" id="side-item-executive-dashboard"
+          <button onclick="navigateSidebar('executive-dashboard')" id="side-item-executive-dashboard" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="layout-dashboard" class="w-4 h-4 text-indigo-400 flex-shrink-0"></i>
-            <span>ศูนย์บริหารข้อมูลธุรกิจ</span>
+            <span>แดชบอร์ดสรุปผลการดำเนินงาน</span>
           </button>
         </div>
 
         <!-- 4. SYSTEM & SECURITY -->
         <div id="side-group-system" data-portal="manager" class="space-y-1">
           <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">ระบบ & ความปลอดภัย</div>
-          <button onclick="navigateSidebar('users')" id="side-item-users"
+          <button onclick="navigateSidebar('users')" id="side-item-users" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="users" class="w-4 h-4 text-cyan-400 flex-shrink-0"></i>
             <span id="side-title-users">จัดการผู้ใช้งาน & สิทธิ์</span>
           </button>
-          <button onclick="navigateSidebar('logs')" id="side-item-logs"
+          <button onclick="navigateSidebar('logs')" id="side-item-logs" data-portal="admin"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="shield-check" class="w-4 h-4 text-indigo-400 flex-shrink-0"></i>
             <span>บันทึกความปลอดภัยระบบ</span>
           </button>
-          <button onclick="navigateSidebar('settings')" id="side-item-settings"
+          <button onclick="navigateSidebar('settings')" id="side-item-settings" data-portal="admin"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
-            <i data-lucide="store" class="w-4 h-4 text-pink-400 flex-shrink-0"></i>
-            <span>ข้อมูลกิจการ & เอกสาร</span>
+            <i data-lucide="settings" class="w-4 h-4 text-pink-400 flex-shrink-0"></i>
+            <span>ข้อมูลกิจการ & หัวเอกสาร</span>
           </button>
         </div>
 
@@ -454,8 +454,8 @@
           </div>
         </div>
 
-        <!-- Quick Access KPI Bar -->
-        <div id="dash-quick-kpi-bar" class="mt-5 pt-4 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <!-- Quick Access KPI Bar (Manager / Admin Only) -->
+        <div id="dash-quick-kpi-bar" class="hidden mt-5 pt-4 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div onclick="navigateTo('billing-notes')" class="p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/70 hover:border-violet-500/40 cursor-pointer transition flex items-center justify-between group">
             <div class="flex items-center gap-2 truncate">
               <div class="w-6 h-6 rounded-lg bg-violet-600/20 text-violet-400 flex items-center justify-center flex-shrink-0">
@@ -471,7 +471,7 @@
               <div class="w-6 h-6 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
                 <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
               </div>
-              <span class="text-slate-300 font-medium truncate">ปิดกะรายรับหน้าร้าน</span>
+              <span class="text-slate-300 font-medium truncate">ปิดรอบรายได้ประจำวัน</span>
             </div>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition flex-shrink-0"></i>
           </div>
@@ -481,7 +481,7 @@
               <div class="w-6 h-6 rounded-lg bg-sky-600/20 text-sky-400 flex items-center justify-center flex-shrink-0">
                 <i data-lucide="receipt-text" class="w-3.5 h-3.5"></i>
               </div>
-              <span class="text-slate-300 font-medium truncate">คลังใบเสร็จรับเงิน</span>
+              <span class="text-slate-300 font-medium truncate">ทะเบียนใบเสร็จรับเงิน</span>
             </div>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 group-hover:translate-x-0.5 transition flex-shrink-0"></i>
           </div>
@@ -491,7 +491,7 @@
               <div class="w-6 h-6 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center flex-shrink-0">
                 <i data-lucide="database" class="w-3.5 h-3.5"></i>
               </div>
-              <span class="text-slate-300 font-medium truncate">ทะเบียนบิลส่งของ</span>
+              <span class="text-slate-300 font-medium truncate">ทะเบียนการขาย & น้ำมัน</span>
             </div>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition flex-shrink-0"></i>
           </div>
@@ -509,9 +509,9 @@
             <div class="w-6 h-6 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
               <i data-lucide="package" class="w-3.5 h-3.5"></i>
             </div>
-            <span>งานขายและคลังสินค้า (Sales & Inventory)</span>
+            <span>งานขายและสินค้าคงคลัง (Sales & Inventory)</span>
           </h3>
-          <span class="text-[11px] text-slate-400">ค้นหาสต็อกสินค้า, บันทึกใบส่งของ, และทะเบียนบิล</span>
+          <span class="text-[11px] text-slate-400">ค้นหาสต็อกสินค้า, บันทึกใบส่งของ, และทะเบียนการขาย</span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -543,7 +543,7 @@
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">พร้อมใช้งาน</span>
               </div>
               <h4 class="text-sm font-bold text-white group-hover:text-amber-400 transition">บันทึกใบส่งของ / เปิดบิล</h4>
-              <p class="text-xs text-slate-400 mt-1 leading-relaxed">บันทึกรายการส่งสินค้าหน้าร้านและหน่วยงานราชการ พร้อมแนบรูปถ่ายบิล</p>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">บันทึกรายการส่งสินค้าหน้าร้านและหน่วยงานราชการ พร้อมแนบเอกสารต้นฉบับ</p>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-amber-300">
               <span class="text-[11px] text-amber-400 font-medium">เข้าสู่ระบบบันทึกบิล</span>
@@ -560,11 +560,11 @@
                 </div>
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ทะเบียนหลัก</span>
               </div>
-              <h4 class="text-sm font-bold text-white group-hover:text-emerald-400 transition">ทะเบียนบิลส่งของ</h4>
-              <p class="text-xs text-slate-400 mt-1 leading-relaxed">สืบค้นประวัติใบส่งของทั้งหมด แยกตามทะเบียนพาณิชย์ และบันทึกบิลน้ำมัน</p>
+              <h4 class="text-sm font-bold text-white group-hover:text-emerald-400 transition">ทะเบียนการขาย & น้ำมัน</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">สืบค้นประวัติใบส่งของทั้งหมด แยกตามทะเบียนพาณิชย์ และบันทึกบิลน้ำมันด้วยตนเอง</p>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
-              <span class="text-[11px] text-emerald-400 font-medium">เปิดทะเบียนบิล</span>
+              <span class="text-[11px] text-emerald-400 font-medium">เปิดทะเบียนการขาย</span>
               <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
             </div>
           </div>
@@ -578,8 +578,8 @@
                 </div>
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">CRM</span>
               </div>
-              <h4 class="text-sm font-bold text-white group-hover:text-cyan-400 transition">ข้อมูลลูกค้า & คู่ค้า</h4>
-              <p class="text-xs text-slate-400 mt-1 leading-relaxed">ค้นหา แก้ไขที่อยู่ เลขประจำตัวผู้เสียภาษี 13 หลัก และเพิ่มลูกค้าใหม่</p>
+              <h4 class="text-sm font-bold text-white group-hover:text-cyan-400 transition">ทะเบียนข้อมูลลูกค้า (CRM)</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">ค้นหา ตรวจสอบที่อยู่ เลขประจำตัวผู้เสียภาษี 13 หลัก และเพิ่มลูกค้าใหม่</p>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-cyan-300">
               <span class="text-[11px] text-cyan-400 font-medium">เข้าสู่ทะเบียนลูกค้า</span>
@@ -600,7 +600,7 @@
             </div>
             <span>การเงินและลูกหนี้การค้า (Finance & Accounts Receivable)</span>
           </h3>
-          <span class="text-[11px] text-slate-400">ปิดกะเงินสด, วางบิลลูกหนี้, ตัดยอดบัญชี, และออกใบเสร็จรับเงิน</span>
+          <span class="text-[11px] text-slate-400">ปิดรอบรายได้, วางบิลลูกหนี้, บันทึกรับชำระหนี้, และออกใบเสร็จรับเงิน</span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -611,13 +611,13 @@
                 <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-slate-950 transition duration-200">
                   <i data-lucide="wallet" class="w-5 h-5"></i>
                 </div>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ปิดกะประจำวัน</span>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ปิดรอบประจำวัน</span>
               </div>
-              <h4 class="text-sm font-bold text-white group-hover:text-emerald-400 transition">ปิดกะ & รายรับหน้าร้าน</h4>
-              <p class="text-xs text-slate-400 mt-1 leading-relaxed">สรุปเงินสดเข้าเซฟ, เงินทอน 7,500, เงินโอน, หักค่าแรงช่าง และปิดยอดประจำวัน</p>
+              <h4 class="text-sm font-bold text-white group-hover:text-emerald-400 transition">ปิดรอบรายได้ประจำวัน</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">สรุปเก็บเงินสดเข้าเซฟ, เงินทอนเริ่มต้น 7,500, เงินโอน, ปันส่วนค่าแรงช่าง และปิดยอดประจำวัน</p>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
-              <span class="text-[11px] text-emerald-400 font-medium">เปิดระบบบันทึกรายรับ</span>
+              <span class="text-[11px] text-emerald-400 font-medium">เปิดระบบปิดรอบรายได้</span>
               <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
             </div>
           </div>
@@ -632,7 +632,7 @@
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">วางบิล & บัญชี</span>
               </div>
               <h4 class="text-sm font-bold text-white group-hover:text-violet-400 transition">วางบิล & ลูกหนี้การค้า</h4>
-              <p class="text-xs text-slate-400 mt-1 leading-relaxed">จัดชุดรวมบิลหน้าร้านและน้ำมัน ออกใบวางบิล A4 และตัดรับชำระแยกบัญชี</p>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">จัดชุดรวมบิลหน้าร้านและน้ำมัน ออกใบวางบิล A4 และบันทึกรับชำระล้างยอดบัญชี</p>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-violet-300">
               <span class="text-[11px] text-violet-400 font-medium">จัดการใบวางบิล</span>
@@ -647,9 +647,9 @@
                 <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-sky-500 group-hover:text-slate-950 transition duration-200">
                   <i data-lucide="receipt-text" class="w-5 h-5"></i>
                 </div>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">คลังใบเสร็จ</span>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">ทะเบียนใบเสร็จ</span>
               </div>
-              <h4 class="text-sm font-bold text-white group-hover:text-sky-400 transition">คลังใบเสร็จรับเงิน</h4>
+              <h4 class="text-sm font-bold text-white group-hover:text-sky-400 transition">ทะเบียนใบเสร็จรับเงิน</h4>
               <p class="text-xs text-slate-400 mt-1 leading-relaxed">สืบค้นใบเสร็จรับเงินทางการ พิมพ์ต้นฉบับ/สำเนา A4 และออกใบเสร็จเงินสด</p>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-sky-300">
@@ -1100,7 +1100,7 @@
               </div>
               <input type="hidden" id="bill-category" value="store_general">
               <div id="cat-description" class="mt-2 text-[11px] text-amber-300/80 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
-                สำหรับลูกค้าเงินสด, บิลเครดิตบุคคลทั่วไป, ผู้รับเหมา หรือร้านค้าช่วง
+                สำหรับลูกค้าเงินสด, ลูกหนี้การค้าบุคคลทั่วไป, ผู้รับเหมา หรือร้านค้าช่วง
               </div>
             </div>
 
@@ -1154,7 +1154,7 @@
               </div>
 
               <div>
-                <label id="label-bill-ref" class="block text-xs font-medium text-slate-300 mb-1.5">เลขที่บิลส่งของ (บิลกระดาษ) *</label>
+                <label id="label-bill-ref" class="block text-xs font-medium text-slate-300 mb-1.5">เลขที่เอกสารอ้างอิงต้นฉบับ *</label>
                 <div class="relative">
                   <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <i data-lucide="hash" class="w-4 h-4"></i>
@@ -1431,10 +1431,10 @@
           <div class="p-3 bg-slate-900/70 border border-rose-500/20 rounded-xl col-span-2 sm:col-span-1">
             <div class="text-[11px] text-rose-400 font-medium flex items-center gap-1.5">
               <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
-              <span>เซ็นเชื่อหน้าร้าน</span>
+              <span>ขายเชื่อ / ลูกหนี้การค้า</span>
             </div>
             <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-sf-credittotal">0.00</div>
-            <div class="text-[10px] text-slate-400 mt-0.5">ค้างชำระหน้าร้าน</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">ลูกหนี้การค้าค้างชำระ</div>
           </div>
         </div>
       </div>
@@ -1509,7 +1509,7 @@
               <tr>
                 <th class="py-2.5 px-3 font-semibold">เดือน</th>
                 <th class="py-2.5 px-3 text-right font-semibold text-emerald-300">สด+โอนหน้าร้าน</th>
-                <th class="py-2.5 px-3 text-right font-semibold text-rose-300">เซ็นเชื่อหน้าร้าน</th>
+                <th class="py-2.5 px-3 text-right font-semibold text-rose-300">ขายเชื่อ / ลูกหนี้การค้า</th>
                 <th class="py-2.5 px-3 text-right font-semibold text-blue-300">บิลส่งของ</th>
                 <th class="py-2.5 px-3 text-right font-semibold text-teal-300">บิลน้ำมัน</th>
                 <th class="py-2.5 px-3 text-right font-semibold text-purple-300">รับชำระหนี้</th>
@@ -1644,7 +1644,7 @@
           </div>
 
           <div id="dash-cancel-list" class="space-y-2.5 overflow-y-auto max-h-[380px] flex-1 pr-1 text-xs">
-            <div class="text-center py-8 text-slate-500">ไม่มีประวัติบิลยกเลิก</div>
+            <div class="text-center py-8 text-slate-500">ไม่มีประวัติรายการยกเลิก (Voided Transaction)</div>
           </div>
         </div>
 
@@ -1653,7 +1653,7 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- 9. MASTER BILLS & FUEL VIEW (คลังบิลหลัก & บิลน้ำมัน) -->
+    <!-- 9. MASTER BILLS & FUEL VIEW (ทะเบียนการขาย & น้ำมัน) -->
     <!-- ======================================================== -->
     <section id="view-manager-audit" class="hidden flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
       
@@ -1665,10 +1665,10 @@
           </button>
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-xl font-bold text-white tracking-wide">คลังบิลหลัก & บิลน้ำมัน</h2>
+              <h2 class="text-xl font-bold text-white tracking-wide">ทะเบียนการขาย & น้ำมัน</h2>
               <span id="master-bills-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">0 บิล</span>
             </div>
-            <p class="text-xs text-slate-400 mt-0.5">สืบค้นบิลหลักทั้งหมด แยกตามทะเบียนพาณิชย์ และบันทึกบิลน้ำมันแมนนวล</p>
+            <p class="text-xs text-slate-400 mt-0.5">สืบค้นบิลหลักทั้งหมด แยกตามทะเบียนพาณิชย์ และบันทึกบิลน้ำมันด้วยตนเอง</p>
           </div>
         </div>
 
@@ -1731,7 +1731,7 @@
               <option value="รอวางบิล">รอวางบิล</option>
               <option value="วางบิลแล้ว">วางบิลแล้ว</option>
               <option value="ชำระแล้ว">ชำระแล้ว</option>
-              <option value="ยกเลิก">บิลยกเลิก</option>
+              <option value="ยกเลิก">รายการยกเลิก (Voided Transaction)</option>
             </select>
 
             <!-- Search -->
@@ -1752,7 +1752,7 @@
             <!-- Add Manual Bill Button -->
             <button onclick="openManualBillModal()" class="flex-1 sm:flex-initial px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-semibold rounded-xl text-xs shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-1.5 transition">
               <i data-lucide="plus" class="w-4 h-4"></i>
-              <span>+ บันทึกบิลน้ำมัน / บิลแมนนวล</span>
+              <span>+ บันทึกบิลน้ำมันด้วยตนเอง / ขายย้อนหลัง</span>
             </button>
           </div>
         </div>
@@ -1766,7 +1766,7 @@
                   <th class="py-3 px-3.5">รหัสบิล (Bill_ID)</th>
                   <th class="py-3 px-3">วันที่</th>
                   <th class="py-3 px-3 text-center">หมวดหมู่ / ทะเบียน</th>
-                  <th class="py-3 px-3">เลขที่บิลกระดาษ</th>
+                  <th class="py-3 px-3">เลขที่เอกสารอ้างอิงต้นฉบับ</th>
                   <th class="py-3 px-4">ลูกค้า</th>
                   <th class="py-3 px-4 text-right">จำนวนเงิน</th>
                   <th class="py-3 px-3 text-center">รูปถ่าย</th>
@@ -1891,11 +1891,11 @@
               <tr>
                 <th class="p-3 w-24">รหัส</th>
                 <th class="p-3 min-w-[200px]">ชื่อลูกค้า / นิติบุคคล</th>
-                <th class="p-3 min-w-[140px]">เลขประจำตัวผู้เสียภาษี</th>
+                <th class="p-3 min-w-[140px]">เลขประจำตัวผู้เสียภาษีอากร</th>
                 <th class="p-3 min-w-[130px]">เบอร์โทร & Line</th>
-                <th class="p-3 min-w-[240px]">ที่อยู่เปิดบิล</th>
+                <th class="p-3 min-w-[240px]">ที่อยู่จดทะเบียนภาษี / ส่งของ</th>
                 <th class="p-3 min-w-[140px]">ผู้ติดต่อ</th>
-                <th class="p-3 w-20 text-center">จัดการ</th>
+                <th class="p-3 w-24 text-center">จัดการ / รายละเอียด</th>
               </tr>
             </thead>
             <tbody id="cust-table-body" class="divide-y divide-slate-700/60 text-slate-300">
@@ -1945,7 +1945,7 @@
                 <span>ระบบออกใบวางบิล & รับชำระหนี้</span>
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">การเงิน & วางบิล</span>
               </h2>
-              <p class="text-xs text-slate-400">รวมบิลหน้าร้านและน้ำมันตามลูกหนี้ ออกใบวางบิลมาตรฐาน พิมพ์ A4 และตัดยอดบัญชีแยกฝั่งเมื่อรับเงิน</p>
+              <p class="text-xs text-slate-400">รวมบิลหน้าร้านและน้ำมันตามลูกหนี้ ออกใบวางบิลมาตรฐาน พิมพ์ A4 และบันทึกรับชำระและล้างยอดลูกหนี้แยกฝั่ง</p>
             </div>
           </div>
         </div>
@@ -1966,7 +1966,7 @@
           </button>
           <button id="btn-tab-bn-receipts" onclick="switchBillingTab('receipts')" class="px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
             <i data-lucide="receipt-text" class="w-3.5 h-3.5 text-sky-400"></i>
-            <span>คลังใบเสร็จรับเงิน</span>
+            <span>ทะเบียนใบเสร็จรับเงิน</span>
           </button>
         </div>
       </div>
@@ -2186,8 +2186,8 @@
       <div id="panel-bn-payments" class="hidden space-y-4">
         <div class="flex items-center justify-between bg-slate-800/70 p-4 rounded-2xl border border-slate-700">
           <div>
-            <h3 class="text-sm font-bold text-white">ประวัติการรับชำระเงินและการตัดยอดบัญชี</h3>
-            <p class="text-xs text-slate-400">บันทึกการโอนเงินชำระหนี้จากชีต PAYMENTS พร้อมแยกยอดตัดบัญชีร้านค้าและปั๊มน้ำมัน</p>
+            <h3 class="text-sm font-bold text-white">ประวัติการรับชำระเงินและการล้างยอดลูกหนี้ (AR Settlement)</h3>
+            <p class="text-xs text-slate-400">บันทึกการโอนเงินชำระหนี้จากชีต PAYMENTS พร้อมแยกยอดล้างลูกหนี้ร้านค้าและปั๊มน้ำมัน</p>
           </div>
           <button onclick="fetchPaymentsList()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-400"></i>
@@ -2205,8 +2205,8 @@
                   <th class="py-3 px-3 font-mono">เลขที่ใบวางบิล</th>
                   <th class="py-3 px-4">ลูกค้า</th>
                   <th class="py-3 px-3 text-right">ยอดรับชำระ</th>
-                  <th class="py-3 px-3 text-right text-amber-300">ตัดบัญชีร้านค้า</th>
-                  <th class="py-3 px-3 text-right text-teal-300">ตัดบัญชีน้ำมัน</th>
+                  <th class="py-3 px-3 text-right text-amber-300">ล้างยอดลูกหนี้ร้านค้า</th>
+                  <th class="py-3 px-3 text-right text-teal-300">ล้างยอดลูกหนี้น้ำมัน</th>
                   <th class="py-3 px-3">ธนาคาร</th>
                   <th class="py-3 px-3 text-center">สลิป</th>
                   <th class="py-3 px-3">ผู้บันทึก</th>
@@ -2228,7 +2228,7 @@
           <div>
             <h3 class="text-sm font-bold text-white flex items-center gap-2">
               <i data-lucide="receipt" class="w-4 h-4 text-sky-400"></i>
-              <span>คลังใบเสร็จรับเงินทางการ (RECEIPTS)</span>
+              <span>ทะเบียนใบเสร็จรับเงินทางการ (RECEIPTS)</span>
               <span id="receipts-count-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30">0 ฉบับ</span>
             </h3>
             <p class="text-xs text-slate-400 mt-0.5">ออกใบเสร็จรับเงินอัตโนมัติเมื่อบันทึกรับเงิน หรือตรวจสอบประวัติและสั่งพิมพ์ A4 (ต้นฉบับ/สำเนา)</p>
@@ -2266,7 +2266,7 @@
                 </tr>
               </thead>
               <tbody id="receipts-table-body" class="divide-y divide-slate-700/60">
-                <tr><td colspan="11" class="py-10 text-center text-slate-500">กำลังโหลดคลังใบเสร็จรับเงิน...</td></tr>
+                <tr><td colspan="11" class="py-10 text-center text-slate-500">กำลังโหลดทะเบียนใบเสร็จรับเงิน...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2291,9 +2291,9 @@
             <div class="w-9 h-9 rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
               <i data-lucide="wallet" class="w-5 h-5"></i>
             </div>
-            <span>ระบบบันทึกรายรับหน้าร้านประจำวัน</span>
+            <span>ปิดรอบรายได้ประจำวัน (Daily Revenue & Cash Settlement)</span>
           </h2>
-          <p class="text-xs text-slate-400 mt-1">บริหารจัดการเงินสดเข้าเซฟ, เงินทอน, เงินโอน, บิลเครดิต และหักแยกค่าแรงช่างประจำวัน (ร้านสหธรรม)</p>
+          <p class="text-xs text-slate-400 mt-1">บริหารจัดการเงินสดเข้าเซฟ, เงินทอนเริ่มต้น, เงินโอน, ขายเชื่อ/ลูกหนี้การค้า และการปันส่วนค่าบริการและแรงงานประจำวัน (ร้านสหธรรม)</p>
         </div>
 
         <!-- Tab Switcher -->
@@ -2439,7 +2439,7 @@
               <div class="flex items-center justify-between pb-3 border-b border-slate-700/70">
                 <h3 class="text-sm font-bold text-white flex items-center gap-2">
                   <i data-lucide="credit-card" class="w-4 h-4 text-sky-400"></i>
-                  <span>2. เงินโอน & บิลเครดิต</span>
+                  <span>2. เงินโอน & ลูกหนี้การค้า (ขายเชื่อ)</span>
                 </h3>
                 <span class="text-[11px] text-slate-400">ช่องทางอิเล็กทรอนิกส์ & สินเชื่อ</span>
               </div>
@@ -2464,8 +2464,8 @@
               <div class="pt-3 border-t border-slate-700/60 space-y-3">
                 <div class="flex items-center justify-between">
                   <div>
-                    <h4 class="text-xs font-bold text-slate-200">บิลเครดิตขายสินค้า (ดึงจาก Master Bills)</h4>
-                    <p class="text-[10px] text-slate-400">บิลเครดิตที่พนักงานบันทึกไว้ในวันที่เลือก</p>
+                    <h4 class="text-xs font-bold text-slate-200">ขายเชื่อ / ลูกหนี้การค้า (ดึงจาก Master Bills)</h4>
+                    <p class="text-[10px] text-slate-400">รายการขายเชื่อที่พนักงานบันทึกข้อมูลเข้าระบบในวันที่เลือก</p>
                   </div>
                   <span id="rev-credit-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-600/20 text-violet-300 border border-violet-500/30">
                     0 รายการ
@@ -2474,7 +2474,7 @@
 
                 <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
                   <div class="text-xs">
-                    <span class="text-slate-400 block">ยอดรวมบิลเครดิตวันนี้:</span>
+                    <span class="text-slate-400 block">ยอดรวมขายเชื่อวันนี้:</span>
                     <span class="text-[10px] text-slate-500">สามารถตรวจสอบรายการบิลด้านล่าง</span>
                   </div>
                   <span id="rev-credit-total-display" class="font-mono font-bold text-lg text-violet-400">0.00</span>
@@ -2483,7 +2483,7 @@
                 <!-- Toggle to view bills -->
                 <button type="button" onclick="toggleCreditBillsList()" class="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition">
                   <i data-lucide="list" class="w-3.5 h-3.5"></i>
-                  <span id="rev-toggle-bills-label">แสดงรายการบิลเครดิตของวันนี้</span>
+                  <span id="rev-toggle-bills-label">แสดงรายการขายเชื่อของวันนี้</span>
                 </button>
 
                 <!-- Hidden credit bills dropdown container -->
@@ -2501,7 +2501,7 @@
 
         </div>
 
-        <!-- SECTION 3: MECHANIC LABOR DEDUCTION (หักค่าแรงช่าง - อู่ซ่อมรถ) -->
+        <!-- SECTION 3: SERVICE & LABOR ALLOCATION (การปันส่วนค่าบริการและแรงงาน - อู่ซ่อมรถ) -->
         <div class="bg-slate-800/70 border border-amber-500/30 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-700/80">
             <div class="flex items-center gap-2.5">
@@ -2509,8 +2509,8 @@
                 <i data-lucide="wrench" class="w-4 h-4"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white">3. หักค่าแรงช่างประจำวัน (สำหรับอู่ซ่อมรถ)</h3>
-                <p class="text-[11px] text-slate-400">หน้าร้านและอู่ซ่อมรถรับเงินรวมกัน ต้องหักค่าแรงช่างแยกออกจากยอดขายอะไหล่/สินค้าของร้านค้า</p>
+                <h3 class="text-sm font-bold text-white">3. การปันส่วนค่าบริการและแรงงานประจำวัน (สำหรับอู่ซ่อมรถ)</h3>
+                <p class="text-[11px] text-slate-400">หน้าร้านและอู่ซ่อมรถรับเงินรวมกัน ต้องปันส่วนค่าบริการและแรงงานช่างแยกออกจากยอดขายอะไหล่/สินค้าของร้านค้า</p>
               </div>
             </div>
             <div class="text-right">
@@ -2535,12 +2535,12 @@
             <!-- 3.2 Labor Credit -->
             <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
               <label class="block text-xs font-semibold text-amber-300">
-                3.2 ค่าแรงช่าง (บิลเครดิต) *
+                3.2 ค่าแรงช่าง (ขายเชื่อ / ลูกหนี้การค้า) *
               </label>
               <input type="number" step="0.01" min="0" id="rev-labor-credit" placeholder="0.00" oninput="recalcDailyRevenueLive()"
                 class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-400 font-bold font-mono text-base focus:outline-none focus:ring-2 focus:ring-amber-500/50">
               <p class="text-[10px] text-slate-400 leading-relaxed">
-                * ก้อนนี้จะถูกนำไปหักออกจาก <strong>ยอดบิลเครดิต</strong> เพื่อคำนวณหายอดขายสินค้าเครดิตสุทธิของร้านค้า
+                * ก้อนนี้จะถูกนำไปหักออกจาก <strong>ยอดขายเชื่อ</strong> เพื่อคำนวณหายอดขายสินค้าเครดิตสุทธิของร้านค้า
               </p>
             </div>
           </div>
@@ -2564,7 +2564,7 @@
                 <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
                   <span class="font-semibold text-white flex items-center gap-1.5">
                     <i data-lucide="package" class="w-3.5 h-3.5 text-blue-400"></i>
-                    <span>ยอดขายสินค้า (ร้านค้า)</span>
+                    <span>รายได้จากการขายสินค้า (ร้านค้า)</span>
                   </span>
                   <span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-600/20 text-blue-300">หักค่าแรงแล้ว</span>
                 </div>
@@ -2624,7 +2624,7 @@
                 <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
                   <span class="font-semibold text-white flex items-center gap-1.5">
                     <i data-lucide="badge-check" class="w-4 h-4 text-emerald-400"></i>
-                    <span class="text-emerald-300 font-bold">รวมรายรับทั้งสิ้น (Grand Total)</span>
+                    <span class="text-emerald-300 font-bold">รายได้รวมทั้งสิ้น (Total Gross Revenue)</span>
                   </span>
                 </div>
                 <div class="text-[10px] text-slate-400 mb-3">ยอดขายสินค้ารวม + ค่าแรงช่างรวม</div>
@@ -2660,7 +2660,7 @@
             <label class="block text-xs font-semibold text-slate-300 mb-1.5">
               หมายเหตุการปิดยอดรายรับ (Notes)
             </label>
-            <textarea id="rev-closing-notes" rows="2" placeholder="เช่น วันนี้เก็บเงินสดเข้าเซฟ 3 รอบ, บิลเครดิตรอวางบิล 1 ใบ, ยอดเงินถูกต้อง..."
+            <textarea id="rev-closing-notes" rows="2" placeholder="เช่น วันนี้เก็บเงินสดเข้าเซฟ 3 รอบ, ขายเชื่อรอวางบิล 1 ใบ, ยอดเงินถูกต้อง..."
               class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"></textarea>
           </div>
 
@@ -2686,7 +2686,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
           <div>
             <h3 class="text-sm font-bold text-white">ประวัติการปิดยอดรายรับประจำวันย้อนหลัง</h3>
-            <p class="text-xs text-slate-400">รายการบันทึกปิดกะจากแท็บ DAILY_CLOSING</p>
+            <p class="text-xs text-slate-400">รายการบันทึกปิดรอบรายได้จากแท็บ DAILY_CLOSING</p>
           </div>
           <button type="button" onclick="loadDailyRevenueHistory()" class="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
@@ -2703,10 +2703,10 @@
                   <th class="py-3 px-3">วันที่</th>
                   <th class="py-3 px-3 text-right">เงินสดสุทธิ</th>
                   <th class="py-3 px-3 text-right">เงินโอน</th>
-                  <th class="py-3 px-3 text-right">บิลเครดิต</th>
+                  <th class="py-3 px-3 text-right">ขายเชื่อ (เครดิต)</th>
                   <th class="py-3 px-3 text-right text-amber-300">ค่าแรงช่าง</th>
-                  <th class="py-3 px-3 text-right text-blue-300">ยอดขายสินค้า</th>
-                  <th class="py-3 px-3.5 text-right font-bold text-emerald-400">รายรับรวมทั้งสิ้น</th>
+                  <th class="py-3 px-3 text-right text-blue-300">รายได้ขายสินค้า</th>
+                  <th class="py-3 px-3.5 text-right font-bold text-emerald-400">รายได้รวมทั้งสิ้น</th>
                   <th class="py-3 px-3">ผู้บันทึก</th>
                   <th class="py-3 px-3">บันทึกเมื่อ</th>
                   <th class="py-3 px-3">หมายเหตุ</th>
@@ -2813,7 +2813,7 @@
       <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
         <h3 class="text-base font-bold text-white flex items-center gap-2">
           <i data-lucide="credit-card" class="w-5 h-5 text-emerald-400"></i>
-          <span>บันทึกรับชำระเงิน & ตัดยอดบัญชี</span>
+          <span>บันทึกรับชำระเงิน & ล้างยอดลูกหนี้ (AR Settlement)</span>
         </h3>
         <button onclick="closePaymentModal()" class="text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -2837,11 +2837,11 @@
         <!-- Auto Split Preview -->
         <div class="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-[11px]">
           <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
-            <div>ตัดยอดบัญชีร้านค้า:</div>
+            <div>ล้างยอดลูกหนี้ร้านค้า:</div>
             <strong id="pay-modal-split-store" class="font-mono text-xs">0.00</strong>
           </div>
           <div class="p-2 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-300">
-            <div>ตัดยอดบัญชีน้ำมัน:</div>
+            <div>ล้างยอดลูกหนี้น้ำมัน:</div>
             <strong id="pay-modal-split-fuel" class="font-mono text-xs">0.00</strong>
           </div>
         </div>
@@ -2899,7 +2899,7 @@
           <button type="button" onclick="closePaymentModal()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300">ยกเลิก</button>
           <button type="submit" id="btn-confirm-payment" class="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-950/40 flex items-center gap-1.5 transition">
             <i data-lucide="check-circle-2" class="w-4 h-4"></i>
-            <span>ยืนยันรับชำระ & ตัดยอดบัญชี</span>
+            <span>ยืนยันรับชำระ & ล้างยอดลูกหนี้</span>
           </button>
         </div>
       </form>
@@ -3019,7 +3019,7 @@
       <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
         <h3 class="text-base font-bold text-white flex items-center gap-2">
           <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
-          <span>บันทึกบิลเข้าคลังหลัก (Master Bills)</span>
+          <span>บันทึกบิลน้ำมันด้วยตนเอง / รายการขายย้อนหลัง</span>
         </h3>
         <button onclick="closeManualBillModal()" class="text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -3053,7 +3053,7 @@
             <input type="text" id="manual-date" required placeholder="วว/ดด/ปปปป" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono">
           </div>
           <div>
-            <label class="block font-medium text-slate-300 mb-1">เลขที่บิลกระดาษ / Ref *</label>
+            <label class="block font-medium text-slate-300 mb-1">เลขที่เอกสารอ้างอิงต้นฉบับ *</label>
             <input type="text" id="manual-bill-ref" required placeholder="เช่น WD5-22, BIL-99" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono">
           </div>
         </div>
@@ -3192,7 +3192,7 @@
             <span>⛽ เชื่อมโยงชีต STRMRec (credit)</span>
           </p>
           <p class="text-slate-300">
-            ระบบจะดึงรายการบิลน้ำมันที่พนักงานคีย์เข้ามา จับคู่รหัสลูกค้า ทะเบียนรถ และยอดเงิน เข้าสู่คลังบิลหลักอัตโนมัติ พร้อมระบบป้องกันบิลซ้ำซ้อน 100%
+            ระบบจะดึงรายการบิลน้ำมันที่พนักงานบันทึกข้อมูลเข้าระบบ จับคู่รหัสลูกค้า ทะเบียนรถ และยอดเงิน เข้าสู่คลังบิลหลักอัตโนมัติ พร้อมระบบป้องกันบิลซ้ำซ้อน 100%
           </p>
         </div>
 
@@ -3239,6 +3239,12 @@
       <form id="form-customer" onsubmit="handleSaveCustomer(event)" class="space-y-4 text-xs">
         <input type="hidden" id="cust-modal-mode" value="add">
 
+        <!-- Senior staff read-only notice -->
+        <div id="cust-modal-approval-notice" class="hidden p-3 bg-amber-500/15 border border-amber-500/30 rounded-xl text-amber-200 text-xs flex items-center gap-2">
+          <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400 shrink-0"></i>
+          <span>สิทธิ์พนักงานอาวุโส: ตรวจสอบข้อมูลและเพิ่มลูกค้าใหม่ได้เท่านั้น (หากต้องการแก้ไขหรือลบข้อมูล กรุณาแจ้งผู้จัดการเพื่อพิจารณาอนุมัติ)</span>
+        </div>
+
         <!-- Top row: ID & Tax ID -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
@@ -3250,7 +3256,7 @@
           </div>
           <div class="sm:col-span-2">
             <label class="block font-medium text-slate-300 mb-1">
-              เลขประจำตัวผู้เสียภาษี (13 หลัก)
+              เลขประจำตัวผู้เสียภาษีอากร 13 หลัก (Tax ID)
               <span class="text-[10px] text-slate-400 font-normal ml-1">(บุคคลธรรมดา / นิติบุคคล)</span>
             </label>
             <input type="text" id="cust-modal-taxid" maxlength="13" placeholder="เลขประจำตัวผู้เสียภาษี 13 หลัก" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono tracking-wider">
@@ -3260,11 +3266,11 @@
         <!-- Name & Full Name -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block font-medium text-slate-300 mb-1">ชื่อที่ใช้เรียกทั่วไป / ชื่อร้าน *</label>
+            <label class="block font-medium text-slate-300 mb-1">ชื่อทางการค้า (Trade / Commercial Name) *</label>
             <input type="text" id="cust-modal-name" required placeholder="เช่น เสี่ยกุ้ง อนันต์ก่อสร้าง" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
           </div>
           <div>
-            <label class="block font-medium text-slate-300 mb-1">ชื่อเต็มทางนิติบุคคล / หน่วยงาน</label>
+            <label class="block font-medium text-slate-300 mb-1">ชื่อจดทะเบียนนิติบุคคล (Registered Legal Entity Name)</label>
             <input type="text" id="cust-modal-fullname" placeholder="เช่น หจก.อนันต์ก่อสร้าง / รร.บ้านหนองแวง" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
           </div>
         </div>
@@ -3273,7 +3279,7 @@
         <div class="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl space-y-3">
           <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
             <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-400"></i>
-            <span>ที่อยู่เปิดบิล / ส่งของ</span>
+            <span>ที่อยู่จดทะเบียนภาษีและสถานที่ส่งของ</span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3310,11 +3316,11 @@
         <!-- Phone & Contacts -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block font-medium text-slate-300 mb-1">เบอร์โทรศัพท์ร้าน / ออฟฟิศ</label>
+            <label class="block font-medium text-slate-300 mb-1">หมายเลขโทรศัพท์สำนักงาน (Office Telephone)</label>
             <input type="text" id="cust-modal-phone" placeholder="เช่น 042-xxx-xxx" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono">
           </div>
           <div>
-            <label class="block font-medium text-slate-300 mb-1">ชื่อผู้ติดต่อประสานงาน</label>
+            <label class="block font-medium text-slate-300 mb-1">ผู้ติดต่อหลัก (Primary Contact Person)</label>
             <input type="text" id="cust-modal-contact" placeholder="เช่น เสี่ยกุ้ง, เสี่ยไก่" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
           </div>
         </div>
