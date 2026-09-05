@@ -83,6 +83,31 @@ function sendJson(res, statusCode, data, headers = {}) {
   res.end(JSON.stringify(data));
 }
 
+// Helper to upload images to Google Drive via Apps Script Web App
+async function uploadToGoogleDriveAppsScript(base64Data, fileName, uploadUrl = config.GOOGLE_DRIVE_UPLOAD_URL) {
+  if (!uploadUrl || !base64Data) return null;
+  try {
+    const res = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        base64Data,
+        fileName: fileName || `bill_${Date.now()}.jpg`,
+        folderName: 'ERP_บิลส่งของ_รูปภาพ'
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && (data.url || data.directUrl || data.webViewLink)) {
+        return data.url || data.directUrl || data.webViewLink;
+      }
+    }
+  } catch (err) {
+    console.error('Google Drive Apps Script upload error:', err);
+  }
+  return null;
+}
+
 // MIME types for static files
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -347,21 +372,26 @@ const server = http.createServer(async (req, res) => {
 
       let finalPhotoUrl = photoUrl || '';
 
-      // If image base64 provided, save it locally to public/uploads/bills/
-      if (imageBase64 && imageBase64.includes('base64,')) {
-        try {
-          const matches = imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-          if (matches && matches.length === 3) {
-            const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-            const ext = extMap[matches[1]] || 'jpg';
-            const buffer = Buffer.from(matches[2], 'base64');
-            const fileName = `bill_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-            const diskPath = path.join(uploadDir, fileName);
-            fs.writeFileSync(diskPath, buffer);
-            finalPhotoUrl = `/uploads/bills/${fileName}`;
+      // If image base64 provided, try Google Drive Apps Script first, then fallback to local disk
+      if (imageBase64 && !finalPhotoUrl) {
+        const driveUrl = await uploadToGoogleDriveAppsScript(imageBase64, `bill_${Date.now()}.jpg`);
+        if (driveUrl) {
+          finalPhotoUrl = driveUrl;
+        } else if (imageBase64.includes('base64,')) {
+          try {
+            const matches = imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+            if (matches && matches.length === 3) {
+              const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+              const ext = extMap[matches[1]] || 'jpg';
+              const buffer = Buffer.from(matches[2], 'base64');
+              const fileName = `bill_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+              const diskPath = path.join(uploadDir, fileName);
+              fs.writeFileSync(diskPath, buffer);
+              finalPhotoUrl = `/uploads/bills/${fileName}`;
+            }
+          } catch (imgErr) {
+            console.error('Image saving error:', imgErr);
           }
-        } catch (imgErr) {
-          console.error('Image saving error:', imgErr);
         }
       }
 
@@ -481,20 +511,25 @@ const server = http.createServer(async (req, res) => {
       }
 
       let finalPhotoUrl = photoUrl || '';
-      if (imageBase64 && imageBase64.includes('base64,')) {
-        try {
-          const matches = imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-          if (matches && matches.length === 3) {
-            const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-            const ext = extMap[matches[1]] || 'jpg';
-            const buffer = Buffer.from(matches[2], 'base64');
-            const fileName = `manual_bill_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-            const diskPath = path.join(uploadDir, fileName);
-            fs.writeFileSync(diskPath, buffer);
-            finalPhotoUrl = `/uploads/bills/${fileName}`;
+      if (imageBase64 && !finalPhotoUrl) {
+        const driveUrl = await uploadToGoogleDriveAppsScript(imageBase64, `manual_${Date.now()}.jpg`);
+        if (driveUrl) {
+          finalPhotoUrl = driveUrl;
+        } else if (imageBase64.includes('base64,')) {
+          try {
+            const matches = imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+            if (matches && matches.length === 3) {
+              const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+              const ext = extMap[matches[1]] || 'jpg';
+              const buffer = Buffer.from(matches[2], 'base64');
+              const fileName = `manual_bill_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+              const diskPath = path.join(uploadDir, fileName);
+              fs.writeFileSync(diskPath, buffer);
+              finalPhotoUrl = `/uploads/bills/${fileName}`;
+            }
+          } catch (imgErr) {
+            console.error('Manual image saving error:', imgErr);
           }
-        } catch (imgErr) {
-          console.error('Manual image saving error:', imgErr);
         }
       }
 
@@ -635,21 +670,26 @@ const server = http.createServer(async (req, res) => {
         const body = await parseBody(req);
         let finalSlipUrl = body.slipUrl || '';
 
-        // If slip image base64 provided, save to public/uploads/slips/
-        if (body.imageBase64 && body.imageBase64.includes('base64,')) {
-          try {
-            const matches = body.imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-            if (matches && matches.length === 3) {
-              const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-              const ext = extMap[matches[1]] || 'jpg';
-              const buffer = Buffer.from(matches[2], 'base64');
-              const fileName = `slip_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-              const diskPath = path.join(slipUploadDir, fileName);
-              fs.writeFileSync(diskPath, buffer);
-              finalSlipUrl = `/uploads/slips/${fileName}`;
+        // If slip image base64 provided, try Google Drive Apps Script first, then fallback to public/uploads/slips/
+        if (body.imageBase64 && !finalSlipUrl) {
+          const driveUrl = await uploadToGoogleDriveAppsScript(body.imageBase64, `slip_${Date.now()}.jpg`);
+          if (driveUrl) {
+            finalSlipUrl = driveUrl;
+          } else if (body.imageBase64.includes('base64,')) {
+            try {
+              const matches = body.imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+              if (matches && matches.length === 3) {
+                const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+                const ext = extMap[matches[1]] || 'jpg';
+                const buffer = Buffer.from(matches[2], 'base64');
+                const fileName = `slip_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+                const diskPath = path.join(slipUploadDir, fileName);
+                fs.writeFileSync(diskPath, buffer);
+                finalSlipUrl = `/uploads/slips/${fileName}`;
+              }
+            } catch (imgErr) {
+              console.error('Slip saving error:', imgErr);
             }
-          } catch (imgErr) {
-            console.error('Slip saving error:', imgErr);
           }
         }
 
