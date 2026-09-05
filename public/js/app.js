@@ -54,7 +54,7 @@ function refreshIcons() {
 
 // Navigation router
 function navigateTo(viewName) {
-  const views = ['login', 'dashboard', 'search', 'users', 'logs', 'delivery-bill', 'manager-audit', 'executive-dashboard', 'billing-notes', 'settings'];
+  const views = ['login', 'dashboard', 'search', 'users', 'logs', 'delivery-bill', 'manager-audit', 'executive-dashboard', 'billing-notes', 'settings', 'daily-revenue'];
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
     if (el) el.classList.add('hidden');
@@ -88,6 +88,13 @@ function navigateTo(viewName) {
     initBillingPage();
   } else if (viewName === 'settings') {
     initSettingsPage();
+  } else if (viewName === 'daily-revenue') {
+    if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+      showToast('เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น', false);
+      navigateTo('dashboard');
+      return;
+    }
+    initDailyRevenuePage();
   }
 
   refreshIcons();
@@ -369,6 +376,7 @@ function renderDashboard() {
   const cardExecutive = document.getElementById('card-menu-executive');
   const cardMaster = document.getElementById('card-menu-master');
   const cardBilling = document.getElementById('card-menu-billing');
+  const cardRevenue = document.getElementById('card-menu-revenue');
   const cardUsers = document.getElementById('card-menu-users');
   const cardLogs = document.getElementById('card-menu-logs');
   const cardSettings = document.getElementById('card-menu-settings');
@@ -385,6 +393,7 @@ function renderDashboard() {
     if (cardExecutive) cardExecutive.classList.add('hidden');
     if (cardMaster) cardMaster.classList.add('hidden');
     if (cardBilling) cardBilling.classList.add('hidden');
+    if (cardRevenue) cardRevenue.classList.add('hidden');
     cardUsers.classList.add('hidden');
     cardLogs.classList.add('hidden');
     if (cardSettings) cardSettings.classList.add('hidden');
@@ -392,12 +401,13 @@ function renderDashboard() {
     roleDesc.innerText = "สิทธิ์พนักงาน: เข้าถึง 2 เมนูหลัก (ค้นหาข้อมูลสินค้า และ บันทึกใบส่งของ)";
     menuScopeBadge.innerText = "พนักงาน: เข้าถึง 2 เมนู";
   } else if (role === 'manager') {
-    // ผู้จัดการ: งานขาย, แดชบอร์ดผู้บริหาร, ออกใบวางบิล & รับชำระ, คลังบิลหลัก และจัดการพนักงาน
+    // ผู้จัดการ: งานขาย, แดชบอร์ดผู้บริหาร, ออกใบวางบิล & รับชำระ, บันทึกรายรับหน้าร้าน, คลังบิลหลัก และจัดการพนักงาน
     cardSearch.classList.remove('hidden');
     cardDelivery.classList.remove('hidden');
     if (cardExecutive) cardExecutive.classList.remove('hidden');
     if (cardMaster) cardMaster.classList.remove('hidden');
     if (cardBilling) cardBilling.classList.remove('hidden');
+    if (cardRevenue) cardRevenue.classList.remove('hidden');
     cardUsers.classList.remove('hidden');
     cardLogs.classList.add('hidden');
     if (cardSettings) cardSettings.classList.add('hidden');
@@ -406,7 +416,7 @@ function renderDashboard() {
     titleUsers.innerText = "จัดการพนักงาน";
     descUsers.innerText = "เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านของพนักงานหน้าร้าน";
 
-    roleDesc.innerText = "สิทธิ์ผู้จัดการ: แดชบอร์ดผู้บริหาร, ออกใบวางบิล & รับชำระ, คลังบิลหลัก และจัดการพนักงาน";
+    roleDesc.innerText = "สิทธิ์ผู้จัดการ: แดชบอร์ดผู้บริหาร, ออกใบวางบิล & รับชำระ, บันทึกรายรับหน้าร้าน, คลังบิลหลัก และจัดการพนักงาน";
     menuScopeBadge.innerText = "ผู้จัดการ: สิทธิ์บริหาร & วางบิล";
   } else if (role === 'admin') {
     // Admin: สิทธิ์เต็มรูปแบบ
@@ -415,6 +425,7 @@ function renderDashboard() {
     if (cardExecutive) cardExecutive.classList.remove('hidden');
     if (cardMaster) cardMaster.classList.remove('hidden');
     if (cardBilling) cardBilling.classList.remove('hidden');
+    if (cardRevenue) cardRevenue.classList.remove('hidden');
     cardUsers.classList.remove('hidden');
     cardLogs.classList.remove('hidden');
     if (cardSettings) cardSettings.classList.remove('hidden');
@@ -2978,4 +2989,473 @@ function thaiBahtText(num) {
 
   return result;
 }
+
+// ==========================================
+// PHASE 5: DAILY STOREFRONT REVENUE & CASH SETTLEMENT
+// ==========================================
+
+let revCurrentDate = '';
+let revCashDropsList = [];
+let revCreditBillsData = { totalAmount: 0, bills: [], count: 0 };
+let revHistoryList = [];
+
+function getTodayThaiDateStr() {
+  const now = new Date();
+  const d = String(now.getDate()).padStart(2, '0');
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const y = now.getFullYear() + 543;
+  return `${d}/${m}/${y}`;
+}
+
+function getTodayTimeStr() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function initDailyRevenuePage() {
+  if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+    showToast('เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น', false);
+    return navigateTo('dashboard');
+  }
+
+  const dateInput = document.getElementById('rev-date-input');
+  if (dateInput && (!dateInput.value || !dateInput.value.trim())) {
+    dateInput.value = getTodayThaiDateStr();
+  }
+
+  // Reset inputs
+  const floatInput = document.getElementById('rev-change-float');
+  if (floatInput && (!floatInput.value || floatInput.value === '0')) {
+    floatInput.value = '7500';
+  }
+
+  switchRevenueTab('closing');
+  loadDailyRevenueData();
+  loadDailyRevenueHistory();
+}
+
+function setRevDateToday() {
+  const dateInput = document.getElementById('rev-date-input');
+  if (dateInput) {
+    dateInput.value = getTodayThaiDateStr();
+    loadDailyRevenueData();
+  }
+}
+
+function switchRevenueTab(tab) {
+  const panelClosing = document.getElementById('panel-rev-closing');
+  const panelHistory = document.getElementById('panel-rev-history');
+  const btnClosing = document.getElementById('btn-rev-tab-closing');
+  const btnHistory = document.getElementById('btn-rev-tab-history');
+
+  if (tab === 'closing') {
+    if (panelClosing) panelClosing.classList.remove('hidden');
+    if (panelHistory) panelHistory.classList.add('hidden');
+    if (btnClosing) {
+      btnClosing.className = 'px-4 py-2 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow-md';
+    }
+    if (btnHistory) {
+      btnHistory.className = 'px-4 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition';
+    }
+  } else {
+    if (panelClosing) panelClosing.classList.add('hidden');
+    if (panelHistory) panelHistory.classList.remove('hidden');
+    if (btnClosing) {
+      btnClosing.className = 'px-4 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition';
+    }
+    if (btnHistory) {
+      btnHistory.className = 'px-4 py-2 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow-md';
+    }
+    loadDailyRevenueHistory();
+  }
+  refreshIcons();
+}
+
+async function loadDailyRevenueData() {
+  const dateInput = document.getElementById('rev-date-input');
+  const targetDate = dateInput ? dateInput.value.trim() : getTodayThaiDateStr();
+  revCurrentDate = targetDate;
+
+  // 1. Fetch cash drops for this date
+  try {
+    const resDrops = await fetch(`/api/revenue/cash-drops?date=${encodeURIComponent(targetDate)}`, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const dropsData = await resDrops.json();
+    if (dropsData.success) {
+      revCashDropsList = dropsData.drops || [];
+    } else {
+      revCashDropsList = [];
+    }
+  } catch (err) {
+    console.error("Fetch cash drops error:", err);
+    revCashDropsList = [];
+  }
+
+  // 2. Fetch daily credit bills for this date
+  try {
+    const resBills = await fetch(`/api/revenue/credit-bills?date=${encodeURIComponent(targetDate)}`, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const billsData = await resBills.json();
+    if (billsData.success) {
+      revCreditBillsData = {
+        totalAmount: billsData.totalAmount || 0,
+        bills: billsData.bills || [],
+        count: billsData.count || 0
+      };
+    } else {
+      revCreditBillsData = { totalAmount: 0, bills: [], count: 0 };
+    }
+  } catch (err) {
+    console.error("Fetch credit bills error:", err);
+    revCreditBillsData = { totalAmount: 0, bills: [], count: 0 };
+  }
+
+  renderCashDropsList();
+  renderDailyCreditBills();
+  recalcDailyRevenueLive();
+}
+
+function renderCashDropsList() {
+  const tbody = document.getElementById('rev-cash-drops-tbody');
+  const totalDisplay = document.getElementById('rev-cash-drops-total-display');
+  if (!tbody) return;
+
+  if (revCashDropsList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-500 text-xs">ยังไม่มีรายการเก็บเงินสดเข้าเซฟวันที่ ${revCurrentDate}</td></tr>`;
+    if (totalDisplay) totalDisplay.innerText = '0.00';
+    return;
+  }
+
+  let total = 0;
+  tbody.innerHTML = revCashDropsList.map(d => {
+    total += d.amount;
+    return `
+      <tr class="hover:bg-slate-800/60 transition">
+        <td class="py-2.5 px-3 font-mono text-slate-300 font-semibold">${d.time || '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">${d.amountFormatted || d.amount.toFixed(2)}</td>
+        <td class="py-2.5 px-3 text-slate-300">${d.notes || '<span class="text-slate-500">-</span>'}</td>
+        <td class="py-2.5 px-3 text-center text-slate-400 font-medium">${d.recordedBy || '-'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  if (totalDisplay) {
+    totalDisplay.innerText = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+}
+
+function renderDailyCreditBills() {
+  const countBadge = document.getElementById('rev-credit-count-badge');
+  const totalDisplay = document.getElementById('rev-credit-total-display');
+  const listContainer = document.getElementById('rev-credit-bills-list');
+
+  if (countBadge) countBadge.innerText = `${revCreditBillsData.count || 0} รายการ`;
+  if (totalDisplay) {
+    totalDisplay.innerText = (revCreditBillsData.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  if (listContainer) {
+    if (!revCreditBillsData.bills || revCreditBillsData.bills.length === 0) {
+      listContainer.innerHTML = `<div class="py-3 text-center text-slate-500 text-xs">ไม่พบบิลเครดิตที่ออกในวันที่ ${revCurrentDate}</div>`;
+    } else {
+      listContainer.innerHTML = revCreditBillsData.bills.map((b, idx) => `
+        <div class="py-2 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500 font-mono">${idx + 1}.</span>
+            <div>
+              <span class="font-mono font-bold text-slate-200">${b.billRef || b.billId}</span>
+              <span class="text-slate-400 ml-1.5">${b.customerName || '-'}</span>
+            </div>
+          </div>
+          <div class="font-mono font-bold text-violet-400">${b.amountFormatted || b.amount.toFixed(2)}</div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function toggleCreditBillsList() {
+  const container = document.getElementById('rev-credit-bills-container');
+  const label = document.getElementById('rev-toggle-bills-label');
+  if (!container) return;
+
+  if (container.classList.contains('hidden')) {
+    container.classList.remove('hidden');
+    if (label) label.innerText = 'ซ่อนรายการบิลเครดิตของวันนี้';
+  } else {
+    container.classList.add('hidden');
+    if (label) label.innerText = 'แสดงรายการบิลเครดิตของวันนี้';
+  }
+}
+
+function recalcDailyRevenueLive() {
+  const changeFloat = parseFloat(String(document.getElementById('rev-change-float')?.value || '0').replace(/,/g, '')) || 0;
+  const drawerClose = parseFloat(String(document.getElementById('rev-drawer-close')?.value || '0').replace(/,/g, '')) || 0;
+  const transferTotal = parseFloat(String(document.getElementById('rev-transfer-total')?.value || '0').replace(/,/g, '')) || 0;
+  const laborCash = parseFloat(String(document.getElementById('rev-labor-cash')?.value || '0').replace(/,/g, '')) || 0;
+  const laborCredit = parseFloat(String(document.getElementById('rev-labor-credit')?.value || '0').replace(/,/g, '')) || 0;
+
+  const dropsTotal = revCashDropsList.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+  const creditTotal = parseFloat(revCreditBillsData.totalAmount) || 0;
+
+  // Formula calculations
+  const cashNet = Math.max(0, (dropsTotal + drawerClose) - changeFloat);
+  const cashAndTransfer = cashNet + transferTotal;
+  const laborTotal = laborCash + laborCredit;
+  const goodsCashTransfer = Math.max(0, cashAndTransfer - laborCash);
+  const goodsCredit = Math.max(0, creditTotal - laborCredit);
+  const goodsTotal = goodsCashTransfer + goodsCredit;
+  const grandTotal = goodsTotal + laborTotal;
+
+  const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Update formula badges
+  const fDrops = document.getElementById('formula-drops');
+  const fDrawer = document.getElementById('formula-drawer');
+  const fFloat = document.getElementById('formula-float');
+  if (fDrops) fDrops.innerText = fmt(dropsTotal);
+  if (fDrawer) fDrawer.innerText = fmt(drawerClose);
+  if (fFloat) fFloat.innerText = fmt(changeFloat);
+
+  // Update Net Cash & Cash+Transfer Displays
+  const netCashEl = document.getElementById('rev-net-cash-display');
+  const cashTransferSumEl = document.getElementById('rev-cash-transfer-sum-display');
+  const laborTotalEl = document.getElementById('rev-labor-total-display');
+
+  if (netCashEl) netCashEl.innerText = fmt(cashNet);
+  if (cashTransferSumEl) cashTransferSumEl.innerText = fmt(cashAndTransfer);
+  if (laborTotalEl) laborTotalEl.innerText = fmt(laborTotal);
+
+  // Update Summary Box A (Goods)
+  const sumGoodsCashEl = document.getElementById('rev-sum-goods-cash');
+  const sumGoodsCreditEl = document.getElementById('rev-sum-goods-credit');
+  const sumGoodsTotalEl = document.getElementById('rev-sum-goods-total');
+  if (sumGoodsCashEl) sumGoodsCashEl.innerText = fmt(goodsCashTransfer);
+  if (sumGoodsCreditEl) sumGoodsCreditEl.innerText = fmt(goodsCredit);
+  if (sumGoodsTotalEl) sumGoodsTotalEl.innerText = fmt(goodsTotal);
+
+  // Update Summary Box B (Labor)
+  const sumLaborCashEl = document.getElementById('rev-sum-labor-cash');
+  const sumLaborCreditEl = document.getElementById('rev-sum-labor-credit');
+  const sumLaborTotalEl = document.getElementById('rev-sum-labor-total');
+  if (sumLaborCashEl) sumLaborCashEl.innerText = fmt(laborCash);
+  if (sumLaborCreditEl) sumLaborCreditEl.innerText = fmt(laborCredit);
+  if (sumLaborTotalEl) sumLaborTotalEl.innerText = fmt(laborTotal);
+
+  // Update Summary Box C (Grand Total)
+  const sumCashSafeEl = document.getElementById('rev-sum-cash-to-safe');
+  const sumTransferBankEl = document.getElementById('rev-sum-transfer-to-bank');
+  const sumCreditArEl = document.getElementById('rev-sum-credit-ar');
+  const grandTotalEl = document.getElementById('rev-grand-total-display');
+
+  if (sumCashSafeEl) sumCashSafeEl.innerText = fmt(cashNet);
+  if (sumTransferBankEl) sumTransferBankEl.innerText = fmt(transferTotal);
+  if (sumCreditArEl) sumCreditArEl.innerText = fmt(creditTotal);
+  if (grandTotalEl) grandTotalEl.innerText = fmt(grandTotal);
+}
+
+// Cash Drop Modal Handlers
+function openCashDropModal() {
+  const dateInput = document.getElementById('rev-date-input');
+  const dropDate = document.getElementById('modal-drop-date');
+  const dropTime = document.getElementById('modal-drop-time');
+  const dropAmount = document.getElementById('modal-drop-amount');
+  const dropNotes = document.getElementById('modal-drop-notes');
+
+  if (dropDate) dropDate.value = dateInput ? dateInput.value.trim() : getTodayThaiDateStr();
+  if (dropTime) dropTime.value = getTodayTimeStr();
+  if (dropAmount) dropAmount.value = '';
+  if (dropNotes) dropNotes.value = '';
+
+  const modal = document.getElementById('modal-cash-drop');
+  if (modal) modal.classList.remove('hidden');
+  refreshIcons();
+}
+
+function closeCashDropModal() {
+  const modal = document.getElementById('modal-cash-drop');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleCashDropSubmit(e) {
+  if (e) e.preventDefault();
+  const date = document.getElementById('modal-drop-date')?.value.trim();
+  const time = document.getElementById('modal-drop-time')?.value.trim();
+  const amountStr = document.getElementById('modal-drop-amount')?.value;
+  const notes = document.getElementById('modal-drop-notes')?.value.trim();
+  const amount = parseFloat(amountStr) || 0;
+
+  if (!date || !time) {
+    return showToast('กรุณาระบุวันที่และเวลา', false);
+  }
+  if (amount <= 0) {
+    return showToast('กรุณาระบุจำนวนเงินที่เก็บเข้าเซฟให้ถูกต้อง', false);
+  }
+
+  const btn = document.getElementById('btn-confirm-drop');
+  const origText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> กำลังบันทึก...';
+    refreshIcons();
+  }
+
+  try {
+    const res = await fetch('/api/revenue/cash-drops', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify({ date, time, amount, notes })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'บันทึกการเก็บเงินสดล้มเหลว');
+    }
+
+    showToast(`บันทึกเก็บเงินสดเข้าเซฟ ${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} เรียบร้อย`);
+    closeCashDropModal();
+    await loadDailyRevenueData();
+  } catch (err) {
+    showToast(err.message, false);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+      refreshIcons();
+    }
+  }
+}
+
+async function handleDailyClosingSubmit() {
+  const dateInput = document.getElementById('rev-date-input');
+  const dateVal = dateInput ? dateInput.value.trim() : getTodayThaiDateStr();
+  if (!dateVal) {
+    return showToast('กรุณาระบุวันที่ปิดยอด', false);
+  }
+
+  const changeFloat = parseFloat(String(document.getElementById('rev-change-float')?.value || '7500').replace(/,/g, '')) || 7500;
+  const drawerClose = parseFloat(String(document.getElementById('rev-drawer-close')?.value || '0').replace(/,/g, '')) || 0;
+  const transferTotal = parseFloat(String(document.getElementById('rev-transfer-total')?.value || '0').replace(/,/g, '')) || 0;
+  const laborCash = parseFloat(String(document.getElementById('rev-labor-cash')?.value || '0').replace(/,/g, '')) || 0;
+  const laborCredit = parseFloat(String(document.getElementById('rev-labor-credit')?.value || '0').replace(/,/g, '')) || 0;
+  const notes = document.getElementById('rev-closing-notes')?.value.trim() || '';
+
+  const dropsTotal = revCashDropsList.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+  const creditTotal = parseFloat(revCreditBillsData.totalAmount) || 0;
+
+  const cashNet = Math.max(0, (dropsTotal + drawerClose) - changeFloat);
+  const cashAndTransfer = cashNet + transferTotal;
+  const laborTotal = laborCash + laborCredit;
+  const goodsTotal = Math.max(0, cashAndTransfer - laborCash) + Math.max(0, creditTotal - laborCredit);
+  const grandTotal = goodsTotal + laborTotal;
+
+  const confirmMsg = `ยืนยันการบันทึกปิดยอดรายรับประจำวัน ${dateVal} ?\n\n` +
+    `- รวมเงินสดเก็บเข้าเซฟ: ${dropsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- เงินสดในลิ้นชักปิดกะ: ${drawerClose.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- หักเงินทอน: ${changeFloat.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- เงินสดสุทธิ: ${cashNet.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- เงินโอน: ${transferTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- บิลเครดิต: ${creditTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- หักค่าแรงช่างรวม: ${laborTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `- รวมยอดขายสินค้า: ${goodsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}\n` +
+    `=============================\n` +
+    `ยอดรับรวมทั้งสิ้น: ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+  if (!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById('btn-submit-closing');
+  const origText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> กำลังบันทึกปิดยอด...';
+    refreshIcons();
+  }
+
+  try {
+    const payload = {
+      date: dateVal,
+      changeFloat,
+      cashDropsTotal: dropsTotal,
+      cashDrawerClose: drawerClose,
+      transferTotal,
+      creditTotal,
+      laborCash,
+      laborCredit,
+      notes
+    };
+
+    const res = await fetch('/api/revenue/daily-closing', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'บันทึกปิดยอดล้มเหลว');
+    }
+
+    showToast(`บันทึกปิดยอดรายรับประจำวัน ${data.closing?.closingId || ''} สำเร็จ`);
+    switchRevenueTab('history');
+  } catch (err) {
+    showToast(err.message, false);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+      refreshIcons();
+    }
+  }
+}
+
+async function loadDailyRevenueHistory() {
+  const tbody = document.getElementById('rev-history-table-body');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch('/api/revenue/daily-closings', {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.closings) || data.closings.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="11" class="py-10 text-center text-slate-500">ยังไม่มีประวัติการปิดยอดรายรับ</td></tr>`;
+      return;
+    }
+
+    revHistoryList = data.closings;
+    const fmt = (n) => {
+      const num = parseFloat(String(n || '0').replace(/,/g, '')) || 0;
+      return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    tbody.innerHTML = revHistoryList.map(c => `
+      <tr class="hover:bg-slate-800/60 transition duration-150">
+        <td class="py-3 px-3.5 font-mono font-bold text-emerald-400">${c.closingId}</td>
+        <td class="py-3 px-3 font-medium text-white">${c.date}</td>
+        <td class="py-3 px-3 text-right font-mono text-slate-200">${fmt(c.cashNet)}</td>
+        <td class="py-3 px-3 text-right font-mono text-sky-400">${fmt(c.transferTotal)}</td>
+        <td class="py-3 px-3 text-right font-mono text-violet-400">${fmt(c.creditTotal)}</td>
+        <td class="py-3 px-3 text-right font-mono text-amber-400 font-semibold">${fmt(c.laborTotal)}</td>
+        <td class="py-3 px-3 text-right font-mono text-blue-400 font-semibold">${fmt(c.goodsTotal)}</td>
+        <td class="py-3 px-3.5 text-right font-mono font-extrabold text-emerald-300">${fmt(c.grandTotal)}</td>
+        <td class="py-3 px-3 text-slate-300">${c.recordedBy || '-'}</td>
+        <td class="py-3 px-3 text-[11px] text-slate-400 font-mono">${c.recordedAt ? c.recordedAt.split(' ')[0] : '-'}</td>
+        <td class="py-3 px-3 text-xs text-slate-400 max-w-xs truncate" title="${c.notes || ''}">${c.notes || '-'}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error("loadDailyRevenueHistory error:", err);
+    tbody.innerHTML = `<tr><td colspan="11" class="py-10 text-center text-red-400">เกิดข้อผิดพลาดในการโหลดประวัติ: ${err.message}</td></tr>`;
+  }
+}
+
 
