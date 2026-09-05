@@ -52,6 +52,98 @@ function refreshIcons() {
   }
 }
 
+// Sidebar State & Navigation (Cobalt Enterprise Portal)
+let isSidebarOpenMobile = false;
+
+function toggleSidebar(forceState) {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (!sidebar) return;
+
+  const isDesktop = window.innerWidth >= 1024;
+  if (isDesktop) {
+    if (forceState !== undefined) {
+      if (forceState) sidebar.classList.remove('lg:hidden');
+      else sidebar.classList.add('lg:hidden');
+    } else {
+      sidebar.classList.toggle('lg:hidden');
+    }
+  } else {
+    if (forceState !== undefined) isSidebarOpenMobile = forceState;
+    else isSidebarOpenMobile = !isSidebarOpenMobile;
+
+    if (isSidebarOpenMobile) {
+      sidebar.classList.remove('-translate-x-full');
+      sidebar.classList.add('translate-x-0');
+      if (backdrop) backdrop.classList.remove('hidden');
+    } else {
+      sidebar.classList.remove('translate-x-0');
+      sidebar.classList.add('-translate-x-full');
+      if (backdrop) backdrop.classList.add('hidden');
+    }
+  }
+  refreshIcons();
+}
+
+function navigateSidebar(viewName) {
+  toggleSidebar(false); // Close mobile drawer
+  navigateTo(viewName);
+}
+
+function navigateSidebarReceipts() {
+  toggleSidebar(false);
+  navigateTo('billing-notes');
+  setTimeout(() => {
+    switchBillingTab('receipts');
+  }, 100);
+}
+
+function updateSidebarActive(viewName) {
+  const items = [
+    { id: 'side-item-dashboard', view: 'dashboard' },
+    { id: 'side-item-search', view: 'search' },
+    { id: 'side-item-delivery-bill', view: 'delivery-bill' },
+    { id: 'side-item-manager-audit', view: 'manager-audit' },
+    { id: 'side-item-daily-revenue', view: 'daily-revenue' },
+    { id: 'side-item-billing-notes', view: 'billing-notes' },
+    { id: 'side-item-receipts', view: 'receipts' },
+    { id: 'side-item-executive-dashboard', view: 'executive-dashboard' },
+    { id: 'side-item-users', view: 'users' },
+    { id: 'side-item-logs', view: 'logs' },
+    { id: 'side-item-settings', view: 'settings' }
+  ];
+
+  items.forEach(it => {
+    const el = document.getElementById(it.id);
+    if (!el) return;
+    if (it.view === viewName) {
+      el.className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold bg-blue-600/20 text-blue-400 border-l-2 border-blue-500 shadow-sm transition text-left";
+    } else {
+      el.className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left";
+    }
+  });
+
+  const dashBtn = document.getElementById('side-item-dashboard');
+  if (dashBtn) {
+    if (viewName === 'dashboard') {
+      dashBtn.className = "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600/25 border border-blue-500/40 shadow-sm transition group";
+    } else {
+      dashBtn.className = "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition group";
+    }
+  }
+}
+
+function updateLiveDateDisplay() {
+  const el = document.getElementById('nav-live-date');
+  if (!el) return;
+  const now = new Date();
+  const thMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const day = now.getDate();
+  const month = thMonths[now.getMonth()];
+  const year = now.getFullYear() + 543;
+  el.innerText = `${day} ${month} ${year}`;
+}
+
 // Navigation router
 function navigateTo(viewName) {
   const views = ['login', 'dashboard', 'search', 'users', 'logs', 'delivery-bill', 'manager-audit', 'executive-dashboard', 'billing-notes', 'settings', 'daily-revenue'];
@@ -64,11 +156,23 @@ function navigateTo(viewName) {
   if (targetEl) targetEl.classList.remove('hidden');
 
   const header = document.getElementById('app-header');
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+
   if (viewName === 'login') {
     if (header) header.classList.add('hidden');
+    if (sidebar) sidebar.classList.add('hidden');
+    if (backdrop) backdrop.classList.add('hidden');
   } else {
     if (header) header.classList.remove('hidden');
+    if (sidebar) {
+      sidebar.classList.remove('hidden');
+      sidebar.classList.add('flex');
+    }
   }
+
+  updateSidebarActive(viewName);
+  updateLiveDateDisplay();
 
   if (viewName === 'dashboard') {
     renderDashboard();
@@ -362,6 +466,12 @@ function renderDashboard() {
   const roleDesc = document.getElementById('dash-role-desc');
   const menuScopeBadge = document.getElementById('menu-scope-badge');
 
+  // Sidebar profile
+  const sideUserName = document.getElementById('side-user-name');
+  const sideUserRole = document.getElementById('side-user-role');
+  if (sideUserName) sideUserName.innerText = currentUser.full_name || currentUser.username;
+  if (sideUserRole) sideUserRole.innerText = ROLE_NAMES[currentUser.role] || currentUser.role;
+
   if (nameEl) nameEl.innerText = `คุณ${currentUser.full_name || currentUser.username}`;
   if (roleBadge) {
     roleBadge.innerText = ROLE_NAMES[currentUser.role] || currentUser.role;
@@ -370,73 +480,139 @@ function renderDashboard() {
     }`;
   }
 
-  // Cards
+  // Dashboard Sections
+  const secSales = document.getElementById('section-sales-inventory');
+  const secFinance = document.getElementById('section-finance-billing');
+  const secAnalytics = document.getElementById('section-executive-analytics');
+  const secSystem = document.getElementById('section-system-security');
+
+  // Dashboard Cards
   const cardSearch = document.getElementById('card-menu-search');
   const cardDelivery = document.getElementById('card-menu-delivery-bill');
-  const cardExecutive = document.getElementById('card-menu-executive');
   const cardMaster = document.getElementById('card-menu-master');
-  const cardBilling = document.getElementById('card-menu-billing');
   const cardRevenue = document.getElementById('card-menu-revenue');
+  const cardBilling = document.getElementById('card-menu-billing');
+  const cardReceipts = document.getElementById('card-menu-receipts');
+  const cardExecutive = document.getElementById('card-menu-executive');
   const cardUsers = document.getElementById('card-menu-users');
   const cardLogs = document.getElementById('card-menu-logs');
   const cardSettings = document.getElementById('card-menu-settings');
+
   const badgeUsersScope = document.getElementById('badge-users-scope');
   const titleUsers = document.getElementById('title-menu-users');
   const descUsers = document.getElementById('desc-menu-users');
 
+  // Sidebar Groups & Items
+  const sideGroupSales = document.getElementById('side-group-sales');
+  const sideGroupFinance = document.getElementById('side-group-finance');
+  const sideGroupAnalytics = document.getElementById('side-group-analytics');
+  const sideGroupSystem = document.getElementById('side-group-system');
+
+  const sideAudit = document.getElementById('side-item-manager-audit');
+  const sideUsers = document.getElementById('side-item-users');
+  const sideTitleUsers = document.getElementById('side-title-users');
+  const sideLogs = document.getElementById('side-item-logs');
+  const sideSettings = document.getElementById('side-item-settings');
+
   const role = currentUser.role || 'staff';
 
   if (role === 'staff' || role === 'senior_staff') {
-    // พนักงาน: ค้นหาสินค้า + บันทึกใบส่งของ
-    cardSearch.classList.remove('hidden');
-    cardDelivery.classList.remove('hidden');
-    if (cardExecutive) cardExecutive.classList.add('hidden');
+    // พนักงาน: ค้นหาสินค้า + บันทึกใบส่งของ (เฉพาะงานขายหน้าร้าน)
+    if (secSales) secSales.classList.remove('hidden');
+    if (cardSearch) cardSearch.classList.remove('hidden');
+    if (cardDelivery) cardDelivery.classList.remove('hidden');
     if (cardMaster) cardMaster.classList.add('hidden');
-    if (cardBilling) cardBilling.classList.add('hidden');
-    if (cardRevenue) cardRevenue.classList.add('hidden');
-    cardUsers.classList.add('hidden');
-    cardLogs.classList.add('hidden');
-    if (cardSettings) cardSettings.classList.add('hidden');
 
-    roleDesc.innerText = "สิทธิ์พนักงาน: เข้าถึง 2 เมนูหลัก (ค้นหาข้อมูลสินค้า และ บันทึกใบส่งของ)";
-    menuScopeBadge.innerText = "พนักงาน: เข้าถึง 2 เมนู";
+    if (secFinance) secFinance.classList.add('hidden');
+    if (secAnalytics) secAnalytics.classList.add('hidden');
+    if (secSystem) secSystem.classList.add('hidden');
+
+    // Sidebar
+    if (sideGroupSales) sideGroupSales.classList.remove('hidden');
+    if (sideAudit) sideAudit.classList.add('hidden');
+    if (sideGroupFinance) sideGroupFinance.classList.add('hidden');
+    if (sideGroupAnalytics) sideGroupAnalytics.classList.add('hidden');
+    if (sideGroupSystem) sideGroupSystem.classList.add('hidden');
+
+    if (roleDesc) roleDesc.innerText = "สิทธิ์พนักงาน: เข้าถึงงานขายหน้าร้าน (ค้นหาสินค้า & สต็อก และ บันทึกใบส่งของ)";
+    if (menuScopeBadge) menuScopeBadge.innerText = "พนักงาน: เข้าถึง 2 เมนู";
   } else if (role === 'manager') {
-    // ผู้จัดการ: งานขาย, แดชบอร์ดผู้บริหาร, ออกใบวางบิล & รับชำระ, บันทึกรายรับหน้าร้าน, คลังบิลหลัก และจัดการพนักงาน
-    cardSearch.classList.remove('hidden');
-    cardDelivery.classList.remove('hidden');
-    if (cardExecutive) cardExecutive.classList.remove('hidden');
+    // ผู้จัดการ: งานขายทุกรายการ, การเงิน & ลูกหนี้ครบวงจร, แดชบอร์ดผู้บริหาร, และจัดการพนักงาน
+    if (secSales) secSales.classList.remove('hidden');
+    if (cardSearch) cardSearch.classList.remove('hidden');
+    if (cardDelivery) cardDelivery.classList.remove('hidden');
     if (cardMaster) cardMaster.classList.remove('hidden');
-    if (cardBilling) cardBilling.classList.remove('hidden');
+
+    if (secFinance) secFinance.classList.remove('hidden');
     if (cardRevenue) cardRevenue.classList.remove('hidden');
-    cardUsers.classList.remove('hidden');
-    cardLogs.classList.add('hidden');
+    if (cardBilling) cardBilling.classList.remove('hidden');
+    if (cardReceipts) cardReceipts.classList.remove('hidden');
+
+    if (secAnalytics) secAnalytics.classList.remove('hidden');
+    if (cardExecutive) cardExecutive.classList.remove('hidden');
+
+    if (secSystem) secSystem.classList.remove('hidden');
+    if (cardUsers) cardUsers.classList.remove('hidden');
+    if (cardLogs) cardLogs.classList.add('hidden');
     if (cardSettings) cardSettings.classList.add('hidden');
 
-    badgeUsersScope.innerText = "จัดการพนักงาน";
-    titleUsers.innerText = "จัดการพนักงาน";
-    descUsers.innerText = "เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านของพนักงานหน้าร้าน";
+    if (badgeUsersScope) badgeUsersScope.innerText = "จัดการพนักงาน";
+    if (titleUsers) titleUsers.innerText = "จัดการพนักงาน";
+    if (descUsers) descUsers.innerText = "เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านของพนักงานหน้าร้าน";
 
-    roleDesc.innerText = "สิทธิ์ผู้จัดการ: แดชบอร์ดผู้บริหาร, ออกใบวางบิล & รับชำระ, บันทึกรายรับหน้าร้าน, คลังบิลหลัก และจัดการพนักงาน";
-    menuScopeBadge.innerText = "ผู้จัดการ: สิทธิ์บริหาร & วางบิล";
+    // Sidebar
+    if (sideGroupSales) sideGroupSales.classList.remove('hidden');
+    if (sideAudit) sideAudit.classList.remove('hidden');
+    if (sideGroupFinance) sideGroupFinance.classList.remove('hidden');
+    if (sideGroupAnalytics) sideGroupAnalytics.classList.remove('hidden');
+    if (sideGroupSystem) sideGroupSystem.classList.remove('hidden');
+    if (sideUsers) sideUsers.classList.remove('hidden');
+    if (sideTitleUsers) sideTitleUsers.innerText = "จัดการพนักงาน";
+    if (sideLogs) sideLogs.classList.add('hidden');
+    if (sideSettings) sideSettings.classList.add('hidden');
+
+    if (roleDesc) roleDesc.innerText = "สิทธิ์ผู้จัดการ: บริหารงานขาย, การเงิน & ลูกหนี้, แดชบอร์ดผู้บริหาร, และจัดการพนักงาน";
+    if (menuScopeBadge) menuScopeBadge.innerText = "ผู้จัดการ: สิทธิ์บริหาร & การเงิน";
   } else if (role === 'admin') {
-    // Admin: สิทธิ์เต็มรูปแบบ
-    cardSearch.classList.remove('hidden');
-    cardDelivery.classList.remove('hidden');
-    if (cardExecutive) cardExecutive.classList.remove('hidden');
+    // Admin: สิทธิ์เต็มรูปแบบทุกโมดูล
+    if (secSales) secSales.classList.remove('hidden');
+    if (cardSearch) cardSearch.classList.remove('hidden');
+    if (cardDelivery) cardDelivery.classList.remove('hidden');
     if (cardMaster) cardMaster.classList.remove('hidden');
-    if (cardBilling) cardBilling.classList.remove('hidden');
+
+    if (secFinance) secFinance.classList.remove('hidden');
     if (cardRevenue) cardRevenue.classList.remove('hidden');
-    cardUsers.classList.remove('hidden');
-    cardLogs.classList.remove('hidden');
+    if (cardBilling) cardBilling.classList.remove('hidden');
+    if (cardReceipts) cardReceipts.classList.remove('hidden');
+
+    if (secAnalytics) secAnalytics.classList.remove('hidden');
+    if (cardExecutive) cardExecutive.classList.remove('hidden');
+
+    if (secSystem) secSystem.classList.remove('hidden');
+    if (cardUsers) cardUsers.classList.remove('hidden');
+    if (cardLogs) cardLogs.classList.remove('hidden');
     if (cardSettings) cardSettings.classList.remove('hidden');
 
-    badgeUsersScope.innerText = "จัดการผู้ใช้ทุกคน";
-    titleUsers.innerText = "จัดการผู้เข้าใช้ทั้งหมด";
-    descUsers.innerText = "จัดการบัญชีผู้ใช้ทุกระดับ (พนักงาน, ผู้จัดการ, แอดมิน)";
+    if (badgeUsersScope) badgeUsersScope.innerText = "จัดการผู้ใช้ทุกคน";
+    if (titleUsers) titleUsers.innerText = "จัดการผู้ใช้งาน & สิทธิ์";
+    if (descUsers) descUsers.innerText = "จัดการบัญชีผู้ใช้ทุกระดับ (พนักงาน, ผู้จัดการ, แอดมิน)";
 
-    roleDesc.innerText = "สิทธิ์ผู้ดูแลระบบ (Admin): เข้าถึงได้ทุกฟังก์ชัน รวมทั้งระบบออกใบวางบิลและรับชำระ";
-    menuScopeBadge.innerText = "ผู้ดูแลระบบ: สิทธิ์เต็มรูปแบบ";
+    // Sidebar
+    if (sideGroupSales) sideGroupSales.classList.remove('hidden');
+    if (sideAudit) sideAudit.classList.remove('hidden');
+    if (sideGroupFinance) sideGroupFinance.classList.remove('hidden');
+    if (sideGroupAnalytics) sideGroupAnalytics.classList.remove('hidden');
+    if (sideGroupSystem) sideGroupSystem.classList.remove('hidden');
+    if (sideUsers) sideUsers.classList.remove('hidden');
+    if (sideTitleUsers) sideTitleUsers.innerText = "จัดการผู้ใช้งาน & สิทธิ์";
+    if (sideLogs) sideLogs.classList.remove('hidden');
+    if (sideSettings) sideSettings.classList.remove('hidden');
+
+    if (roleDesc) roleDesc.innerText = "สิทธิ์ผู้ดูแลระบบ (Admin): เข้าถึงได้ทุกฟังก์ชันและทุกระบบขององค์กร";
+    if (menuScopeBadge) menuScopeBadge.innerText = "ผู้ดูแลระบบ: สิทธิ์เต็มรูปแบบ";
   }
+
+  refreshIcons();
 }
 
 // ==========================================
