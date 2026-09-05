@@ -1024,8 +1024,8 @@ function handleBillPhotoSelect(event) {
   reader.onload = (e) => {
     const img = new Image();
     img.onload = () => {
-      // Compress image client-side to max 1280px dimension
-      const maxDim = 1280;
+      // Compress image client-side to max 1000px dimension and 0.75 quality for fast mobile uploads
+      const maxDim = 1000;
       let width = img.width;
       let height = img.height;
 
@@ -1045,7 +1045,7 @@ function handleBillPhotoSelect(event) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.82);
+      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.75);
 
       // Show preview
       const previewImg = document.getElementById('photo-preview-img');
