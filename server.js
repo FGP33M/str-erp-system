@@ -682,6 +682,36 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // GET /api/settings (Store Settings)
+    if (pathname === '/api/settings' && method === 'GET') {
+      try {
+        const settings = await googleSheets.getStoreSettings();
+        return sendJson(res, 200, { success: true, settings });
+      } catch (err) {
+        return sendJson(res, 500, { success: false, message: err.message });
+      }
+    }
+
+    // POST /api/settings (Update Store Settings - Admin only)
+    if (pathname === '/api/settings' && method === 'POST') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser || currentUser.role !== 'admin') {
+        return sendJson(res, 403, { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น' });
+      }
+
+      try {
+        const body = await parseBody(req);
+        const updated = await googleSheets.updateStoreSettings(body, currentUser);
+        return sendJson(res, 200, {
+          success: true,
+          message: 'บันทึกข้อมูลร้านค้าเรียบร้อย',
+          settings: updated
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, message: err.message });
+      }
+    }
+
     // ==========================================
     // STATIC FILES (public/)
     // ==========================================
