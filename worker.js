@@ -594,6 +594,21 @@ export default {
         }
       }
 
+      // 14.1 POST /api/delivery/fuel/sync (Sync fuel bills from AppSheet STRMRec)
+      if (pathname === '/api/delivery/fuel/sync' && method === 'POST') {
+        if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
+        }
+        try {
+          const body = await request.json().catch(() => ({}));
+          const startDate = body.startDate || '2026-09-01';
+          const result = await googleSheets.syncFuelBillsFromAppSheet({ startDate, user: currentUser });
+          return jsonResponse(result, 200);
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 500);
+        }
+      }
+
       // 15. GET /api/delivery/manager/master-bills
       if (pathname === '/api/delivery/manager/master-bills' && method === 'GET') {
         if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
