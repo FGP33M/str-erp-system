@@ -352,11 +352,14 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { success: true, customers });
     }
 
-    // POST /api/customers (Add new customer - Authenticated users)
+    // POST /api/customers (Add new customer - Senior Staff, Manager, Admin)
     if (pathname === '/api/customers' && method === 'POST') {
       const currentUser = getSessionUser(req);
       if (!currentUser) {
         return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+      if (currentUser.role !== 'senior_staff' && currentUser.role !== 'manager' && currentUser.role !== 'admin') {
+        return sendJson(res, 403, { success: false, message: 'ไม่มีสิทธิ์: เฉพาะพนักงานอาวุโส หรือผู้จัดการเท่านั้น' });
       }
 
       try {
@@ -368,12 +371,15 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // POST /api/customers/:id/update or PUT /api/customers/:id (Update customer)
+    // POST /api/customers/:id/update or PUT /api/customers/:id (Update customer - Manager, Admin only)
     const updateCustomerMatch = pathname.match(/^\/api\/customers\/([^\/]+)(?:\/update)?$/);
     if (updateCustomerMatch && (method === 'PUT' || (method === 'POST' && pathname.endsWith('/update')))) {
       const currentUser = getSessionUser(req);
       if (!currentUser) {
         return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+      if (currentUser.role !== 'manager' && currentUser.role !== 'admin') {
+        return sendJson(res, 403, { success: false, message: 'ไม่มีสิทธิ์แก้ไข: การแก้ไขข้อมูลลูกค้าต้องดำเนินการโดยผู้จัดการ หรือได้รับการอนุมัติเท่านั้น' });
       }
 
       const customerId = decodeURIComponent(updateCustomerMatch[1]);
@@ -384,6 +390,18 @@ const server = http.createServer(async (req, res) => {
       } catch (err) {
         return sendJson(res, 400, { success: false, message: err.message });
       }
+    }
+
+    // DELETE /api/customers/:id (Delete customer - Manager, Admin only)
+    if (updateCustomerMatch && method === 'DELETE') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+      if (currentUser.role !== 'manager' && currentUser.role !== 'admin') {
+        return sendJson(res, 403, { success: false, message: 'ไม่มีสิทธิ์ลบ: การลบข้อมูลลูกค้าต้องดำเนินการโดยผู้จัดการ หรือได้รับการอนุมัติเท่านั้น' });
+      }
+      return sendJson(res, 403, { success: false, message: 'ระบบยังไม่เปิดให้ลบข้อมูลลูกค้าโดยตรง กรุณาติดต่อผู้ดูแลระบบ' });
     }
 
     // POST /api/delivery/inbox & /api/delivery/direct (Direct Bill Recording - Staff & higher)
