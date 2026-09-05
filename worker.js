@@ -524,7 +524,7 @@ export default {
         }
         try {
           const body = await request.json();
-          const { customerId, customerName, companyRegistration, billRef, amount, notes, imageBase64, photoUrl, date } = body;
+          const { category, customerId, customerName, companyRegistration, billRef, amount, notes, imageBase64, photoUrl, date } = body;
           if (!billRef || !billRef.trim()) return jsonResponse({ success: false, message: 'กรุณากรอกเลขที่บิล' }, 400);
           if (!amount || isNaN(parseFloat(String(amount).replace(/,/g, '')))) {
             return jsonResponse({ success: false, message: 'กรุณาระบุจำนวนเงินให้ถูกต้อง' }, 400);
@@ -539,9 +539,13 @@ export default {
               finalPhotoUrl = '';
             }
           }
+          let compReg = companyRegistration || (category === 'fuel' ? 'ปั๊มน้ำมัน' : 'ร้านค้า');
+          let cat = category || (compReg === 'ปั๊มน้ำมัน' ? 'fuel' : 'store_general');
+
           const result = await googleSheets.addMasterBillManual({
             date,
-            companyRegistration: companyRegistration || 'ปั๊มน้ำมัน',
+            category: cat,
+            companyRegistration: compReg,
             customerId: customerId || '',
             customerName: customerName || 'ไม่ระบุชื่อ',
             billRef: billRef.trim(),
@@ -566,9 +570,10 @@ export default {
         }
         try {
           const companyRegistration = url.searchParams.get('reg') || 'ALL';
+          const category = url.searchParams.get('category') || url.searchParams.get('cat') || 'ALL';
           const status = url.searchParams.get('status') || 'ALL';
           const query = url.searchParams.get('q') || '';
-          const bills = await googleSheets.getMasterBills({ companyRegistration, status, query });
+          const bills = await googleSheets.getMasterBills({ companyRegistration, category, status, query });
           return jsonResponse({ success: true, bills });
         } catch (err) {
           return jsonResponse({ success: false, message: err.message }, 500);
