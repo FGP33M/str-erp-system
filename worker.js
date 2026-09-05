@@ -30,6 +30,39 @@ export default {
       const authSheetId = env.AUTH_SHEET_ID || '1uM237XywBb0lFa9wavSP-rxNEOYUQldJp7AnLX09uM8';
       const productSheetId = env.PRODUCT_SHEET_ID || '1pCuUFizx8K2VTjMGGXB4MYfVJQndIFseky_gKuzApPg';
 
+      // 0. GET /api/photos/:key (Serve photos from KV)
+      if (pathname.startsWith('/api/photos/') && method === 'GET') {
+        const key = decodeURIComponent(pathname.replace('/api/photos/', '')).trim();
+        if (!key || !env.BILL_PHOTOS) {
+          return new Response('Photo not found', { status: 404 });
+        }
+        const photoData = await env.BILL_PHOTOS.get(key);
+        if (!photoData) {
+          return new Response('Photo not found', { status: 404 });
+        }
+        if (photoData.startsWith('data:')) {
+          const matches = photoData.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const mimeType = matches[1];
+            const binaryStr = atob(matches[2]);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+              bytes[i] = binaryStr.charCodeAt(i);
+            }
+            return new Response(bytes, {
+              headers: {
+                'Content-Type': mimeType,
+                'Cache-Control': 'public, max-age=31536000, immutable',
+                'Access-Control-Allow-Origin': '*'
+              }
+            });
+          }
+        }
+        return new Response(photoData, {
+          headers: { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+
       // 1. POST /api/login
       if (pathname === '/api/login' && method === 'POST') {
         try {
@@ -385,7 +418,13 @@ export default {
 
           let finalPhotoUrl = photoUrl || '';
           if (imageBase64 && !finalPhotoUrl) {
-            finalPhotoUrl = imageBase64;
+            if (env.BILL_PHOTOS) {
+              const photoKey = `bill_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+              await env.BILL_PHOTOS.put(photoKey, imageBase64);
+              finalPhotoUrl = `/api/photos/${photoKey}`;
+            } else {
+              finalPhotoUrl = '';
+            }
           }
 
           const assignedCategory = category || (customerType === 'หน่วยงานราชการ' ? 'store_gov' : 'store_general');
@@ -490,7 +529,16 @@ export default {
           if (!amount || isNaN(parseFloat(String(amount).replace(/,/g, '')))) {
             return jsonResponse({ success: false, message: 'กรุณาระบุจำนวนเงินให้ถูกต้อง' }, 400);
           }
-          let finalPhotoUrl = photoUrl || (imageBase64 || '');
+          let finalPhotoUrl = photoUrl || '';
+          if (imageBase64 && !finalPhotoUrl) {
+            if (env.BILL_PHOTOS) {
+              const photoKey = `manual_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+              await env.BILL_PHOTOS.put(photoKey, imageBase64);
+              finalPhotoUrl = `/api/photos/${photoKey}`;
+            } else {
+              finalPhotoUrl = '';
+            }
+          }
           const result = await googleSheets.addMasterBillManual({
             date,
             companyRegistration: companyRegistration || 'ปั๊มน้ำมัน',
@@ -536,21 +584,21 @@ export default {
           if (!customerId && !customerName) {
             return jsonResponse({ success: false, message: 'กรุณาระบุลูกค้า' }, 400);
           }
-          const data = await googleSheets.getPendingBillsForCustomer(customerId, customerName);
-          return jsonResponse({ success: true, ...data });
+          const bills = await googleSheets.getPendingBillsForCustomer(customerId, customerName);
+          return jsonResponse({ success: true, bills });
         } catch (err) {
           return jsonResponse({ success: false, message: err.message }, 500);
         }
       }
 
-      // 17. POST /api/billing/create
-      if (pathname === '/api/billing/create' && method === 'POST') {
+      // 17. POST /api/billing/notes & /api/billing/create
+      if ((pathname === '/api/billing/notes' || pathname === '/api/billing/create') && method === 'POST') {
         if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
           return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
         }
         try {
           const body = await request.json();
-          const { customerId, customerName, billIds, periodStart, periodEnd, notes } = body;
+          const { customerId, customerName, billIds, billingDate, dueDate, notes, periodStart, periodEnd } = body;
           if (!customerId || !customerName) return jsonResponse({ success: false, message: 'กรุณาระบุข้อมูลลูกค้า' }, 400);
           if (!Array.isArray(billIds) || billIds.length === 0) {
             return jsonResponse({ success: false, message: 'กรุณาเลือกบิลที่ต้องการวางบิลอย่างน้อย 1 รายการ' }, 400);
@@ -559,6 +607,8 @@ export default {
             customerId,
             customerName,
             billIds,
+            billingDate,
+            dueDate,
             periodStart,
             periodEnd,
             notes
@@ -573,24 +623,26 @@ export default {
         }
       }
 
-      // 18. GET /api/billing/list
-      if (pathname === '/api/billing/list' && method === 'GET') {
+      // 18. GET /api/billing/notes & /api/billing/list
+      if ((pathname === '/api/billing/notes' || pathname === '/api/billing/list') && method === 'GET') {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
         try {
           const status = url.searchParams.get('status') || 'ALL';
-          const query = url.searchParams.get('q') || '';
-          const notes = await googleSheets.getBillingNotesList({ status, query });
-          return jsonResponse({ success: true, billingNotes: notes });
+          const notes = await googleSheets.getBillingNotes(status);
+          return jsonResponse({ success: true, notes, billingNotes: notes });
         } catch (err) {
           return jsonResponse({ success: false, message: err.message }, 500);
         }
       }
 
-      // 19. GET /api/billing/detail
-      if (pathname === '/api/billing/detail' && method === 'GET') {
+      // 19. GET /api/billing/notes/:no & /api/billing/detail
+      if (((pathname.startsWith('/api/billing/notes/') && !pathname.endsWith('/payment')) || pathname === '/api/billing/detail') && method === 'GET') {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
         try {
-          const billingNo = url.searchParams.get('billingNo') || '';
+          let billingNo = url.searchParams.get('billingNo') || '';
+          if (!billingNo && pathname.startsWith('/api/billing/notes/')) {
+            billingNo = decodeURIComponent(pathname.replace('/api/billing/notes/', '')).trim();
+          }
           if (!billingNo) return jsonResponse({ success: false, message: 'กรุณาระบุเลขที่ใบวางบิล' }, 400);
           const data = await googleSheets.getBillingNoteDetail(billingNo);
           return jsonResponse({ success: true, ...data });
@@ -599,19 +651,37 @@ export default {
         }
       }
 
-      // 20. POST /api/billing/pay
-      if (pathname === '/api/billing/pay' && method === 'POST') {
+      // 20. POST /api/billing/notes/:no/payment & /api/billing/pay
+      if ((pathname.includes('/payment') || pathname === '/api/billing/pay') && method === 'POST') {
         if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
           return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
         }
         try {
           const body = await request.json();
-          const { billingNo, paidAmount, paymentDate, bankAccount, slipBase64, slipUrl, notes } = body;
+          let billingNo = body.billingNo;
+          if (!billingNo && pathname.includes('/payment')) {
+            const parts = pathname.split('/');
+            const payIdx = parts.indexOf('payment');
+            billingNo = payIdx > 0 ? decodeURIComponent(parts[payIdx - 1]) : '';
+          }
+          const { paidAmount, paymentDate, bankAccount, slipBase64, slipUrl, imageBase64, notes } = body;
           if (!billingNo) return jsonResponse({ success: false, message: 'กรุณาระบุเลขที่ใบวางบิล' }, 400);
           if (!paidAmount || isNaN(parseFloat(String(paidAmount).replace(/,/g, '')))) {
             return jsonResponse({ success: false, message: 'กรุณาระบุจำนวนเงินที่ชำระให้ถูกต้อง' }, 400);
           }
-          let finalSlipUrl = slipUrl || (slipBase64 || '');
+
+          let finalSlipUrl = slipUrl || '';
+          const slipImg = imageBase64 || slipBase64;
+          if (slipImg && !finalSlipUrl) {
+            if (env.BILL_PHOTOS) {
+              const slipKey = `slip_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+              await env.BILL_PHOTOS.put(slipKey, slipImg);
+              finalSlipUrl = `/api/photos/${slipKey}`;
+            } else {
+              finalSlipUrl = '';
+            }
+          }
+
           const result = await googleSheets.recordPayment({
             billingNo,
             paidAmount,
