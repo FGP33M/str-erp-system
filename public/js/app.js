@@ -33,15 +33,35 @@ const ROLE_COLORS = {
   'staff': 'bg-blue-500/20 text-blue-300 border-blue-500/30'
 };
 
+// Dual URL Portal Mode ('staff' | 'manager')
+let currentPortalMode = 'staff';
+
+function isManagerOrAdmin() {
+  return currentUser && (currentUser.role === 'manager' || currentUser.role === 'admin');
+}
+
+function syncUrlRoute(path) {
+  if (window.location.pathname !== path) {
+    window.history.pushState({ path }, '', path);
+  }
+}
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
   if (window.lucide) lucide.createIcons();
 
   await loadStoreSettings();
 
+  window.addEventListener('popstate', () => {
+    handleUrlRouting();
+  });
+
   if (currentToken) {
     await checkAuth();
   } else {
+    const rawPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    if (rawPath === '/staff') sessionStorage.setItem('erp_return_portal', 'staff');
+    else if (rawPath === '/manager') sessionStorage.setItem('erp_return_portal', 'manager');
     navigateTo('login');
   }
 });
@@ -157,6 +177,14 @@ function updateLiveDateDisplay() {
 
 // Navigation router
 function navigateTo(viewName) {
+  // Role Guard for manager-only views
+  const managerOnlyViews = ['executive-dashboard', 'manager-audit', 'customers', 'users', 'logs', 'settings', 'billing-notes', 'daily-revenue'];
+  if (!isManagerOrAdmin() && managerOnlyViews.includes(viewName)) {
+    showToast('คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (เฉพาะผู้จัดการเท่านั้น)', false);
+    navigateTo('delivery-bill');
+    return;
+  }
+
   const views = ['login', 'dashboard', 'search', 'users', 'logs', 'delivery-bill', 'manager-audit', 'customers', 'executive-dashboard', 'billing-notes', 'settings', 'daily-revenue'];
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
@@ -174,12 +202,15 @@ function navigateTo(viewName) {
     if (header) header.classList.add('hidden');
     if (sidebar) sidebar.classList.add('hidden');
     if (backdrop) backdrop.classList.add('hidden');
+    syncUrlRoute('/');
   } else {
     if (header) header.classList.remove('hidden');
     if (sidebar) {
       sidebar.classList.remove('hidden');
       sidebar.classList.add('flex');
     }
+    // Synchronize browser address bar with current portal mode
+    syncUrlRoute(currentPortalMode === 'staff' ? '/staff' : '/manager');
   }
 
   updateSidebarActive(viewName);
@@ -208,13 +239,123 @@ function navigateTo(viewName) {
   } else if (viewName === 'daily-revenue') {
     if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
       showToast('เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น', false);
-      navigateTo('dashboard');
+      navigateTo('delivery-bill');
       return;
     }
     initDailyRevenuePage();
   }
 
   refreshIcons();
+}
+
+// Switch between /staff and /manager portal modes
+function switchPortalMode(mode, updateUrl = true) {
+  if (mode === 'manager' && !isManagerOrAdmin()) {
+    showToast('เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น', false);
+    switchPortalMode('staff', true);
+    return;
+  }
+
+  currentPortalMode = mode;
+
+  // Header switcher buttons styling
+  const btnStaff = document.getElementById('btn-portal-staff');
+  const btnManager = document.getElementById('btn-portal-manager');
+  if (btnStaff && btnManager) {
+    if (mode === 'staff') {
+      btnStaff.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold bg-emerald-600 text-white shadow transition';
+      btnManager.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition';
+    } else {
+      btnManager.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white shadow transition';
+      btnStaff.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition';
+    }
+  }
+
+  // Sidebar banners & items visibility
+  const staffBanner = document.getElementById('sidebar-staff-banner');
+  const managerBanner = document.getElementById('sidebar-manager-banner');
+  const sideToggleText = document.getElementById('btn-side-portal-text');
+  const sideHomeText = document.getElementById('side-main-home-text');
+
+  if (mode === 'staff') {
+    if (staffBanner) staffBanner.classList.remove('hidden');
+    if (managerBanner) managerBanner.classList.add('hidden');
+    if (sideToggleText) sideToggleText.innerText = 'สลับไปโหมดผู้บริหาร (/manager)';
+    if (sideHomeText) sideHomeText.innerText = 'พื้นที่หน้าร้าน (เปิดบิล)';
+
+    // Filter sidebar menus: hide manager-only items
+    document.querySelectorAll('[data-portal="manager"]').forEach(el => {
+      el.classList.add('hidden');
+    });
+  } else {
+    if (managerBanner) managerBanner.classList.remove('hidden');
+    if (staffBanner) staffBanner.classList.add('hidden');
+    if (sideToggleText) sideToggleText.innerText = 'สลับไปโหมดหน้าร้าน (/staff)';
+    if (sideHomeText) sideHomeText.innerText = 'ศูนย์บริหารผู้จัดการ';
+
+    // Show all manager items
+    document.querySelectorAll('[data-portal="manager"]').forEach(el => {
+      el.classList.remove('hidden');
+    });
+  }
+
+  if (updateUrl) {
+    syncUrlRoute(mode === 'staff' ? '/staff' : '/manager');
+  }
+
+  // Navigate to primary view for the selected mode
+  if (mode === 'staff') {
+    navigateTo('delivery-bill');
+  } else {
+    navigateTo('executive-dashboard');
+  }
+
+  refreshIcons();
+}
+
+function toggleCurrentPortalMode() {
+  if (currentPortalMode === 'staff') {
+    switchPortalMode('manager', true);
+  } else {
+    switchPortalMode('staff', true);
+  }
+}
+
+function handleLogoClick() {
+  if (currentPortalMode === 'staff') {
+    navigateTo('delivery-bill');
+  } else {
+    navigateTo('executive-dashboard');
+  }
+}
+
+function handleUrlRouting() {
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+
+  if (!currentToken || !currentUser) {
+    if (pathname === '/staff') sessionStorage.setItem('erp_return_portal', 'staff');
+    else if (pathname === '/manager') sessionStorage.setItem('erp_return_portal', 'manager');
+    navigateTo('login');
+    return;
+  }
+
+  if (pathname === '/staff' || pathname.startsWith('/staff')) {
+    switchPortalMode('staff', false);
+  } else if (pathname === '/manager' || pathname.startsWith('/manager')) {
+    if (!isManagerOrAdmin()) {
+      showToast('เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น', false);
+      switchPortalMode('staff', true);
+    } else {
+      switchPortalMode('manager', false);
+    }
+  } else {
+    // Default root path: direct based on role
+    if (isManagerOrAdmin()) {
+      switchPortalMode('manager', true);
+    } else {
+      switchPortalMode('staff', true);
+    }
+  }
 }
 
 // ==========================================
@@ -347,7 +488,7 @@ function showToast(msg, isSuccess = true) {
 }
 
 // ==========================================
-// AUTHENTICATION
+// AUTHENTICATION & DUAL URL ROUTING
 // ==========================================
 
 async function checkAuth() {
@@ -359,15 +500,18 @@ async function checkAuth() {
     if (data.success && data.user) {
       currentUser = data.user;
       updateHeaderUser();
-      navigateTo('dashboard');
+      handleUrlRouting();
     } else {
       localStorage.removeItem('erp_token');
       currentToken = '';
+      currentUser = null;
       navigateTo('login');
+      syncUrlRoute('/');
     }
   } catch (err) {
     console.error("Auth check failed:", err);
     navigateTo('login');
+    syncUrlRoute('/');
   }
 }
 
@@ -385,6 +529,24 @@ function updateHeaderUser() {
     }`;
   }
   if (badgeEl) badgeEl.classList.remove('hidden');
+
+  // Dual URL Portal Switcher Visibility
+  const portalSwitcher = document.getElementById('header-portal-switcher');
+  const staffBadge = document.getElementById('header-staff-badge');
+  const sideToggleContainer = document.getElementById('side-portal-toggle-container');
+
+  if (isManagerOrAdmin()) {
+    if (portalSwitcher) portalSwitcher.classList.remove('hidden');
+    if (staffBadge) staffBadge.classList.add('hidden');
+    if (sideToggleContainer) sideToggleContainer.classList.remove('hidden');
+  } else {
+    if (portalSwitcher) portalSwitcher.classList.add('hidden');
+    if (staffBadge) {
+      staffBadge.classList.remove('hidden');
+      staffBadge.classList.add('flex');
+    }
+    if (sideToggleContainer) sideToggleContainer.classList.add('hidden');
+  }
 }
 
 async function handleLogin(e) {
@@ -419,7 +581,22 @@ async function handleLogin(e) {
       localStorage.setItem('erp_token', currentToken);
       updateHeaderUser();
       showToast(`เข้าสู่ระบบสำเร็จในฐานะ ${ROLE_NAMES[currentUser.role] || currentUser.role}`);
-      navigateTo('dashboard');
+
+      // Smart Dual URL Post-Login Redirection
+      const savedPortal = sessionStorage.getItem('erp_return_portal');
+      sessionStorage.removeItem('erp_return_portal');
+
+      if (savedPortal === 'staff') {
+        switchPortalMode('staff', true);
+      } else if (savedPortal === 'manager' && isManagerOrAdmin()) {
+        switchPortalMode('manager', true);
+      } else {
+        if (isManagerOrAdmin()) {
+          switchPortalMode('manager', true);
+        } else {
+          switchPortalMode('staff', true);
+        }
+      }
     } else {
       errText.innerText = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
       errDiv.classList.remove('hidden');
@@ -438,7 +615,6 @@ async function handleLogin(e) {
     refreshIcons();
   }
 }
-
 
 function togglePasswordVisibility() {
   const pwd = document.getElementById('login-password');
@@ -465,6 +641,7 @@ async function handleLogout() {
   currentToken = '';
   currentUser = null;
   navigateTo('login');
+  syncUrlRoute('/');
   showToast("ออกจากระบบเรียบร้อยแล้ว");
 }
 
