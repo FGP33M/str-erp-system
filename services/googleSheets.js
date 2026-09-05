@@ -491,7 +491,13 @@ class GoogleSheetsService {
         const id = (r[0] || '').trim();
         const name = (r[1] || '').trim();
         const fullName = (r[2] || '').trim();
-        const addressParts = [r[3], r[4], r[5], r[6], r[7], r[8]].map(s => (s || '').trim()).filter(Boolean);
+        const addressDetail = (r[3] || '').trim();
+        const village = (r[4] || '').trim();
+        const subdistrict = (r[5] || '').trim();
+        const district = (r[6] || '').trim();
+        const province = (r[7] || '').trim();
+        const zipcode = (r[8] || '').trim();
+        const addressParts = [addressDetail, village, subdistrict, district, province, zipcode].filter(Boolean);
         const address = addressParts.join(' ');
         const phone = (r[9] || '').trim();
         const taxId = (r[10] || '').trim();
@@ -504,6 +510,12 @@ class GoogleSheetsService {
           name: name || fullName || 'ไม่ระบุชื่อ',
           fullName: fullName || name || '',
           address,
+          addressDetail,
+          village,
+          subdistrict,
+          district,
+          province,
+          zipcode,
           phone,
           taxId,
           contact,
@@ -525,8 +537,230 @@ class GoogleSheetsService {
       c.name.toLowerCase().includes(q) ||
       c.fullName.toLowerCase().includes(q) ||
       c.phone.includes(q) ||
-      c.contact.toLowerCase().includes(q)
+      (c.taxId && c.taxId.includes(q)) ||
+      (c.address && c.address.toLowerCase().includes(q)) ||
+      (c.contact && c.contact.toLowerCase().includes(q))
     );
+  }
+
+  async addCustomer(data, user) {
+    const token = await this.getAccessToken();
+
+    // 1. Determine customer ID if not provided
+    let newId = (data.id || '').trim().toUpperCase();
+    if (!newId) {
+      const idRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.CUSTOMERS}/values/Custom!A2:A`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!idRes.ok) {
+        throw new Error("Failed to fetch customer IDs for generation");
+      }
+      const idData = await idRes.json();
+      const rows = idData.values || [];
+      let maxNum = 0;
+      rows.forEach(r => {
+        const idVal = (r[0] || '').trim();
+        const match = idVal.match(/^C(\d+)$/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      const nextNum = maxNum + 1;
+      newId = `C${String(nextNum).padStart(4, '0')}`;
+    }
+
+    const name = (data.name || '').trim();
+    if (!name) {
+      throw new Error("กรุณาระบุชื่อลูกค้า");
+    }
+    const fullName = (data.fullName || name).trim();
+    const addressDetail = (data.addressDetail || '').trim();
+    const village = (data.village || '').trim();
+    const subdistrict = (data.subdistrict || '').trim();
+    const district = (data.district || '').trim();
+    const province = (data.province || '').trim();
+    const zipcode = (data.zipcode || '').trim();
+    const phone = (data.phone || '').trim();
+    const taxId = (data.taxId || '').trim();
+    const contact = (data.contact || '').trim();
+    const contactPhone = (data.contactPhone || '').trim();
+    const contactLine = (data.contactLine || '').trim();
+
+    const rowValues = [
+      newId,
+      name,
+      fullName,
+      addressDetail,
+      village,
+      subdistrict,
+      district,
+      province,
+      zipcode,
+      phone,
+      taxId,
+      contact,
+      contactPhone,
+      contactLine
+    ];
+
+    const appendRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.CUSTOMERS}/values/Custom!A:N:append?valueInputOption=USER_ENTERED`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        values: [rowValues]
+      })
+    });
+
+    if (!appendRes.ok) {
+      const errText = await appendRes.text();
+      throw new Error(`Failed to save customer to Google Sheets: ${errText}`);
+    }
+
+    // Invalidate cache
+    this.cachedCustomers = null;
+    this.customersCacheTime = 0;
+
+    const addressParts = [addressDetail, village, subdistrict, district, province, zipcode].filter(Boolean);
+    return {
+      success: true,
+      customer: {
+        id: newId,
+        name,
+        fullName,
+        address: addressParts.join(' '),
+        addressDetail,
+        village,
+        subdistrict,
+        district,
+        province,
+        zipcode,
+        phone,
+        taxId,
+        contact,
+        contactPhone,
+        contactLine
+      }
+    };
+  }
+
+  async updateCustomer(id, data, user) {
+    if (!id) {
+      throw new Error("Missing customer ID");
+    }
+    const token = await this.getAccessToken();
+    const targetId = id.trim().toUpperCase();
+
+    // 1. Find row in Custom!A:A
+    const idRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.CUSTOMERS}/values/Custom!A:A`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!idRes.ok) {
+      throw new Error("Failed to search customer for update");
+    }
+    const idData = await idRes.json();
+    const rows = idData.values || [];
+    let targetRowIndex = -1;
+
+    for (let i = 0; i < rows.length; i++) {
+      if ((rows[i][0] || '').trim().toUpperCase() === targetId) {
+        targetRowIndex = i + 1; // 1-based index
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      throw new Error(`Customer with ID ${id} not found in Google Sheets`);
+    }
+
+    // 2. Fetch current row to support partial updates
+    const currentRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.CUSTOMERS}/values/Custom!A${targetRowIndex}:N${targetRowIndex}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    let current = [];
+    if (currentRes.ok) {
+      const curData = await currentRes.json();
+      current = (curData.values && curData.values[0]) || [];
+    }
+
+    const name = data.name !== undefined ? data.name.trim() : (current[1] || '');
+    if (!name) {
+      throw new Error("กรุณาระบุชื่อลูกค้า");
+    }
+    const fullName = data.fullName !== undefined ? data.fullName.trim() : (current[2] || name);
+    const addressDetail = data.addressDetail !== undefined ? data.addressDetail.trim() : (current[3] || '');
+    const village = data.village !== undefined ? data.village.trim() : (current[4] || '');
+    const subdistrict = data.subdistrict !== undefined ? data.subdistrict.trim() : (current[5] || '');
+    const district = data.district !== undefined ? data.district.trim() : (current[6] || '');
+    const province = data.province !== undefined ? data.province.trim() : (current[7] || '');
+    const zipcode = data.zipcode !== undefined ? data.zipcode.trim() : (current[8] || '');
+    const phone = data.phone !== undefined ? data.phone.trim() : (current[9] || '');
+    const taxId = data.taxId !== undefined ? data.taxId.trim() : (current[10] || '');
+    const contact = data.contact !== undefined ? data.contact.trim() : (current[11] || '');
+    const contactPhone = data.contactPhone !== undefined ? data.contactPhone.trim() : (current[12] || '');
+    const contactLine = data.contactLine !== undefined ? data.contactLine.trim() : (current[13] || '');
+
+    const updatedRow = [
+      targetId,
+      name,
+      fullName,
+      addressDetail,
+      village,
+      subdistrict,
+      district,
+      province,
+      zipcode,
+      phone,
+      taxId,
+      contact,
+      contactPhone,
+      contactLine
+    ];
+
+    const putRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.CUSTOMERS}/values/Custom!A${targetRowIndex}:N${targetRowIndex}?valueInputOption=USER_ENTERED`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        values: [updatedRow]
+      })
+    });
+
+    if (!putRes.ok) {
+      const errText = await putRes.text();
+      throw new Error(`Failed to update customer in Google Sheets: ${errText}`);
+    }
+
+    // Invalidate cache
+    this.cachedCustomers = null;
+    this.customersCacheTime = 0;
+
+    const addressParts = [addressDetail, village, subdistrict, district, province, zipcode].filter(Boolean);
+    return {
+      success: true,
+      customer: {
+        id: targetId,
+        name,
+        fullName,
+        address: addressParts.join(' '),
+        addressDetail,
+        village,
+        subdistrict,
+        district,
+        province,
+        zipcode,
+        phone,
+        taxId,
+        contact,
+        contactPhone,
+        contactLine
+      }
+    };
   }
 
   // ==========================================
