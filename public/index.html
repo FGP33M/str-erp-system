@@ -567,6 +567,7 @@
             <span class="text-[11px] text-slate-400">* บันทึกแล้วแก้ไข/ลบไม่ได้</span>
           </div>
 
+          <form id="form-delivery-bill" onsubmit="handleDeliveryBillSubmit(event)" novalidate class="space-y-4">
             <!-- Store Category Segmented Switcher -->
             <div>
               <label class="block text-xs font-semibold text-slate-300 mb-2">เลือกส่วนงานร้านค้า *</label>
@@ -615,8 +616,8 @@
                 </div>
                 <button type="button" onclick="clearCustomerSelection()" class="text-xs text-amber-400 hover:text-amber-300 underline">เปลี่ยน</button>
               </div>
-              <input type="hidden" id="bill-customer-id" required>
-              <input type="hidden" id="bill-customer-name" required>
+              <input type="hidden" id="bill-customer-id">
+              <input type="hidden" id="bill-customer-name">
             </div>
 
             <!-- Bill Date, Ref & Amount Row -->
@@ -706,8 +707,8 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" id="btn-submit-bill"
-              class="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-semibold rounded-xl shadow-lg shadow-amber-950/50 transition duration-150 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+            <button type="submit" id="btn-submit-bill" onclick="handleDeliveryBillSubmit(event)"
+              class="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-semibold rounded-xl shadow-lg shadow-amber-950/50 transition duration-150 flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer">
               <i data-lucide="send" class="w-4 h-4"></i>
               <span>ยืนยันบันทึกใบส่งของ</span>
             </button>
