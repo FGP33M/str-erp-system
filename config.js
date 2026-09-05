@@ -16,8 +16,9 @@ module.exports = {
     DAILY_RECEIPTS: process.env.DAILY_RECEIPTS_SHEET_ID || '1tlQMwfTzdPQ4H1htkEUcWy7YBXfJ6UB59YvorAv0tGs',
   },
 
-  // Google Drive Folder for Bill Photos
+  // Google Drive Folder & Apps Script Web App for Bill Photos
   DRIVE_FOLDER_ID: process.env.DRIVE_FOLDER_ID || '1oI1qQSuC83v8GVnIR7J-YCGbUer3wnv3',
+  GOOGLE_DRIVE_UPLOAD_URL: process.env.GOOGLE_DRIVE_UPLOAD_URL || '',
 
   // Cache duration in milliseconds (5 minutes)
   CACHE_TTL_MS: 5 * 60 * 1000,
