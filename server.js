@@ -4,6 +4,16 @@ const path = require('path');
 const config = require('./config');
 const googleSheets = require('./services/googleSheets');
 
+const uploadDir = path.join(__dirname, 'public', 'uploads', 'bills');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const slipUploadDir = path.join(__dirname, 'public', 'uploads', 'slips');
+if (!fs.existsSync(slipUploadDir)) {
+  fs.mkdirSync(slipUploadDir, { recursive: true });
+}
+
 // Simple token cache for local dev / lightweight session
 const sessions = new Map();
 
@@ -41,15 +51,15 @@ function getSessionUser(req) {
   return session.user;
 }
 
-// Parse JSON body
+// Parse JSON body (allows up to 15MB for bill images)
 function parseBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();
-      if (body.length > 1e6) {
+      if (body.length > 15 * 1024 * 1024) {
         req.connection.destroy();
-        reject(new Error("Payload too large"));
+        reject(new Error("Payload too large (Max 15MB)"));
       }
     });
     req.on('end', () => {
@@ -299,6 +309,377 @@ const server = http.createServer(async (req, res) => {
       }
       const logs = await googleSheets.getLoginLogs(50);
       return sendJson(res, 200, { success: true, logs });
+    }
+
+    // ==========================================
+    // CUSTOMERS & DELIVERY BILLS
+    // ==========================================
+
+    // GET /api/customers (Authenticated users)
+    if (pathname === '/api/customers' && method === 'GET') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const q = reqUrl.searchParams.get('q') || '';
+      const customers = await googleSheets.getCustomers(q);
+      return sendJson(res, 200, { success: true, customers });
+    }
+
+    // POST /api/delivery/inbox (Direct Bill Recording - Staff & higher)
+    if (pathname === '/api/delivery/inbox' && method === 'POST') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const body = await parseBody(req);
+      const { customerId, customerName, category, customerType, billRef, poRef, amount, notes, imageBase64, photoUrl, date } = body;
+
+      if (!billRef || !billRef.trim()) {
+        return sendJson(res, 400, { success: false, message: 'กรุณากรอกเลขที่บิลส่งของ' });
+      }
+
+      if (!amount || isNaN(parseFloat(String(amount).replace(/,/g, '')))) {
+        return sendJson(res, 400, { success: false, message: 'กรุณาระบุจำนวนเงินให้ถูกต้อง' });
+      }
+
+      let finalPhotoUrl = photoUrl || '';
+
+      // If image base64 provided, save it locally to public/uploads/bills/
+      if (imageBase64 && imageBase64.includes('base64,')) {
+        try {
+          const matches = imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+            const ext = extMap[matches[1]] || 'jpg';
+            const buffer = Buffer.from(matches[2], 'base64');
+            const fileName = `bill_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+            const diskPath = path.join(uploadDir, fileName);
+            fs.writeFileSync(diskPath, buffer);
+            finalPhotoUrl = `/uploads/bills/${fileName}`;
+          }
+        } catch (imgErr) {
+          console.error('Image saving error:', imgErr);
+        }
+      }
+
+      // Determine category: 'store_gov' or 'store_general'
+      const assignedCategory = category || (customerType === 'หน่วยงานราชการ' ? 'store_gov' : 'store_general');
+
+      const result = await googleSheets.recordBillDirect({
+        category: assignedCategory,
+        customerId: customerId || '',
+        customerName: customerName || 'ไม่ระบุชื่อ',
+        billRef: billRef.trim(),
+        poRef: poRef ? poRef.trim() : '',
+        amount,
+        date,
+        photoUrl: finalPhotoUrl,
+        notes: notes || ''
+      }, currentUser);
+
+      return sendJson(res, 201, {
+        success: true,
+        message: 'บันทึกบิลเข้าคลังหลักเรียบร้อย (สถานะ: รอวางบิล)',
+        bill: result
+      });
+    }
+
+    // GET /api/delivery/inbox/today & /api/delivery/bills/today
+    if ((pathname === '/api/delivery/inbox/today' || pathname === '/api/delivery/bills/today') && method === 'GET') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const category = reqUrl.searchParams.get('category') || 'ALL';
+      const bills = await googleSheets.getTodayBills(currentUser.username, currentUser.role, category);
+      return sendJson(res, 200, {
+        success: true,
+        bills
+      });
+    }
+
+    // POST /api/delivery/bills/:id/cancel (Cancel / Void Bill)
+    if (pathname.includes('/cancel') && method === 'POST') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      // Extract bill ID from path, e.g. /api/delivery/bills/BIL-6909-0001/cancel or /api/delivery/inbox/BIL-6909-0001/cancel
+      const parts = pathname.split('/');
+      const cancelIndex = parts.indexOf('cancel');
+      const billId = cancelIndex > 0 ? parts[cancelIndex - 1] : '';
+
+      if (!billId) {
+        return sendJson(res, 400, { success: false, message: 'ไม่พบรหัสบิลที่ต้องการยกเลิก' });
+      }
+
+      const body = await parseBody(req);
+      const reason = body.reason || 'บันทึกข้อมูลผิด ขอยกเลิกเพื่อบันทึกใหม่';
+
+      try {
+        const result = await googleSheets.cancelBill(billId, reason, currentUser);
+        return sendJson(res, 200, {
+          success: true,
+          message: 'ยกเลิกบิลเรียบร้อย สามารถบันทึกบิลใหม่แทนได้ทันที',
+          ...result
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, message: err.message });
+      }
+    }
+
+    // ==========================================
+    // EXECUTIVE DASHBOARD
+    // ==========================================
+
+    // Helper to check manager/admin access
+    function checkManagerPermission(req, res) {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+        return null;
+      }
+      if (currentUser.role !== 'manager' && currentUser.role !== 'admin') {
+        sendJson(res, 403, { success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' });
+        return null;
+      }
+      return currentUser;
+    }
+
+    // GET /api/dashboard/executive (Executive Dashboard Stats)
+    if (pathname === '/api/dashboard/executive' && method === 'GET') {
+      const manager = checkManagerPermission(req, res);
+      if (!manager) return;
+
+      const period = reqUrl.searchParams.get('period') || 'ALL';
+      const stats = await googleSheets.getExecutiveDashboardStats(period);
+      return sendJson(res, 200, {
+        success: true,
+        stats
+      });
+    }
+
+    // POST /api/delivery/manager/manual-bill (Add manual fuel or store bill directly to Master)
+    if (pathname === '/api/delivery/manager/manual-bill' && method === 'POST') {
+      const manager = checkManagerPermission(req, res);
+      if (!manager) return;
+
+      const body = await parseBody(req);
+      const { customerId, customerName, companyRegistration, billRef, amount, notes, imageBase64, photoUrl, date } = body;
+
+      if (!billRef || !billRef.trim()) {
+        return sendJson(res, 400, { success: false, message: 'กรุณากรอกเลขที่บิล' });
+      }
+
+      if (!amount || isNaN(parseFloat(String(amount).replace(/,/g, '')))) {
+        return sendJson(res, 400, { success: false, message: 'กรุณาระบุจำนวนเงินให้ถูกต้อง' });
+      }
+
+      let finalPhotoUrl = photoUrl || '';
+      if (imageBase64 && imageBase64.includes('base64,')) {
+        try {
+          const matches = imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+            const ext = extMap[matches[1]] || 'jpg';
+            const buffer = Buffer.from(matches[2], 'base64');
+            const fileName = `manual_bill_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+            const diskPath = path.join(uploadDir, fileName);
+            fs.writeFileSync(diskPath, buffer);
+            finalPhotoUrl = `/uploads/bills/${fileName}`;
+          }
+        } catch (imgErr) {
+          console.error('Manual image saving error:', imgErr);
+        }
+      }
+
+      const result = await googleSheets.addMasterBillManual({
+        date,
+        companyRegistration: companyRegistration || 'ปั๊มน้ำมัน',
+        customerId: customerId || '',
+        customerName: customerName || 'ไม่ระบุชื่อ',
+        billRef: billRef.trim(),
+        amount,
+        photoUrl: finalPhotoUrl,
+        notes: notes || ''
+      }, manager);
+
+      return sendJson(res, 201, {
+        success: true,
+        message: 'บันทึกบิลเข้าคลังหลัก (Master Bills) เรียบร้อย',
+        bill: result
+      });
+    }
+
+    // GET /api/delivery/manager/master-bills (View Master Bills)
+    if (pathname === '/api/delivery/manager/master-bills' && method === 'GET') {
+      const manager = checkManagerPermission(req, res);
+      if (!manager) return;
+
+      const companyRegistration = reqUrl.searchParams.get('reg') || 'ALL';
+      const status = reqUrl.searchParams.get('status') || 'ALL';
+      const query = reqUrl.searchParams.get('q') || '';
+
+      const bills = await googleSheets.getMasterBills({ companyRegistration, status, query });
+      return sendJson(res, 200, { success: true, bills });
+    }
+
+    // ==========================================
+    // BILLING NOTES & PAYMENT COLLECTION
+    // ==========================================
+
+    // GET /api/billing/pending-bills (Bills with status 'รอวางบิล' for selected customer)
+    if (pathname === '/api/billing/pending-bills' && method === 'GET') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const customerId = reqUrl.searchParams.get('customerId') || '';
+      const customerName = reqUrl.searchParams.get('customerName') || '';
+
+      if (!customerId && !customerName) {
+        return sendJson(res, 400, { success: false, message: 'กรุณาระบุรหัสหรือชื่อลูกค้า' });
+      }
+
+      try {
+        const bills = await googleSheets.getPendingBillsForCustomer(customerId, customerName);
+        return sendJson(res, 200, { success: true, bills });
+      } catch (err) {
+        return sendJson(res, 500, { success: false, message: err.message });
+      }
+    }
+
+    // POST /api/billing/notes (Create Billing Note consolidating selected bills)
+    if (pathname === '/api/billing/notes' && method === 'POST') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      try {
+        const body = await parseBody(req);
+        const result = await googleSheets.createBillingNote(body, currentUser);
+        return sendJson(res, 201, {
+          success: true,
+          message: `สร้างใบวางบิล ${result.billingNo} สำเร็จ`,
+          billingNote: result
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, message: err.message });
+      }
+    }
+
+    // GET /api/billing/notes (List Billing Notes)
+    if (pathname === '/api/billing/notes' && method === 'GET') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const status = reqUrl.searchParams.get('status') || 'ALL';
+      try {
+        const notes = await googleSheets.getBillingNotes(status);
+        return sendJson(res, 200, { success: true, notes });
+      } catch (err) {
+        return sendJson(res, 500, { success: false, message: err.message });
+      }
+    }
+
+    // GET /api/billing/notes/:no (Detail of Billing Note + itemized bills)
+    if (pathname.startsWith('/api/billing/notes/') && !pathname.endsWith('/payment') && method === 'GET') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const billingNo = decodeURIComponent(pathname.replace('/api/billing/notes/', ''));
+      if (!billingNo) {
+        return sendJson(res, 400, { success: false, message: 'ระบุเลขที่ใบวางบิล' });
+      }
+
+      try {
+        const detail = await googleSheets.getBillingNoteDetail(billingNo);
+        return sendJson(res, 200, { success: true, ...detail });
+      } catch (err) {
+        return sendJson(res, 404, { success: false, message: err.message });
+      }
+    }
+
+    // POST /api/billing/notes/:no/payment (Record Payment & Auto-split Accounts)
+    if (pathname.includes('/payment') && method === 'POST') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const parts = pathname.split('/');
+      const payIdx = parts.indexOf('payment');
+      const billingNo = payIdx > 0 ? decodeURIComponent(parts[payIdx - 1]) : '';
+
+      if (!billingNo) {
+        return sendJson(res, 400, { success: false, message: 'ไม่พบเลขที่ใบวางบิล' });
+      }
+
+      try {
+        const body = await parseBody(req);
+        let finalSlipUrl = body.slipUrl || '';
+
+        // If slip image base64 provided, save to public/uploads/slips/
+        if (body.imageBase64 && body.imageBase64.includes('base64,')) {
+          try {
+            const matches = body.imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+            if (matches && matches.length === 3) {
+              const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+              const ext = extMap[matches[1]] || 'jpg';
+              const buffer = Buffer.from(matches[2], 'base64');
+              const fileName = `slip_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+              const diskPath = path.join(slipUploadDir, fileName);
+              fs.writeFileSync(diskPath, buffer);
+              finalSlipUrl = `/uploads/slips/${fileName}`;
+            }
+          } catch (imgErr) {
+            console.error('Slip saving error:', imgErr);
+          }
+        }
+
+        const paymentResult = await googleSheets.recordPayment({
+          billingNo,
+          paymentDate: body.paymentDate,
+          paidAmount: body.paidAmount,
+          bankAccount: body.bankAccount,
+          slipUrl: finalSlipUrl,
+          notes: body.notes
+        }, currentUser);
+
+        return sendJson(res, 200, {
+          success: true,
+          message: 'บันทึกรับชำระเงินและตัดยอดบัญชีเรียบร้อย',
+          payment: paymentResult
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, message: err.message });
+      }
+    }
+
+    // GET /api/billing/payments (Payment History)
+    if (pathname === '/api/billing/payments' && method === 'GET') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      try {
+        const payments = await googleSheets.getPaymentsList();
+        return sendJson(res, 200, { success: true, payments });
+      } catch (err) {
+        return sendJson(res, 500, { success: false, message: err.message });
+      }
     }
 
     // ==========================================
