@@ -2158,6 +2158,121 @@ function debounceMasterSearch() {
   }, 250);
 }
 
+// ==============================================
+// SYNC FUEL BILLS (APPSHEET STRMRec)
+// ==============================================
+
+function openSyncFuelModal() {
+  const modal = document.getElementById('modal-sync-fuel');
+  if (!modal) return;
+
+  const now = new Date();
+  // Default start date: 1st day of current month (e.g. 2026-09-01)
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const defaultStartDate = `${yyyy}-${mm}-01`;
+
+  const dateInput = document.getElementById('sync-fuel-start-date');
+  if (dateInput) {
+    dateInput.value = defaultStartDate;
+  }
+
+  const statusArea = document.getElementById('sync-fuel-status-area');
+  if (statusArea) {
+    statusArea.classList.add('hidden');
+    statusArea.innerHTML = '';
+  }
+
+  const btn = document.getElementById('btn-confirm-sync-fuel');
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i><span>เริ่มซิงค์ข้อมูล</span>`;
+  }
+
+  modal.classList.remove('hidden');
+  refreshIcons();
+}
+
+function closeSyncFuelModal() {
+  const modal = document.getElementById('modal-sync-fuel');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function executeSyncFuel() {
+  const dateInput = document.getElementById('sync-fuel-start-date');
+  const startDate = dateInput ? dateInput.value : '';
+  const statusArea = document.getElementById('sync-fuel-status-area');
+  const btn = document.getElementById('btn-confirm-sync-fuel');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span><span>กำลังเชื่อมต่อ...</span>`;
+  }
+
+  if (statusArea) {
+    statusArea.classList.remove('hidden');
+    statusArea.innerHTML = `<div class="text-amber-300 flex items-center gap-2"><span class="animate-pulse">●</span> กำลังตรวจสอบบิลน้ำมันจากชีต STRMRec (credit)...</div>`;
+  }
+
+  try {
+    const res = await fetch('/api/delivery/fuel/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionToken}`
+      },
+      body: JSON.stringify({ startDate })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'ไม่สามารถซิงค์บิลน้ำมันได้');
+    }
+
+    const { totalInScope, importedCount, skippedCount } = data;
+
+    if (statusArea) {
+      statusArea.innerHTML = `
+        <div class="text-emerald-400 font-bold mb-1">✓ ซิงค์ข้อมูลสำเร็จเรียบร้อย!</div>
+        <div class="text-slate-300 space-y-0.5">
+          <div>• บิลทั้งหมดในเดือนนี้: <span class="text-white font-bold font-mono">${totalInScope}</span> รายการ</div>
+          <div>• นำเข้าบิลใหม่: <span class="text-emerald-300 font-bold font-mono">${importedCount}</span> รายการ</div>
+          <div>• ข้ามบิลที่มีอยู่แล้ว: <span class="text-slate-400 font-mono">${skippedCount}</span> รายการ</div>
+        </div>
+      `;
+    }
+
+    if (btn) {
+      btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>เสร็จสิ้น</span>`;
+    }
+    refreshIcons();
+
+    // Refresh Master Bills table & category tabs
+    if (typeof fetchMasterBillsList === 'function') {
+      await fetchMasterBillsList();
+    }
+
+    showToast(`ซิงค์บิลน้ำมันสำเร็จ: นำเข้าใหม่ ${importedCount} รายการ (ข้ามบิลซ้ำ ${skippedCount} รายการ)`, true);
+
+    setTimeout(() => {
+      closeSyncFuelModal();
+    }, 2500);
+
+  } catch (err) {
+    console.error('Fuel sync execution error:', err);
+    if (statusArea) {
+      statusArea.innerHTML = `<div class="text-rose-400 font-bold">❌ เกิดข้อผิดพลาด: ${err.message}</div>`;
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5"></i><span>ลองใหม่อีกครั้ง</span>`;
+    }
+    refreshIcons();
+    showToast(err.message || "เกิดข้อผิดพลาดในการซิงค์ข้อมูล", false);
+  }
+}
+
 // Manual Master Bill Modal
 function openManualBillModal() {
   const now = new Date();
