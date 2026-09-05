@@ -2219,7 +2219,7 @@ async function executeSyncFuel() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionToken}`
+        'Authorization': `Bearer ${currentToken || localStorage.getItem('erp_token') || ''}`
       },
       body: JSON.stringify({ startDate })
     });
