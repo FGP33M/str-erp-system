@@ -18,7 +18,7 @@ module.exports = {
 
   // Google Drive Folder & Apps Script Web App for Bill Photos
   DRIVE_FOLDER_ID: process.env.DRIVE_FOLDER_ID || '1oI1qQSuC83v8GVnIR7J-YCGbUer3wnv3',
-  GOOGLE_DRIVE_UPLOAD_URL: process.env.GOOGLE_DRIVE_UPLOAD_URL || '',
+  GOOGLE_DRIVE_UPLOAD_URL: process.env.GOOGLE_DRIVE_UPLOAD_URL || 'https://script.google.com/macros/s/AKfycbybj1lQQb-JA8XnDZPL7c8a33nMX-E-GJWadOauGGEHNoG5GqDf5094tzfUHjmykaO3/exec',
 
   // Cache duration in milliseconds (5 minutes)
   CACHE_TTL_MS: 5 * 60 * 1000,
