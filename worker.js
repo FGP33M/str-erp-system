@@ -609,6 +609,33 @@ export default {
         }
       }
 
+      // 14.2 POST /api/delivery/bills/update (Manager / Admin update bill)
+      if (pathname === '/api/delivery/bills/update' && method === 'POST') {
+        if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
+        }
+        try {
+          const body = await request.json().catch(() => ({}));
+          const { billId, date, billRef, customerId, customerName, amount, notes } = body;
+          if (!billId) {
+            return jsonResponse({ success: false, message: 'กรุณาระบุรหัสบิลที่ต้องการแก้ไข' }, 400);
+          }
+          const result = await googleSheets.updateMasterBill({
+            billId,
+            date,
+            billRef,
+            customerId,
+            customerName,
+            amount,
+            notes,
+            user: currentUser
+          });
+          return jsonResponse(result, 200);
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 400);
+        }
+      }
+
       // 15. GET /api/delivery/manager/master-bills
       if (pathname === '/api/delivery/manager/master-bills' && method === 'GET') {
         if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
