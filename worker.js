@@ -23,6 +23,31 @@ export default {
       });
     }
 
+    // Helper to upload images to Google Drive via Apps Script Web App
+    async function uploadToGoogleDriveAppsScript(base64Data, fileName, uploadUrl) {
+      if (!uploadUrl || !base64Data) return null;
+      try {
+        const res = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            base64Data,
+            fileName: fileName || `bill_${Date.now()}.jpg`,
+            folderName: 'ERP_บิลส่งของ_รูปภาพ'
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && (data.url || data.directUrl || data.webViewLink)) {
+            return data.url || data.directUrl || data.webViewLink;
+          }
+        }
+      } catch (err) {
+        console.error('Google Drive Apps Script upload error:', err);
+      }
+      return null;
+    }
+
     // ==========================================
     // API ROUTES
     // ==========================================
@@ -418,7 +443,10 @@ export default {
 
           let finalPhotoUrl = photoUrl || '';
           if (imageBase64 && !finalPhotoUrl) {
-            if (env.BILL_PHOTOS) {
+            const driveUrl = await uploadToGoogleDriveAppsScript(imageBase64, `bill_${Date.now()}.jpg`, env.GOOGLE_DRIVE_UPLOAD_URL);
+            if (driveUrl) {
+              finalPhotoUrl = driveUrl;
+            } else if (env.BILL_PHOTOS) {
               const photoKey = `bill_${Date.now()}_${Math.random().toString(36).substring(7)}`;
               await env.BILL_PHOTOS.put(photoKey, imageBase64);
               finalPhotoUrl = `/api/photos/${photoKey}`;
@@ -531,7 +559,10 @@ export default {
           }
           let finalPhotoUrl = photoUrl || '';
           if (imageBase64 && !finalPhotoUrl) {
-            if (env.BILL_PHOTOS) {
+            const driveUrl = await uploadToGoogleDriveAppsScript(imageBase64, `manual_${Date.now()}.jpg`, env.GOOGLE_DRIVE_UPLOAD_URL);
+            if (driveUrl) {
+              finalPhotoUrl = driveUrl;
+            } else if (env.BILL_PHOTOS) {
               const photoKey = `manual_${Date.now()}_${Math.random().toString(36).substring(7)}`;
               await env.BILL_PHOTOS.put(photoKey, imageBase64);
               finalPhotoUrl = `/api/photos/${photoKey}`;
@@ -678,7 +709,10 @@ export default {
           let finalSlipUrl = slipUrl || '';
           const slipImg = imageBase64 || slipBase64;
           if (slipImg && !finalSlipUrl) {
-            if (env.BILL_PHOTOS) {
+            const driveUrl = await uploadToGoogleDriveAppsScript(slipImg, `slip_${Date.now()}.jpg`, env.GOOGLE_DRIVE_UPLOAD_URL);
+            if (driveUrl) {
+              finalSlipUrl = driveUrl;
+            } else if (env.BILL_PHOTOS) {
               const slipKey = `slip_${Date.now()}_${Math.random().toString(36).substring(7)}`;
               await env.BILL_PHOTOS.put(slipKey, slipImg);
               finalSlipUrl = `/api/photos/${slipKey}`;
