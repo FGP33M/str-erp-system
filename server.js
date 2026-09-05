@@ -555,6 +555,23 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    // POST /api/delivery/fuel/sync (Sync fuel bills from AppSheet STRMRec)
+    if (pathname === '/api/delivery/fuel/sync' && method === 'POST') {
+      const manager = checkManagerPermission(req, res);
+      if (!manager) return;
+
+      const body = await parseBody(req);
+      const startDate = body.startDate || '2026-09-01';
+
+      try {
+        const result = await googleSheets.syncFuelBillsFromAppSheet({ startDate, user: manager });
+        return sendJson(res, 200, result);
+      } catch (err) {
+        console.error('Fuel sync error:', err);
+        return sendJson(res, 500, { success: false, message: err.message });
+      }
+    }
+
     // GET /api/delivery/manager/master-bills (View Master Bills)
     if (pathname === '/api/delivery/manager/master-bills' && method === 'GET') {
       const manager = checkManagerPermission(req, res);
