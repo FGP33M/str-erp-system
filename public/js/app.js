@@ -104,6 +104,7 @@ function updateSidebarActive(viewName) {
     { id: 'side-item-search', view: 'search' },
     { id: 'side-item-delivery-bill', view: 'delivery-bill' },
     { id: 'side-item-manager-audit', view: 'manager-audit' },
+    { id: 'side-item-customers', view: 'customers' },
     { id: 'side-item-daily-revenue', view: 'daily-revenue' },
     { id: 'side-item-billing-notes', view: 'billing-notes' },
     { id: 'side-item-receipts', view: 'receipts' },
@@ -146,7 +147,7 @@ function updateLiveDateDisplay() {
 
 // Navigation router
 function navigateTo(viewName) {
-  const views = ['login', 'dashboard', 'search', 'users', 'logs', 'delivery-bill', 'manager-audit', 'executive-dashboard', 'billing-notes', 'settings', 'daily-revenue'];
+  const views = ['login', 'dashboard', 'search', 'users', 'logs', 'delivery-bill', 'manager-audit', 'customers', 'executive-dashboard', 'billing-notes', 'settings', 'daily-revenue'];
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
     if (el) el.classList.add('hidden');
@@ -186,6 +187,8 @@ function navigateTo(viewName) {
     initDeliveryBillPage();
   } else if (viewName === 'manager-audit') {
     initManagerAuditPage();
+  } else if (viewName === 'customers') {
+    initCustomersPage();
   } else if (viewName === 'executive-dashboard') {
     initExecutiveDashboardPage();
   } else if (viewName === 'billing-notes') {
@@ -4427,6 +4430,395 @@ async function loadDailyRevenueHistory() {
   } catch (err) {
     console.error("loadDailyRevenueHistory error:", err);
     tbody.innerHTML = `<tr><td colspan="11" class="py-10 text-center text-red-400">เกิดข้อผิดพลาดในการโหลดประวัติ: ${err.message}</td></tr>`;
+  }
+}
+
+// ==========================================
+// CUSTOMER MANAGEMENT (CRM) MODULE
+// ==========================================
+let allCustomersCache = [];
+let filteredCustomersList = [];
+let customerCurrentPage = 1;
+const CUSTOMERS_PER_PAGE = 25;
+
+async function initCustomersPage() {
+  await loadCustomersData();
+}
+
+async function loadCustomersData(force = false) {
+  const tableBody = document.getElementById('cust-table-body');
+  if (tableBody && allCustomersCache.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-8 text-center text-slate-500">
+          <div class="flex flex-col items-center justify-center gap-2">
+            <div class="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+            <span>กำลังโหลดข้อมูลลูกค้าจาก Google Sheets...</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  try {
+    if (force || allCustomersCache.length === 0) {
+      await fetchCustomers(); // Updates currentCustomersList
+      allCustomersCache = currentCustomersList || [];
+    }
+
+    // Calculate CRM stats
+    const total = allCustomersCache.length;
+    let hasTax = 0;
+    let hasContact = 0;
+
+    allCustomersCache.forEach(c => {
+      if (c.taxId && c.taxId.trim()) hasTax++;
+      if (c.phone || c.contact || c.contactPhone || c.contactLine) hasContact++;
+    });
+
+    const statTotalEl = document.getElementById('cust-stat-total');
+    const statTaxEl = document.getElementById('cust-stat-tax');
+    const statContactEl = document.getElementById('cust-stat-contact');
+
+    if (statTotalEl) statTotalEl.innerText = total.toLocaleString();
+    if (statTaxEl) statTaxEl.innerText = hasTax.toLocaleString();
+    if (statContactEl) statContactEl.innerText = hasContact.toLocaleString();
+
+    handleCustomerFilter();
+  } catch (err) {
+    console.error("Failed to load customers:", err);
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="p-6 text-center text-red-400">
+            เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า: ${escapeHtml(err.message)}
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
+
+function handleCustomerFilter() {
+  const q = (document.getElementById('cust-search-input')?.value || '').trim().toLowerCase();
+  const filterType = document.getElementById('cust-type-filter')?.value || 'ALL';
+
+  filteredCustomersList = allCustomersCache.filter(c => {
+    // 1. Text search
+    let matchesQuery = true;
+    if (q) {
+      matchesQuery = (
+        (c.id && c.id.toLowerCase().includes(q)) ||
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.fullName && c.fullName.toLowerCase().includes(q)) ||
+        (c.taxId && c.taxId.toLowerCase().includes(q)) ||
+        (c.address && c.address.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.toLowerCase().includes(q)) ||
+        (c.contact && c.contact.toLowerCase().includes(q)) ||
+        (c.contactPhone && c.contactPhone.toLowerCase().includes(q))
+      );
+    }
+    if (!matchesQuery) return false;
+
+    // 2. Type filter
+    if (filterType === 'HAS_TAX') {
+      return !!(c.taxId && c.taxId.trim());
+    } else if (filterType === 'NO_TAX') {
+      return !(c.taxId && c.taxId.trim());
+    } else if (filterType === 'HAS_PHONE') {
+      return !!((c.phone && c.phone.trim()) || (c.contactPhone && c.contactPhone.trim()));
+    }
+    return true;
+  });
+
+  customerCurrentPage = 1;
+  renderCustomersTable();
+}
+
+function clearCustomerFilters() {
+  const searchInput = document.getElementById('cust-search-input');
+  const typeFilter = document.getElementById('cust-type-filter');
+  if (searchInput) searchInput.value = '';
+  if (typeFilter) typeFilter.value = 'ALL';
+  handleCustomerFilter();
+}
+
+function renderCustomersTable() {
+  const tableBody = document.getElementById('cust-table-body');
+  const countBadge = document.getElementById('cust-table-count');
+  const paginationInfo = document.getElementById('cust-pagination-info');
+  const pageIndicator = document.getElementById('cust-page-indicator');
+  const btnPrev = document.getElementById('cust-btn-prev');
+  const btnNext = document.getElementById('cust-btn-next');
+
+  if (countBadge) countBadge.innerText = `${filteredCustomersList.length} รายการ`;
+
+  if (!tableBody) return;
+
+  if (filteredCustomersList.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-12 text-center text-slate-500">
+          <div class="flex flex-col items-center justify-center gap-2">
+            <i data-lucide="users" class="w-10 h-10 text-slate-600"></i>
+            <span class="text-sm font-medium text-slate-400">ไม่พบข้อมูลลูกค้าที่ตรงกับเงื่อนไขการค้นหา</span>
+          </div>
+        </td>
+      </tr>
+    `;
+    if (paginationInfo) paginationInfo.innerText = 'แสดง 0 ถึง 0 จาก 0 รายการ';
+    if (pageIndicator) pageIndicator.innerText = '1';
+    if (btnPrev) btnPrev.disabled = true;
+    if (btnNext) btnNext.disabled = true;
+    refreshIcons();
+    return;
+  }
+
+  const total = filteredCustomersList.length;
+  const totalPages = Math.ceil(total / CUSTOMERS_PER_PAGE) || 1;
+  if (customerCurrentPage > totalPages) customerCurrentPage = totalPages;
+  if (customerCurrentPage < 1) customerCurrentPage = 1;
+
+  const startIdx = (customerCurrentPage - 1) * CUSTOMERS_PER_PAGE;
+  const endIdx = Math.min(startIdx + CUSTOMERS_PER_PAGE, total);
+  const pageItems = filteredCustomersList.slice(startIdx, endIdx);
+
+  if (paginationInfo) paginationInfo.innerText = `แสดง ${startIdx + 1} ถึง ${endIdx} จาก ${total} รายการ`;
+  if (pageIndicator) pageIndicator.innerText = `${customerCurrentPage} / ${totalPages}`;
+  if (btnPrev) btnPrev.disabled = customerCurrentPage <= 1;
+  if (btnNext) btnNext.disabled = customerCurrentPage >= totalPages;
+
+  tableBody.innerHTML = pageItems.map(c => {
+    const hasTax = c.taxId && c.taxId.trim();
+    const taxBadge = hasTax 
+      ? `<span class="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono text-[11px] font-bold">${escapeHtml(c.taxId)}</span>`
+      : `<span class="text-slate-500 font-mono">-</span>`;
+
+    const phones = [c.phone, c.contactPhone].filter(Boolean);
+    const phoneHtml = phones.length > 0
+      ? `<div class="flex flex-col gap-0.5"><span class="font-mono text-slate-200">${escapeHtml(phones[0])}</span>${c.contactLine ? `<span class="text-[10px] text-emerald-400 flex items-center gap-1">Line: ${escapeHtml(c.contactLine)}</span>` : ''}</div>`
+      : `<span class="text-slate-500">-</span>`;
+
+    const contactHtml = c.contact 
+      ? `<div class="font-medium text-slate-300">${escapeHtml(c.contact)}</div>`
+      : `<span class="text-slate-500">-</span>`;
+
+    const addressDisplay = c.address 
+      ? `<div class="text-slate-300 text-[11px] leading-relaxed line-clamp-2" title="${escapeHtml(c.address)}">${escapeHtml(c.address)}</div>`
+      : `<span class="text-slate-500">-</span>`;
+
+    return `
+      <tr class="hover:bg-slate-700/40 transition">
+        <td class="p-3">
+          <span class="px-2 py-1 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono font-bold text-xs">${escapeHtml(c.id)}</span>
+        </td>
+        <td class="p-3">
+          <div class="font-bold text-white text-xs">${escapeHtml(c.name)}</div>
+          ${c.fullName && c.fullName !== c.name ? `<div class="text-[11px] text-slate-400 font-medium truncate max-w-xs mt-0.5">${escapeHtml(c.fullName)}</div>` : ''}
+        </td>
+        <td class="p-3">${taxBadge}</td>
+        <td class="p-3">${phoneHtml}</td>
+        <td class="p-3">${addressDisplay}</td>
+        <td class="p-3">${contactHtml}</td>
+        <td class="p-3 text-center">
+          <button onclick="openEditCustomerModal('${escapeHtml(c.id)}')" title="แก้ไขข้อมูลลูกค้า"
+            class="p-2 rounded-xl bg-slate-800 hover:bg-blue-600/20 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/40 transition">
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  refreshIcons();
+}
+
+function changeCustomerPage(delta) {
+  customerCurrentPage += delta;
+  renderCustomersTable();
+}
+
+function openAddCustomerModal() {
+  const modeInput = document.getElementById('cust-modal-mode');
+  const modalTitle = document.getElementById('modal-customer-title');
+  const idInput = document.getElementById('cust-modal-id');
+  const autoHint = document.getElementById('cust-id-auto-hint');
+  const btnText = document.getElementById('btn-save-customer-text');
+
+  if (modeInput) modeInput.value = 'add';
+  if (modalTitle) modalTitle.innerText = 'เพิ่มลูกค้าใหม่';
+  if (btnText) btnText.innerText = 'บันทึกข้อมูลลูกค้า';
+  if (autoHint) {
+    autoHint.innerText = '(สร้างอัตโนมัติ)';
+    autoHint.classList.remove('hidden');
+  }
+
+  // Calculate next sequential ID
+  let maxNum = 0;
+  allCustomersCache.forEach(c => {
+    const match = (c.id || '').match(/^C(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  });
+  const nextId = 'C' + String(maxNum + 1).padStart(4, '0');
+  if (idInput) idInput.value = nextId;
+
+  // Clear fields
+  const fields = [
+    'cust-modal-taxid', 'cust-modal-name', 'cust-modal-fullname',
+    'cust-modal-addressdetail', 'cust-modal-village', 'cust-modal-subdistrict',
+    'cust-modal-district', 'cust-modal-province', 'cust-modal-zipcode',
+    'cust-modal-phone', 'cust-modal-contact', 'cust-modal-contactphone', 'cust-modal-contactline'
+  ];
+  fields.forEach(f => {
+    const el = document.getElementById(f);
+    if (el) el.value = '';
+  });
+
+  const modal = document.getElementById('modal-customer');
+  if (modal) modal.classList.remove('hidden');
+  document.getElementById('cust-modal-name')?.focus();
+  refreshIcons();
+}
+
+function openEditCustomerModal(id) {
+  const c = allCustomersCache.find(x => x.id === id);
+  if (!c) {
+    showToast('ไม่พบข้อมูลลูกค้า', false);
+    return;
+  }
+
+  const modeInput = document.getElementById('cust-modal-mode');
+  const modalTitle = document.getElementById('modal-customer-title');
+  const idInput = document.getElementById('cust-modal-id');
+  const autoHint = document.getElementById('cust-id-auto-hint');
+  const btnText = document.getElementById('btn-save-customer-text');
+
+  if (modeInput) modeInput.value = 'edit';
+  if (modalTitle) modalTitle.innerText = `แก้ไขข้อมูลลูกค้า: ${c.id}`;
+  if (btnText) btnText.innerText = 'บันทึกการแก้ไข';
+  if (autoHint) {
+    autoHint.innerText = '(รหัสประจำตัว)';
+    autoHint.classList.remove('hidden');
+  }
+
+  if (idInput) idInput.value = c.id;
+
+  const setVal = (fid, val) => {
+    const el = document.getElementById(fid);
+    if (el) el.value = val || '';
+  };
+
+  setVal('cust-modal-taxid', c.taxId);
+  setVal('cust-modal-name', c.name);
+  setVal('cust-modal-fullname', c.fullName);
+  setVal('cust-modal-addressdetail', c.addressDetail);
+  setVal('cust-modal-village', c.village);
+  setVal('cust-modal-subdistrict', c.subdistrict);
+  setVal('cust-modal-district', c.district);
+  setVal('cust-modal-province', c.province);
+  setVal('cust-modal-zipcode', c.zipcode);
+  setVal('cust-modal-phone', c.phone);
+  setVal('cust-modal-contact', c.contact);
+  setVal('cust-modal-contactphone', c.contactPhone);
+  setVal('cust-modal-contactline', c.contactLine);
+
+  const modal = document.getElementById('modal-customer');
+  if (modal) modal.classList.remove('hidden');
+  document.getElementById('cust-modal-name')?.focus();
+  refreshIcons();
+}
+
+function closeCustomerModal() {
+  const modal = document.getElementById('modal-customer');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleSaveCustomer(e) {
+  e.preventDefault();
+  const mode = document.getElementById('cust-modal-mode')?.value || 'add';
+  const id = (document.getElementById('cust-modal-id')?.value || '').trim();
+  const name = (document.getElementById('cust-modal-name')?.value || '').trim();
+  const fullName = (document.getElementById('cust-modal-fullname')?.value || '').trim();
+  const taxId = (document.getElementById('cust-modal-taxid')?.value || '').trim();
+  const addressDetail = (document.getElementById('cust-modal-addressdetail')?.value || '').trim();
+  const village = (document.getElementById('cust-modal-village')?.value || '').trim();
+  const subdistrict = (document.getElementById('cust-modal-subdistrict')?.value || '').trim();
+  const district = (document.getElementById('cust-modal-district')?.value || '').trim();
+  const province = (document.getElementById('cust-modal-province')?.value || '').trim();
+  const zipcode = (document.getElementById('cust-modal-zipcode')?.value || '').trim();
+  const phone = (document.getElementById('cust-modal-phone')?.value || '').trim();
+  const contact = (document.getElementById('cust-modal-contact')?.value || '').trim();
+  const contactPhone = (document.getElementById('cust-modal-contactphone')?.value || '').trim();
+  const contactLine = (document.getElementById('cust-modal-contactline')?.value || '').trim();
+
+  if (!name) {
+    showToast('กรุณาระบุชื่อลูกค้า', false);
+    return;
+  }
+
+  const payload = {
+    id,
+    name,
+    fullName: fullName || name,
+    taxId,
+    addressDetail,
+    village,
+    subdistrict,
+    district,
+    province,
+    zipcode,
+    phone,
+    contact,
+    contactPhone,
+    contactLine
+  };
+
+  const btnSubmit = document.getElementById('btn-save-customer');
+  const btnText = document.getElementById('btn-save-customer-text');
+  const origText = btnText ? btnText.innerText : 'บันทึก';
+
+  if (btnSubmit) btnSubmit.disabled = true;
+  if (btnText) btnText.innerText = 'กำลังบันทึกไปยัง Google Sheets...';
+
+  try {
+    let url = '/api/customers';
+    let method = 'POST';
+
+    if (mode === 'edit') {
+      url = `/api/customers/${encodeURIComponent(id)}/update`;
+      method = 'POST';
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'บันทึกข้อมูลไม่สำเร็จ');
+    }
+
+    showToast(mode === 'add' ? `เพิ่มลูกค้า ${data.customer.id} สำเร็จ` : `อัปเดตข้อมูลลูกค้า ${data.customer.id} สำเร็จ`, true);
+    closeCustomerModal();
+
+    // Invalidate local caches and reload
+    currentCustomersList = [];
+    allCustomersCache = [];
+    await loadCustomersData(true);
+  } catch (err) {
+    console.error("Save customer error:", err);
+    showToast(`เกิดข้อผิดพลาด: ${err.message}`, false);
+  } finally {
+    if (btnSubmit) btnSubmit.disabled = false;
+    if (btnText) btnText.innerText = origText;
   }
 }
 
