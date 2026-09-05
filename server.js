@@ -470,7 +470,7 @@ const server = http.createServer(async (req, res) => {
       if (!manager) return;
 
       const body = await parseBody(req);
-      const { customerId, customerName, companyRegistration, billRef, amount, notes, imageBase64, photoUrl, date } = body;
+      const { category, customerId, customerName, companyRegistration, billRef, amount, notes, imageBase64, photoUrl, date } = body;
 
       if (!billRef || !billRef.trim()) {
         return sendJson(res, 400, { success: false, message: 'กรุณากรอกเลขที่บิล' });
@@ -498,9 +498,13 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      let compReg = companyRegistration || (category === 'fuel' ? 'ปั๊มน้ำมัน' : 'ร้านค้า');
+      let cat = category || (compReg === 'ปั๊มน้ำมัน' ? 'fuel' : 'store_general');
+
       const result = await googleSheets.addMasterBillManual({
         date,
-        companyRegistration: companyRegistration || 'ปั๊มน้ำมัน',
+        category: cat,
+        companyRegistration: compReg,
         customerId: customerId || '',
         customerName: customerName || 'ไม่ระบุชื่อ',
         billRef: billRef.trim(),
@@ -522,10 +526,11 @@ const server = http.createServer(async (req, res) => {
       if (!manager) return;
 
       const companyRegistration = reqUrl.searchParams.get('reg') || 'ALL';
+      const category = reqUrl.searchParams.get('category') || reqUrl.searchParams.get('cat') || 'ALL';
       const status = reqUrl.searchParams.get('status') || 'ALL';
       const query = reqUrl.searchParams.get('q') || '';
 
-      const bills = await googleSheets.getMasterBills({ companyRegistration, status, query });
+      const bills = await googleSheets.getMasterBills({ companyRegistration, category, status, query });
       return sendJson(res, 200, { success: true, bills });
     }
 
