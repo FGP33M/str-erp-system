@@ -739,6 +739,87 @@ export default {
         }
       }
 
+      // ==========================================
+      // DAILY REVENUE & CASH SETTLEMENT APIS (Phase 5 - Manager & Admin)
+      // ==========================================
+
+      // 24. POST /api/revenue/cash-drops
+      if (pathname === '/api/revenue/cash-drops' && method === 'POST') {
+        if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
+        }
+        try {
+          const body = await request.json();
+          const drop = await googleSheets.recordCashDrop(body, currentUser);
+          return jsonResponse({
+            success: true,
+            message: 'บันทึกการเก็บเงินสดเข้าเซฟเรียบร้อย',
+            cashDrop: drop
+          }, 201);
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 400);
+        }
+      }
+
+      // 25. GET /api/revenue/cash-drops
+      if (pathname === '/api/revenue/cash-drops' && method === 'GET') {
+        if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
+        }
+        try {
+          const date = url.searchParams.get('date') || '';
+          const drops = await googleSheets.getCashDrops(date);
+          return jsonResponse({ success: true, drops });
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 500);
+        }
+      }
+
+      // 26. GET /api/revenue/credit-bills
+      if (pathname === '/api/revenue/credit-bills' && method === 'GET') {
+        if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
+        }
+        try {
+          const date = url.searchParams.get('date') || '';
+          const result = await googleSheets.getDailyCreditBills(date);
+          return jsonResponse({ success: true, ...result });
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 500);
+        }
+      }
+
+      // 27. POST /api/revenue/daily-closing
+      if (pathname === '/api/revenue/daily-closing' && method === 'POST') {
+        if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
+        }
+        try {
+          const body = await request.json();
+          const closing = await googleSheets.recordDailyClosing(body, currentUser);
+          return jsonResponse({
+            success: true,
+            message: 'บันทึกปิดยอดรายรับประจำวันเรียบร้อย',
+            closing
+          }, 201);
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 400);
+        }
+      }
+
+      // 28. GET /api/revenue/daily-closings
+      if (pathname === '/api/revenue/daily-closings' && method === 'GET') {
+        if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+          return jsonResponse({ success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' }, 403);
+        }
+        try {
+          const closings = await googleSheets.getDailyClosingsList();
+          return jsonResponse({ success: true, closings });
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 500);
+        }
+      }
+
       return jsonResponse({ success: false, message: 'Endpoint not found' }, 404);
     }
 
