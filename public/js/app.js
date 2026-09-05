@@ -1613,6 +1613,8 @@ async function submitCancelBill() {
 // ==========================================
 
 let currentMasterBills = [];
+let allMasterBillsCache = [];
+let currentMasterCategory = 'ALL';
 let masterSearchDebounceTimer = null;
 let manualCustDebounceTimer = null;
 
@@ -1799,29 +1801,118 @@ async function initManagerAuditPage() {
     await fetchCustomers();
   }
 
+  switchMasterCategory('ALL', false);
   fetchMasterBillsList();
+}
+
+// Category Tabs Switching & Filtering
+function switchMasterCategory(cat, shouldRender = true) {
+  currentMasterCategory = cat || 'ALL';
+
+  const tabs = [
+    { id: 'tab-master-cat-all', cat: 'ALL', activeClass: 'bg-emerald-600 text-white font-bold shadow-md' },
+    { id: 'tab-master-cat-general', cat: 'store_general', activeClass: 'bg-blue-600 text-white font-bold shadow-md' },
+    { id: 'tab-master-cat-gov', cat: 'store_gov', activeClass: 'bg-purple-600 text-white font-bold shadow-md' },
+    { id: 'tab-master-cat-fuel', cat: 'fuel', activeClass: 'bg-amber-600 text-white font-bold shadow-md' }
+  ];
+
+  tabs.forEach(t => {
+    const el = document.getElementById(t.id);
+    if (!el) return;
+    if (t.cat === currentMasterCategory) {
+      el.className = `px-4 py-2 rounded-xl text-xs transition flex items-center gap-2 ${t.activeClass}`;
+    } else {
+      el.className = `px-4 py-2 rounded-xl text-xs font-medium transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-700/50`;
+    }
+  });
+
+  // Sync category dropdown if exists
+  const regSelect = document.getElementById('filter-master-reg');
+  if (regSelect && regSelect.value !== currentMasterCategory) {
+    regSelect.value = currentMasterCategory;
+  }
+
+  if (shouldRender) {
+    filterAndRenderMasterBills();
+  }
+}
+
+function handleMasterCategoryDropdownChange(val) {
+  switchMasterCategory(val, true);
+}
+
+function updateMasterCategoryBadges(allBills = []) {
+  const countAll = allBills.length;
+  const countGeneral = allBills.filter(b => b.category === 'store_general' || (!b.category && b.companyRegistration !== 'ปั๊มน้ำมัน' && (!b.source || (!b.source.includes('หน่วยงาน') && !b.source.includes('ราชการ'))))).length;
+  const countGov = allBills.filter(b => b.category === 'store_gov' || (!b.category && b.source && (b.source.includes('หน่วยงาน') || b.source.includes('ราชการ')))).length;
+  const countFuel = allBills.filter(b => b.category === 'fuel' || (!b.category && b.companyRegistration === 'ปั๊มน้ำมัน')).length;
+
+  const bAll = document.getElementById('badge-master-cat-all');
+  const bGen = document.getElementById('badge-master-cat-general');
+  const bGov = document.getElementById('badge-master-cat-gov');
+  const bFuel = document.getElementById('badge-master-cat-fuel');
+
+  if (bAll) bAll.innerText = countAll;
+  if (bGen) bGen.innerText = countGeneral;
+  if (bGov) bGov.innerText = countGov;
+  if (bFuel) bFuel.innerText = countFuel;
+}
+
+function filterAndRenderMasterBills() {
+  const badgeEl = document.getElementById('master-bills-count-badge');
+  let filtered = allMasterBillsCache;
+
+  if (currentMasterCategory !== 'ALL') {
+    filtered = allMasterBillsCache.filter(b => {
+      if (currentMasterCategory === 'store_general') {
+        return b.category === 'store_general' || (!b.category && b.companyRegistration !== 'ปั๊มน้ำมัน' && (!b.source || (!b.source.includes('หน่วยงาน') && !b.source.includes('ราชการ'))));
+      }
+      if (currentMasterCategory === 'store_gov') {
+        return b.category === 'store_gov' || (!b.category && b.source && (b.source.includes('หน่วยงาน') || b.source.includes('ราชการ')));
+      }
+      if (currentMasterCategory === 'fuel') {
+        return b.category === 'fuel' || (!b.category && b.companyRegistration === 'ปั๊มน้ำมัน');
+      }
+      return true;
+    });
+  }
+
+  currentMasterBills = filtered;
+  if (badgeEl) badgeEl.innerText = `${filtered.length} บิล`;
+  renderMasterBillsTable(filtered);
 }
 
 // Master Bills List
 async function fetchMasterBillsList() {
   const tbody = document.getElementById('master-bills-table-body');
-  const badgeEl = document.getElementById('master-bills-count-badge');
   tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-slate-500 text-xs">กำลังโหลดคลังบิลหลัก...</td></tr>`;
 
-  const reg = document.getElementById('filter-master-reg').value;
-  const status = document.getElementById('filter-master-status').value;
-  const q = (document.getElementById('search-master-input').value || '').trim();
+  const status = document.getElementById('filter-master-status') ? document.getElementById('filter-master-status').value : 'ALL';
+  const q = (document.getElementById('search-master-input')?.value || '').trim();
 
   try {
-    const url = `/api/delivery/manager/master-bills?reg=${encodeURIComponent(reg)}&status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}`;
+    const url = `/api/delivery/manager/master-bills?reg=ALL&status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}`;
     const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${currentToken}` }
     });
     const data = await res.json();
     if (data.success) {
-      currentMasterBills = data.bills || [];
-      if (badgeEl) badgeEl.innerText = `${currentMasterBills.length} บิล`;
-      renderMasterBillsTable(currentMasterBills);
+      allMasterBillsCache = data.bills || [];
+      // Normalize category for items
+      allMasterBillsCache.forEach(b => {
+        if (!b.category) {
+          if (b.companyRegistration === 'ปั๊มน้ำมัน' || (b.source && b.source.includes('ปั๊ม'))) {
+            b.category = 'fuel';
+          } else if (b.source && (b.source.includes('หน่วยงาน') || b.source.includes('ราชการ'))) {
+            b.category = 'store_gov';
+          } else {
+            b.category = 'store_general';
+          }
+        }
+      });
+
+      updateMasterCategoryBadges(allMasterBillsCache);
+      filterAndRenderMasterBills();
     } else {
       tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-red-400 text-xs">${data.message || 'โหลดข้อมูลไม่สำเร็จ'}</td></tr>`;
     }
@@ -1838,19 +1929,30 @@ function renderMasterBillsTable(bills) {
   }
 
   tbody.innerHTML = bills.map(b => {
-    const regBadge = b.companyRegistration === 'ปั๊มน้ำมัน'
-      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">ปั๊มน้ำมัน</span>`
-      : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">ร้านค้า</span>`;
+    let regBadge = '';
+    if (b.category === 'fuel' || b.companyRegistration === 'ปั๊มน้ำมัน') {
+      regBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">⛽ ปั๊มน้ำมัน</span>`;
+    } else if (b.category === 'store_gov' || (b.source && (b.source.includes('หน่วยงาน') || b.source.includes('ราชการ')))) {
+      regBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">🏛️ ร้านค้า (หน่วยงาน)</span>`;
+    } else {
+      regBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">🏢 ร้านค้า (ทั่วไป)</span>`;
+    }
 
     const statusBadge = b.status === 'วางบิลแล้ว'
       ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">วางบิลแล้ว</span>`
-      : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300">รอวางบิล</span>`;
+      : b.status === 'ชำระแล้ว'
+        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300">ชำระแล้ว</span>`
+        : b.status === 'ยกเลิก'
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400">ยกเลิก</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300">รอวางบิล</span>`;
 
     const photoCell = b.photoUrl
       ? `<button onclick="openImageViewer('${b.photoUrl}', '${b.billRef}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 transition" title="ดูรูปบิล">
            <i data-lucide="image" class="w-3.5 h-3.5"></i>
          </button>`
       : `<span class="text-slate-600">-</span>`;
+
+    const formattedAmount = Number(String(b.amount || 0).replace(/,/g, '')).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     return `
       <tr class="hover:bg-slate-700/20 transition">
@@ -1862,7 +1964,7 @@ function renderMasterBillsTable(bills) {
           <div class="font-medium text-slate-200">${b.customerName || '-'}</div>
           <div class="font-mono text-[10px] text-slate-400">${b.customerId || '-'}</div>
         </td>
-        <td class="py-2.5 px-4 text-right font-mono font-bold text-amber-400">${b.amount}</td>
+        <td class="py-2.5 px-4 text-right font-mono font-bold text-amber-400">${formattedAmount}</td>
         <td class="py-2.5 px-3 text-center">${photoCell}</td>
         <td class="py-2.5 px-3 text-center">${statusBadge}</td>
         <td class="py-2.5 px-3 text-slate-400">${b.createdBy || b.approvedBy || '-'}</td>
@@ -1964,8 +2066,10 @@ function clearManualCustSelection() {
 async function handleSaveManualMaster(e) {
   e.preventDefault();
 
-  const companyRegRadio = document.querySelector('input[name="manualReg"]:checked');
-  const companyRegistration = companyRegRadio ? companyRegRadio.value : 'ปั๊มน้ำมัน';
+  const categoryRadio = document.querySelector('input[name="manualCategory"]:checked');
+  const category = categoryRadio ? categoryRadio.value : 'fuel';
+  const companyRegistration = (category === 'fuel') ? 'ปั๊มน้ำมัน' : 'ร้านค้า';
+
   const date = document.getElementById('manual-date').value.trim();
   const billRef = document.getElementById('manual-bill-ref').value.trim();
   const customerId = document.getElementById('manual-cust-id').value;
@@ -2000,6 +2104,7 @@ async function handleSaveManualMaster(e) {
         'Authorization': `Bearer ${currentToken}`
       },
       body: JSON.stringify({
+        category,
         companyRegistration,
         date,
         billRef,
@@ -2014,6 +2119,10 @@ async function handleSaveManualMaster(e) {
     if (data.success) {
       showToast(`บันทึกเข้า Master สำเร็จ! (รหัส ${data.bill?.billId})`, true);
       closeManualBillModal();
+      // Switch to the category of the created bill if not already on it or ALL
+      if (currentMasterCategory !== 'ALL' && currentMasterCategory !== category) {
+        switchMasterCategory(category, false);
+      }
       await fetchMasterBillsList();
     } else {
       showToast(data.message || "บันทึกไม่สำเร็จ", false);
