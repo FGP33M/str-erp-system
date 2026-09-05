@@ -1579,9 +1579,50 @@ class GoogleSheetsService {
       });
     }
 
+    // 7. Auto-generate Official Receipt in RECEIPTS tab
+    let receiptNo = '';
+    try {
+      const recCountRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/RECEIPTS!A2:A`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const recCountData = await recCountRes.json();
+      const recCount = (recCountData.values || []).length;
+      const recSeq = (recCount + 1).toString().padStart(4, '0');
+      receiptNo = `REC-${yy}${mm}-${recSeq}`;
+
+      const receiptRow = [
+        receiptNo,
+        finalPaymentDate,
+        'ใบเสร็จรับเงิน (จากการวางบิล)',
+        trimmedNo,
+        note.billIds ? note.billIds.join(', ') : '',
+        note.customerId || '',
+        note.customerName || '',
+        numPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        bankAccount ? (bankAccount === 'เงินสด' ? 'เงินสด' : 'เงินโอน') : 'เงินสด',
+        bankAccount || 'เงินสด',
+        safeSlipUrl,
+        user.username || user.full_name || 'admin',
+        notes || '',
+        new Date().toLocaleString('th-TH')
+      ];
+
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/RECEIPTS!A:N:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ values: [receiptRow] })
+      });
+    } catch (recErr) {
+      console.error("Receipt generation warning:", recErr);
+    }
+
     return {
       success: true,
       paymentNo,
+      receiptNo,
       billingNo: trimmedNo,
       customerName: note.customerName,
       paidAmount: numPaid,
@@ -1590,6 +1631,182 @@ class GoogleSheetsService {
       paymentDate: finalPaymentDate,
       bankAccount: bankAccount || 'โอนผ่านธนาคาร',
       status: 'ชำระแล้ว'
+    };
+  }
+
+  /**
+   * Get all receipts list
+   */
+  async getReceipts(filters = {}) {
+    const token = await this.getAccessToken();
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/RECEIPTS!A2:N`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const data = await res.json();
+    const rows = data.values || [];
+
+    let receipts = rows.map((r, idx) => ({
+      rowIndex: idx + 2,
+      receiptNo: (r[0] || '').trim(),
+      receiptDate: (r[1] || '').trim(),
+      receiptType: (r[2] || '').trim(),
+      billingNo: (r[3] || '').trim(),
+      billIdsStr: (r[4] || '').trim(),
+      customerId: (r[5] || '').trim(),
+      customerName: (r[6] || '').trim(),
+      totalAmount: parseFloat(String(r[7] || '0').replace(/,/g, '')) || 0,
+      totalAmountFormatted: (r[7] || '0.00').trim(),
+      paymentMethod: (r[8] || '').trim(),
+      bankAccount: (r[9] || '').trim(),
+      slipUrl: (r[10] || '').trim(),
+      issuedBy: (r[11] || '').trim(),
+      notes: (r[12] || '').trim(),
+      createdAt: (r[13] || '').trim()
+    })).filter(x => x.receiptNo);
+
+    if (filters.q) {
+      const q = filters.q.toLowerCase().trim();
+      receipts = receipts.filter(x =>
+        x.receiptNo.toLowerCase().includes(q) ||
+        x.customerName.toLowerCase().includes(q) ||
+        x.billingNo.toLowerCase().includes(q) ||
+        x.customerId.toLowerCase().includes(q)
+      );
+    }
+
+    return receipts.reverse();
+  }
+
+  /**
+   * Get full detail for a receipt (including full customer address, tax ID, and itemized bills)
+   */
+  async getReceiptDetail(receiptNo) {
+    const trimmedNo = (receiptNo || '').trim();
+    const receipts = await this.getReceipts();
+    const receipt = receipts.find(r => r.receiptNo.toLowerCase() === trimmedNo.toLowerCase());
+    if (!receipt) {
+      throw new Error(`ไม่พบใบเสร็จรับเงินเลขที่ ${trimmedNo}`);
+    }
+
+    // 1. Fetch store settings
+    const storeSettings = await this.getStoreSettings();
+
+    // 2. Fetch customer details
+    let customer = null;
+    if (receipt.customerId || receipt.customerName) {
+      const customers = await this.getCustomers();
+      customer = customers.find(c =>
+        (receipt.customerId && c.id.toLowerCase() === receipt.customerId.toLowerCase()) ||
+        (receipt.customerName && c.name.toLowerCase() === receipt.customerName.toLowerCase())
+      );
+    }
+
+    // 3. Fetch itemized bills
+    let bills = [];
+    if (receipt.billingNo) {
+      try {
+        const bnDetail = await this.getBillingNoteDetail(receipt.billingNo);
+        bills = bnDetail.bills || [];
+      } catch (e) {
+        console.warn("Could not get billing note detail for receipt:", e);
+      }
+    } else if (receipt.billIdsStr) {
+      const billIds = receipt.billIdsStr.split(',').map(s => s.trim()).filter(Boolean);
+      const allMaster = await this.getMasterBills();
+      bills = allMaster.filter(b => billIds.includes(b.billId));
+    }
+
+    return {
+      receipt,
+      customer: customer || {
+        id: receipt.customerId || '-',
+        name: receipt.customerName || 'ไม่ระบุชื่อ',
+        fullName: receipt.customerName || 'ไม่ระบุชื่อ',
+        address: '',
+        taxId: '',
+        phone: ''
+      },
+      bills,
+      storeSettings
+    };
+  }
+
+  /**
+   * Create a direct cash receipt for storefront sales
+   */
+  async createCashReceipt(data, user) {
+    if (!user || (user.role !== 'manager' && user.role !== 'admin')) {
+      throw new Error("เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้นที่สามารถออกใบเสร็จรับเงินได้");
+    }
+
+    const { customerId, customerName, paymentMethod, bankAccount, billIds, notes, date } = data;
+    const rawAmt = data.amount !== undefined ? data.amount : data.totalAmount;
+    const numAmount = parseFloat(String(rawAmt).replace(/,/g, '')) || 0;
+    if (numAmount <= 0) {
+      throw new Error("กรุณาระบุยอดเงินให้ถูกต้อง");
+    }
+
+    const token = await this.getAccessToken();
+    const now = new Date();
+    const yy = (now.getFullYear() + 543).toString().slice(-2);
+    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    const dd = now.getDate().toString().padStart(2, '0');
+    const receiptDate = date || `${dd}/${mm}/${now.getFullYear() + 543}`;
+
+    const recCountRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/RECEIPTS!A2:A`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const recCountData = await recCountRes.json();
+    const recCount = (recCountData.values || []).length;
+    const recSeq = (recCount + 1).toString().padStart(4, '0');
+    const receiptNo = `REC-${yy}${mm}-${recSeq}`;
+
+    const billIdsArray = Array.isArray(billIds) ? billIds : (billIds ? String(billIds).split(',').map(s => s.trim()) : []);
+    const billIdsStr = billIdsArray.join(', ');
+
+    const receiptRow = [
+      receiptNo,
+      receiptDate,
+      'ใบเสร็จรับเงินสดหน้าร้าน',
+      '',
+      billIdsStr,
+      customerId || '',
+      customerName || 'ลูกค้าทั่วไป',
+      numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      paymentMethod || 'เงินสด',
+      bankAccount || (paymentMethod === 'เงินโอน' ? 'โอนผ่านธนาคาร' : 'เงินสด'),
+      '',
+      user.username || user.full_name || 'cashier',
+      notes || '',
+      new Date().toLocaleString('th-TH')
+    ];
+
+    const appendRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/RECEIPTS!A:N:append?valueInputOption=USER_ENTERED`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values: [receiptRow] })
+    });
+
+    if (!appendRes.ok) {
+      const err = await appendRes.text();
+      throw new Error(`Failed to append receipt: ${err}`);
+    }
+
+    return {
+      success: true,
+      receiptNo,
+      receiptDate,
+      customerName,
+      amount: numAmount,
+      paymentMethod: paymentMethod || 'เงินสด'
     };
   }
 
