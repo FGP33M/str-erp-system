@@ -231,6 +231,11 @@
             <i data-lucide="database" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
             <span>ทะเบียนบิลส่งของ</span>
           </button>
+          <button onclick="navigateSidebar('customers')" id="side-item-customers"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="users-round" class="w-4 h-4 text-cyan-400 flex-shrink-0"></i>
+            <span>ทะเบียนข้อมูลลูกค้า</span>
+          </button>
         </div>
 
         <!-- 2. FINANCE & BILLING -->
@@ -455,7 +460,7 @@
           <span class="text-[11px] text-slate-400">ค้นหาสต็อกสินค้า, บันทึกใบส่งของ, และทะเบียนบิล</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- CARD 1: PRODUCT SEARCH -->
           <div id="card-menu-search" onclick="navigateTo('search')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-950/40 relative flex flex-col justify-between">
             <div>
@@ -506,6 +511,24 @@
             </div>
             <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
               <span class="text-[11px] text-emerald-400 font-medium">เปิดทะเบียนบิล</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- CARD 4: CUSTOMER DIRECTORY (CRM) -->
+          <div id="card-menu-customers" onclick="navigateTo('customers')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-cyan-500 group-hover:text-slate-950 transition duration-200">
+                  <i data-lucide="users-round" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">CRM</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-cyan-400 transition">ข้อมูลลูกค้า & คู่ค้า</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">ค้นหา แก้ไขที่อยู่ เลขประจำตัวผู้เสียภาษี 13 หลัก และเพิ่มลูกค้าใหม่</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-cyan-300">
+              <span class="text-[11px] text-cyan-400 font-medium">เข้าสู่ทะเบียนลูกค้า</span>
               <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
             </div>
           </div>
@@ -1549,6 +1572,144 @@
           </div>
         </div>
 
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- CUSTOMER MANAGEMENT / CRM VIEW -->
+    <!-- ======================================================== -->
+    <section id="view-customers" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+      <!-- Header & Action Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <button onclick="navigateTo('dashboard')" class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition mb-2">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>กลับหน้าหลัก</span>
+          </button>
+          <h2 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
+              <i data-lucide="users-round" class="w-5 h-5"></i>
+            </div>
+            <span>ทะเบียนข้อมูลลูกค้า (CRM Directory)</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">ฐานข้อมูลลูกค้าและคู่ค้า 290+ รายการ พร้อมที่อยู่เปิดบิลและเลขประจำตัวผู้เสียภาษี 13 หลัก</p>
+        </div>
+
+        <!-- Top Actions -->
+        <div class="flex items-center gap-2">
+          <button onclick="loadCustomersData(true)" title="รีเฟรชข้อมูล" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1.5 text-xs font-semibold transition">
+            <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">รีเฟรช</span>
+          </button>
+          <button onclick="openAddCustomerModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-950/40 flex items-center gap-1.5 transition">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            <span>+ เพิ่มลูกค้าใหม่</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Overview Stats Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/80 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-medium text-slate-400">ลูกค้าทั้งหมดในระบบ</div>
+            <div id="cust-stat-total" class="text-2xl font-black text-white font-mono mt-1">0</div>
+            <div class="text-[10px] text-blue-400 mt-0.5">Google Sheets Custom!A:N</div>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/80 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-medium text-slate-400">มีเลขภาษี 13 หลัก</div>
+            <div id="cust-stat-tax" class="text-2xl font-black text-emerald-400 font-mono mt-1">0</div>
+            <div class="text-[10px] text-emerald-400/80 mt-0.5">พร้อมออกใบกำกับ/ใบเสร็จ</div>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+            <i data-lucide="file-check-2" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/80 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-medium text-slate-400">มีเบอร์โทร / ผู้ติดต่อ</div>
+            <div id="cust-stat-contact" class="text-2xl font-black text-amber-400 font-mono mt-1">0</div>
+            <div class="text-[10px] text-amber-400/80 mt-0.5">สะดวกต่อการติดตามยอด</div>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+            <i data-lucide="phone-call" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 flex flex-col sm:flex-row items-center gap-3">
+        <div class="relative flex-1 w-full">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" id="cust-search-input" oninput="handleCustomerFilter()" placeholder="ค้นหาด้วย รหัสลูกค้า (C0xxx), ชื่อ, นิติบุคคล, เลขภาษี, ที่อยู่, เบอร์โทร..."
+            class="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <select id="cust-type-filter" onchange="handleCustomerFilter()" class="w-full sm:w-auto px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-300">
+            <option value="ALL">ลูกค้าทั้งหมด</option>
+            <option value="HAS_TAX">เฉพาะที่มีเลขภาษี 13 หลัก</option>
+            <option value="NO_TAX">ยังไม่มีเลขภาษี</option>
+            <option value="HAS_PHONE">มีเบอร์โทรติดต่อ</option>
+          </select>
+          <button onclick="clearCustomerFilters()" title="ล้างตัวกรอง" class="px-3 py-2 bg-slate-700/60 hover:bg-slate-700 text-slate-300 rounded-xl text-xs transition">ล้าง</button>
+        </div>
+      </div>
+
+      <!-- Customers Table Card -->
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 border-b border-slate-700/80 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-white">รายชื่อลูกค้า</span>
+            <span id="cust-table-count" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">0 รายการ</span>
+          </div>
+          <span class="text-[11px] text-slate-400">แสดงผลเรียงตามรหัสลูกค้า</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-700">
+              <tr>
+                <th class="p-3 w-24">รหัส</th>
+                <th class="p-3 min-w-[200px]">ชื่อลูกค้า / นิติบุคคล</th>
+                <th class="p-3 min-w-[140px]">เลขประจำตัวผู้เสียภาษี</th>
+                <th class="p-3 min-w-[130px]">เบอร์โทร & Line</th>
+                <th class="p-3 min-w-[240px]">ที่อยู่เปิดบิล</th>
+                <th class="p-3 min-w-[140px]">ผู้ติดต่อ</th>
+                <th class="p-3 w-20 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="cust-table-body" class="divide-y divide-slate-700/60 text-slate-300">
+              <tr>
+                <td colspan="7" class="p-8 text-center text-slate-500">
+                  <div class="flex flex-col items-center justify-center gap-2">
+                    <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span>กำลังโหลดข้อมูลลูกค้า...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination / Summary Footer -->
+        <div id="cust-pagination-bar" class="p-3 border-t border-slate-700 bg-slate-900/40 flex items-center justify-between text-xs text-slate-400">
+          <span id="cust-pagination-info">แสดง 0 ถึง 0 จาก 0 รายการ</span>
+          <div class="flex items-center gap-1.5">
+            <button id="cust-btn-prev" onclick="changeCustomerPage(-1)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition font-medium">ก่อนหน้า</button>
+            <span id="cust-page-indicator" class="px-2 font-mono text-white">1</span>
+            <button id="cust-btn-next" onclick="changeCustomerPage(1)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition font-medium">ถัดไป</button>
+          </div>
+        </div>
       </div>
 
     </section>
@@ -2845,6 +3006,129 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CUSTOMER (Add / Edit - CRM) -->
+  <!-- ======================================================== -->
+  <div id="modal-customer" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div class="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl relative my-8">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <div id="modal-customer-icon-wrap" class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+            <i data-lucide="user-check" class="w-4 h-4"></i>
+          </div>
+          <span id="modal-customer-title">เพิ่มลูกค้าใหม่</span>
+        </h3>
+        <button onclick="closeCustomerModal()" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-customer" onsubmit="handleSaveCustomer(event)" class="space-y-4 text-xs">
+        <input type="hidden" id="cust-modal-mode" value="add">
+
+        <!-- Top row: ID & Tax ID -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">
+              รหัสลูกค้า
+              <span id="cust-id-auto-hint" class="text-[10px] text-blue-400 font-normal ml-1">(สร้างอัตโนมัติ)</span>
+            </label>
+            <input type="text" id="cust-modal-id" readonly placeholder="C0xxx" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-blue-300 font-mono font-bold">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block font-medium text-slate-300 mb-1">
+              เลขประจำตัวผู้เสียภาษี (13 หลัก)
+              <span class="text-[10px] text-slate-400 font-normal ml-1">(บุคคลธรรมดา / นิติบุคคล)</span>
+            </label>
+            <input type="text" id="cust-modal-taxid" maxlength="13" placeholder="เลขประจำตัวผู้เสียภาษี 13 หลัก" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono tracking-wider">
+          </div>
+        </div>
+
+        <!-- Name & Full Name -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">ชื่อที่ใช้เรียกทั่วไป / ชื่อร้าน *</label>
+            <input type="text" id="cust-modal-name" required placeholder="เช่น เสี่ยกุ้ง อนันต์ก่อสร้าง" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">ชื่อเต็มทางนิติบุคคล / หน่วยงาน</label>
+            <input type="text" id="cust-modal-fullname" placeholder="เช่น หจก.อนันต์ก่อสร้าง / รร.บ้านหนองแวง" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
+          </div>
+        </div>
+
+        <!-- Address breakdown -->
+        <div class="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl space-y-3">
+          <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-400"></i>
+            <span>ที่อยู่เปิดบิล / ส่งของ</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-medium text-slate-400 mb-1 text-[11px]">เลขที่ / อาคาร / ถนน</label>
+              <input type="text" id="cust-modal-addressdetail" placeholder="เช่น 109 109 ม.6" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-400 mb-1 text-[11px]">หมู่บ้าน / ชุมชน</label>
+              <input type="text" id="cust-modal-village" placeholder="เช่น อูบมุง" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label class="block font-medium text-slate-400 mb-1 text-[11px]">ตำบล / แขวง</label>
+              <input type="text" id="cust-modal-subdistrict" placeholder="ต.อูบมุง" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-400 mb-1 text-[11px]">อำเภอ / เขต</label>
+              <input type="text" id="cust-modal-district" placeholder="อ.หนองวัวซอ" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-400 mb-1 text-[11px]">จังหวัด</label>
+              <input type="text" id="cust-modal-province" placeholder="จ.อุดรธานี" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-400 mb-1 text-[11px]">รหัสไปรษณีย์</label>
+              <input type="text" id="cust-modal-zipcode" maxlength="5" placeholder="41220" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono">
+            </div>
+          </div>
+        </div>
+
+        <!-- Phone & Contacts -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">เบอร์โทรศัพท์ร้าน / ออฟฟิศ</label>
+            <input type="text" id="cust-modal-phone" placeholder="เช่น 042-xxx-xxx" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">ชื่อผู้ติดต่อประสานงาน</label>
+            <input type="text" id="cust-modal-contact" placeholder="เช่น เสี่ยกุ้ง, เสี่ยไก่" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">เบอร์โทรผู้ติดต่อ</label>
+            <input type="text" id="cust-modal-contactphone" placeholder="เช่น 089-xxx-xxxx" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Line ID ผู้ติดต่อ</label>
+            <input type="text" id="cust-modal-contactline" placeholder="เช่น kung_udon" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-700">
+          <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-semibold transition">ยกเลิก</button>
+          <button type="submit" id="btn-save-customer" class="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-950/40 flex items-center gap-1.5 transition">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span id="btn-save-customer-text">บันทึกข้อมูลลูกค้า</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
