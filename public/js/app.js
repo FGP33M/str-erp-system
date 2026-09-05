@@ -2175,7 +2175,7 @@ function renderMasterBillsTable(bills) {
 let editCustDebounceTimer = null;
 
 function openEditBillModal(billId) {
-  const bill = currentMasterBillsList.find(b => b.billId === billId);
+  const bill = (allMasterBillsCache || []).find(b => b.billId === billId);
   if (!bill) {
     showToast("ไม่พบบิลที่ต้องการแก้ไข", false);
     return;
