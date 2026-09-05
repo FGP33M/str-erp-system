@@ -540,8 +540,9 @@ class GoogleSheetsService {
     const yy = (now.getFullYear() + 543).toString().slice(-2);
     const mm = (now.getMonth() + 1).toString().padStart(2, '0');
     const dd = now.getDate().toString().padStart(2, '0');
-    const dateStr = data.date || `${dd}/${mm}/${now.getFullYear() + 543}`;
-    const timestampStr = `${dateStr} ${now.toLocaleTimeString('th-TH')}`;
+    const todayDateStr = `${dd}/${mm}/${now.getFullYear() + 543}`;
+    const dateStr = data.date || todayDateStr; // Bill date (can be backdated)
+    const timestampStr = `${todayDateStr} ${now.toLocaleTimeString('th-TH')}`; // System locked record timestamp!
 
     // 1. Get current count in MASTER_BILLS to generate sequential Bill_ID
     const masterRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A2:A`, {
@@ -763,6 +764,30 @@ class GoogleSheetsService {
     const mm = (now.getMonth() + 1).toString().padStart(2, '0');
     const dd = now.getDate().toString().padStart(2, '0');
     const todayStr = `${dd}/${mm}/${yy}`;
+    const enYearStr = now.getFullYear().toString();
+
+    const isRecordedToday = (createdAtStr) => {
+      if (!createdAtStr) return false;
+      const datePart = createdAtStr.split(' ')[0].trim();
+      if (datePart.includes('/')) {
+        const parts = datePart.split('/');
+        if (parts.length === 3) {
+          const d = parts[0].padStart(2, '0');
+          const m = parts[1].padStart(2, '0');
+          const y = parts[2];
+          return d === dd && m === mm && (y === yy || y === enYearStr);
+        }
+      } else if (datePart.includes('-')) {
+        const parts = datePart.split('-');
+        if (parts.length === 3) {
+          const y = parts[0];
+          const m = parts[1].padStart(2, '0');
+          const d = parts[2].padStart(2, '0');
+          return d === dd && m === mm && (y === yy || y === enYearStr);
+        }
+      }
+      return datePart === todayStr;
+    };
 
     let bills = rows.map((r, idx) => ({
       rowIndex: idx + 2,
@@ -782,6 +807,9 @@ class GoogleSheetsService {
       status: r[13] || 'รอวางบิล',
       notes: r[14] || ''
     })).filter(b => b.billId);
+
+    // Shift Isolation: Only show bills RECORDED today (past days' bills disappear from daily staff view)
+    bills = bills.filter(b => isRecordedToday(b.createdAt));
 
     // If staff, filter by createdBy
     if (!isManagerOrAdmin) {
