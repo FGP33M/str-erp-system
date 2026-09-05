@@ -1855,63 +1855,173 @@ async function loadExecutiveDashboard() {
   }
 }
 
-function renderExecutiveDashboardStats(stats) {
-  const sum = stats.summary;
+let executiveRevenueTrendChart = null;
+let executiveCashFlowChart = null;
 
-  // Row 1: KPI Cards
+function renderExecutiveDashboardStats(stats) {
+  if (!stats) return;
+  const sum = stats.summary || {};
+  const sf = stats.storefront || {};
+  const grand = stats.grandCombined || {};
+  const annual = stats.annualSummary || {};
+
+  // ROW 1: Hero Metric Cards
+  const grandTotalEl = document.getElementById('dash-stat-grand-total');
+  if (grandTotalEl) grandTotalEl.innerText = grand.formattedTotalRevenue || (grand.totalRevenue ? grand.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
+  const sfTotalEl = document.getElementById('dash-stat-storefront-total');
+  if (sfTotalEl) sfTotalEl.innerText = sf.formattedGrandTotal || (sf.grandTotal ? sf.grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
+  const sfCashEl = document.getElementById('dash-stat-sf-cash');
+  if (sfCashEl) sfCashEl.innerText = sf.formattedCashNet || (sf.cashNet ? sf.cashNet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
+  const sfTransferEl = document.getElementById('dash-stat-sf-transfer');
+  if (sfTransferEl) sfTransferEl.innerText = sf.formattedTransferTotal || (sf.transferTotal ? sf.transferTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
   const totalAmtEl = document.getElementById('dash-stat-total-amount');
   const totalCntEl = document.getElementById('dash-stat-total-count');
-  if (totalAmtEl) totalAmtEl.innerText = `${sum.formattedTotalActiveAmount}`;
-  if (totalCntEl) totalCntEl.innerText = sum.totalActiveCount;
-
-  const genAmtEl = document.getElementById('dash-stat-gen-amount');
-  const genCntEl = document.getElementById('dash-stat-gen-count');
-  if (genAmtEl) genAmtEl.innerText = `${sum.storeGeneral.formattedAmount}`;
-  if (genCntEl) genCntEl.innerText = sum.storeGeneral.count;
-
-  const govAmtEl = document.getElementById('dash-stat-gov-amount');
-  const govCntEl = document.getElementById('dash-stat-gov-count');
-  if (govAmtEl) govAmtEl.innerText = `${sum.storeGov.formattedAmount}`;
-  if (govCntEl) govCntEl.innerText = sum.storeGov.count;
+  if (totalAmtEl) totalAmtEl.innerText = sum.formattedTotalActiveAmount || '0.00';
+  if (totalCntEl) totalCntEl.innerText = sum.totalActiveCount || 0;
 
   const fuelAmtEl = document.getElementById('dash-stat-fuel-amount');
   const fuelCntEl = document.getElementById('dash-stat-fuel-count');
-  if (fuelAmtEl) fuelAmtEl.innerText = `${sum.fuel.formattedAmount}`;
-  if (fuelCntEl) fuelCntEl.innerText = sum.fuel.count;
+  if (fuelAmtEl) fuelAmtEl.innerText = (sum.fuel && sum.fuel.formattedAmount) || '0.00';
+  if (fuelCntEl) fuelCntEl.innerText = (sum.fuel && sum.fuel.count) || 0;
 
-  // Row 2: Status Breakdown
+  // ROW 2: Storefront Detail Cards
+  const sfNetCashEl = document.getElementById('dash-stat-sf-netcash');
+  if (sfNetCashEl) sfNetCashEl.innerText = sf.formattedCashNet || (sf.cashNet ? sf.cashNet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
+  const sfTransferTotalEl = document.getElementById('dash-stat-sf-transfertotal');
+  if (sfTransferTotalEl) sfTransferTotalEl.innerText = sf.formattedTransferTotal || (sf.transferTotal ? sf.transferTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
+  const sfGoodsTotalEl = document.getElementById('dash-stat-sf-goodstotal');
+  if (sfGoodsTotalEl) sfGoodsTotalEl.innerText = sf.formattedGoodsTotal || (sf.goodsTotal ? sf.goodsTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
+  const sfLaborTotalEl = document.getElementById('dash-stat-sf-labortotal');
+  if (sfLaborTotalEl) sfLaborTotalEl.innerText = sf.formattedLaborTotal || (sf.laborTotal ? sf.laborTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
+  const sfCreditTotalEl = document.getElementById('dash-stat-sf-credittotal');
+  if (sfCreditTotalEl) sfCreditTotalEl.innerText = sf.formattedCreditTotal || (sf.creditTotal ? sf.creditTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+
+  // ROW 3: Visual Charts
+  if (stats.chartData) {
+    try {
+      renderExecutiveCharts(stats.chartData);
+    } catch (chartErr) {
+      console.error("Failed to render charts:", chartErr);
+    }
+  }
+
+  // ROW 4: 12-Month Performance Matrix Table
+  const yearEl = document.getElementById('dash-matrix-year');
+  if (yearEl && stats.currentYear) yearEl.innerText = stats.currentYear;
+
+  const annualTotalEl = document.getElementById('dash-matrix-annual-total');
+  if (annualTotalEl && annual.formattedGrandTotalRevenue) annualTotalEl.innerText = annual.formattedGrandTotalRevenue;
+
+  const monthlyAvgEl = document.getElementById('dash-matrix-monthly-avg');
+  if (monthlyAvgEl && annual.formattedMonthlyAverage) monthlyAvgEl.innerText = annual.formattedMonthlyAverage;
+
+  const peakMonthEl = document.getElementById('dash-matrix-peak-month');
+  if (peakMonthEl && annual.peakMonth) peakMonthEl.innerText = annual.peakMonth;
+
+  const matrixTbody = document.getElementById('dash-monthly-matrix-tbody');
+  const matrixTfoot = document.getElementById('dash-monthly-matrix-tfoot');
+  if (matrixTbody && stats.monthlyMatrix && Array.isArray(stats.monthlyMatrix)) {
+    const currentMonthNum = new Date().getMonth() + 1;
+    let sumSf = 0, sumCredit = 0, sumDelivery = 0, sumFuel = 0, sumReceipts = 0, sumTotal = 0;
+
+    matrixTbody.innerHTML = stats.monthlyMatrix.map(m => {
+      sumSf += (m.storefrontCashTransfer || 0);
+      sumCredit += (m.storefrontCredit || 0);
+      sumDelivery += (m.storeDelivery || 0);
+      sumFuel += (m.fuel || 0);
+      sumReceipts += (m.receiptsPaid || 0);
+      sumTotal += (m.totalRevenue || 0);
+
+      const isCurrent = m.month === currentMonthNum;
+      const rowBg = isCurrent ? 'bg-indigo-950/40 hover:bg-slate-700/50' : 'hover:bg-slate-700/30';
+      const monthBadge = isCurrent ? `<span class="ml-1.5 px-1.5 py-0.5 rounded text-[9px] bg-indigo-500/30 text-indigo-300 font-sans font-semibold">เดือนนี้</span>` : '';
+
+      return `
+        <tr class="${rowBg} transition">
+          <td class="py-2.5 px-3 font-sans font-medium text-slate-200 flex items-center">
+            <span>${escapeHtml(m.monthName || m.shortName || '')}</span>
+            ${monthBadge}
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono text-emerald-300">${m.storefrontCashTransfer > 0 ? m.storefrontCashTransfer.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-rose-300">${m.storefrontCredit > 0 ? m.storefrontCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-blue-300">${m.storeDelivery > 0 ? m.storeDelivery.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-teal-300">${m.fuel > 0 ? m.fuel.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-purple-300">${m.receiptsPaid > 0 ? m.receiptsPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-white bg-slate-900/50">${m.totalRevenue > 0 ? m.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    if (matrixTfoot) {
+      const activeMonths = Math.max(1, currentMonthNum);
+      matrixTfoot.innerHTML = `
+        <tr class="text-slate-200 border-b border-slate-700/60">
+          <td class="py-2.5 px-3 font-sans font-bold">รวมทั้งปี (Annual Total)</td>
+          <td class="py-2.5 px-3 text-right text-emerald-400 font-bold">${sumSf.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2.5 px-3 text-right text-rose-400 font-bold">${sumCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2.5 px-3 text-right text-blue-400 font-bold">${sumDelivery.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2.5 px-3 text-right text-teal-400 font-bold">${sumFuel.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2.5 px-3 text-right text-purple-400 font-bold">${sumReceipts.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2.5 px-3 text-right text-white font-bold bg-slate-800/90">${sumTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        </tr>
+        <tr class="text-slate-400 font-medium">
+          <td class="py-2 px-3 font-sans">เฉลี่ยต่อเดือน (Monthly Avg)</td>
+          <td class="py-2 px-3 text-right font-mono">${(sumSf / activeMonths).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2 px-3 text-right font-mono">${(sumCredit / activeMonths).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2 px-3 text-right font-mono">${(sumDelivery / activeMonths).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2 px-3 text-right font-mono">${(sumFuel / activeMonths).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2 px-3 text-right font-mono">${(sumReceipts / activeMonths).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2 px-3 text-right font-mono font-bold text-indigo-300 bg-slate-800/90">${(sumTotal / activeMonths).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        </tr>
+      `;
+    }
+  }
+
+  // ROW 5: Status Breakdown & Commercial Mix
   const pendAmtEl = document.getElementById('dash-stat-pending-amt');
   const pendCntEl = document.getElementById('dash-stat-pending-cnt');
-  if (pendAmtEl) pendAmtEl.innerText = `${sum.pendingBilling.formattedAmount}`;
-  if (pendCntEl) pendCntEl.innerText = sum.pendingBilling.count;
+  if (pendAmtEl && sum.pendingBilling) pendAmtEl.innerText = `${sum.pendingBilling.formattedAmount}`;
+  if (pendCntEl && sum.pendingBilling) pendCntEl.innerText = sum.pendingBilling.count;
 
   const billAmtEl = document.getElementById('dash-stat-billed-amt');
   const billCntEl = document.getElementById('dash-stat-billed-cnt');
-  if (billAmtEl) billAmtEl.innerText = `${sum.billed.formattedAmount}`;
-  if (billCntEl) billCntEl.innerText = sum.billed.count;
+  if (billAmtEl && sum.billed) billAmtEl.innerText = `${sum.billed.formattedAmount}`;
+  if (billCntEl && sum.billed) billCntEl.innerText = sum.billed.count;
 
   const paidAmtEl = document.getElementById('dash-stat-paid-amt');
   const paidCntEl = document.getElementById('dash-stat-paid-cnt');
-  if (paidAmtEl) paidAmtEl.innerText = `${sum.paid.formattedAmount}`;
-  if (paidCntEl) paidCntEl.innerText = sum.paid.count;
+  if (paidAmtEl && sum.paid) paidAmtEl.innerText = `${sum.paid.formattedAmount}`;
+  if (paidCntEl && sum.paid) paidCntEl.innerText = sum.paid.count;
 
   const cancelAmtEl = document.getElementById('dash-stat-cancel-amt');
   const cancelCntEl = document.getElementById('dash-stat-cancel-cnt');
-  if (cancelAmtEl) cancelAmtEl.innerText = `${sum.cancelled.formattedAmount}`;
-  if (cancelCntEl) cancelCntEl.innerText = sum.cancelled.count;
+  if (cancelAmtEl && sum.cancelled) cancelAmtEl.innerText = `${sum.cancelled.formattedAmount}`;
+  if (cancelCntEl && sum.cancelled) cancelCntEl.innerText = sum.cancelled.count;
 
-  // Revenue Mix %
-  const totalAmt = sum.totalActiveAmount || 1;
-  const pctGen = Math.round((sum.storeGeneral.amount / totalAmt) * 100);
-  const pctGov = Math.round((sum.storeGov.amount / totalAmt) * 100);
+  // Delivery Mix %
+  const totalActiveAmt = sum.totalActiveAmount || 1;
+  const storeGenAmt = (sum.storeGeneral && sum.storeGeneral.amount) || 0;
+  const storeGovAmt = (sum.storeGov && sum.storeGov.amount) || 0;
+  const fuelAmt = (sum.fuel && sum.fuel.amount) || 0;
+
+  const pctGen = Math.round((storeGenAmt / totalActiveAmt) * 100);
+  const pctGov = Math.round((storeGovAmt / totalActiveAmt) * 100);
   const pctFuel = Math.max(0, 100 - pctGen - pctGov);
 
   const pctGenEl = document.getElementById('pct-mix-gen');
   const pctGovEl = document.getElementById('pct-mix-gov');
   const pctFuelEl = document.getElementById('pct-mix-fuel');
-  if (pctGenEl) pctGenEl.innerText = `${pctGen}% (${sum.storeGeneral.formattedAmount})`;
-  if (pctGovEl) pctGovEl.innerText = `${pctGov}% (${sum.storeGov.formattedAmount})`;
-  if (pctFuelEl) pctFuelEl.innerText = `${pctFuel}% (${sum.fuel.formattedAmount})`;
+  if (pctGenEl && sum.storeGeneral) pctGenEl.innerText = `${pctGen}% (${sum.storeGeneral.formattedAmount})`;
+  if (pctGovEl && sum.storeGov) pctGovEl.innerText = `${pctGov}% (${sum.storeGov.formattedAmount})`;
+  if (pctFuelEl && sum.fuel) pctFuelEl.innerText = `${pctFuel}% (${sum.fuel.formattedAmount})`;
 
   const barGen = document.getElementById('bar-mix-gen');
   const barGov = document.getElementById('bar-mix-gov');
@@ -1920,17 +2030,17 @@ function renderExecutiveDashboardStats(stats) {
   if (barGov) barGov.style.width = `${pctGov}%`;
   if (barFuel) barFuel.style.width = `${pctFuel}%`;
 
-  // Top Debtors Table
+  // ROW 6: Top Debtors Table
   const debtorsTbody = document.getElementById('dash-debtors-tbody');
   if (debtorsTbody) {
     if (!stats.topDebtors || stats.topDebtors.length === 0) {
-      debtorsTbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500 text-xs">ไม่มีรายการหนี้ค้างชำระ</td></tr>`;
+      debtorsTbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500 text-xs font-sans">ไม่มีรายการหนี้ค้างชำระ</td></tr>`;
     } else {
       debtorsTbody.innerHTML = stats.topDebtors.map(d => `
         <tr class="hover:bg-slate-700/30 transition">
           <td class="py-2.5 px-2">
-            <div class="font-semibold text-white">${d.customerName}</div>
-            <div class="text-[10px] text-slate-400 font-mono">${d.customerId || '-'} • ${d.billCount} บิล</div>
+            <div class="font-semibold text-white">${escapeHtml(d.customerName || 'ไม่ระบุ')}</div>
+            <div class="text-[10px] text-slate-400 font-mono">${escapeHtml(d.customerId || '-')} • ${d.billCount} บิล</div>
           </td>
           <td class="py-2.5 px-2 text-right font-mono text-slate-300">${d.storeAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td class="py-2.5 px-2 text-right font-mono text-teal-300">${d.fuelAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -1940,32 +2050,33 @@ function renderExecutiveDashboardStats(stats) {
     }
   }
 
-  // Cancellation Audit Log
+  // ROW 6: Cancellation Audit Log
   const cancelList = document.getElementById('dash-cancel-list');
   const badgeCount = document.getElementById('dash-cancel-count-badge');
-  if (badgeCount) badgeCount.innerText = `${stats.cancelledBills.length} บิล`;
+  const cancelledArr = stats.cancelledBills || [];
+  if (badgeCount) badgeCount.innerText = `${cancelledArr.length} บิล`;
 
   if (cancelList) {
-    if (!stats.cancelledBills || stats.cancelledBills.length === 0) {
-      cancelList.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">ไม่มีประวัติบิลที่ขอยกเลิก</div>`;
+    if (cancelledArr.length === 0) {
+      cancelList.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs font-sans">ไม่มีประวัติบิลที่ขอยกเลิก</div>`;
     } else {
-      cancelList.innerHTML = stats.cancelledBills.map(b => `
+      cancelList.innerHTML = cancelledArr.map(b => `
         <div class="p-3 bg-slate-900/80 border border-red-500/20 rounded-xl flex flex-col gap-1.5">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-1.5">
-              <span class="font-mono font-bold text-white text-xs">${b.billId}</span>
-              <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-500/20 text-red-400">ยกเลิกแล้ว</span>
-              <span class="text-[10px] text-slate-400 font-mono">${b.billRef || ''}</span>
+              <span class="font-mono font-bold text-white text-xs">${escapeHtml(b.billId)}</span>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-500/20 text-red-400 font-sans">ยกเลิกแล้ว</span>
+              <span class="text-[10px] text-slate-400 font-mono">${escapeHtml(b.billRef || '')}</span>
             </div>
-            <span class="font-mono text-slate-400 line-through text-xs">${b.amount}</span>
+            <span class="font-mono text-slate-400 line-through text-xs">${escapeHtml(b.amount || '0.00')}</span>
           </div>
-          <div class="text-xs text-slate-300">${b.customerName}</div>
-          <div class="text-[11px] text-red-300/90 bg-red-500/10 p-1.5 rounded-lg mt-0.5">
-            ${b.notes || 'ไม่มีเหตุผลระบุ'}
+          <div class="text-xs text-slate-300 font-medium">${escapeHtml(b.customerName || '')}</div>
+          <div class="text-[11px] text-red-300/90 bg-red-500/10 p-1.5 rounded-lg mt-0.5 font-sans">
+            ${escapeHtml(b.notes || 'ไม่มีเหตุผลระบุ')}
           </div>
           <div class="text-[10px] text-slate-500 flex items-center justify-between pt-1">
-            <span>ผู้บันทึก: ${b.createdBy}</span>
-            <span>${b.createdAt || b.date}</span>
+            <span>ผู้บันทึก: ${escapeHtml(b.createdBy || '-')}</span>
+            <span>${escapeHtml(b.createdAt || b.date || '')}</span>
           </div>
         </div>
       `).join('');
@@ -1973,6 +2084,199 @@ function renderExecutiveDashboardStats(stats) {
   }
 
   refreshIcons();
+}
+
+function renderExecutiveCharts(chartData) {
+  if (typeof Chart === 'undefined') {
+    console.warn("Chart.js is not loaded yet");
+    return;
+  }
+
+  // Destroy old instances before redrawing to prevent canvas reuse errors
+  if (executiveRevenueTrendChart) {
+    executiveRevenueTrendChart.destroy();
+    executiveRevenueTrendChart = null;
+  }
+  if (executiveCashFlowChart) {
+    executiveCashFlowChart.destroy();
+    executiveCashFlowChart = null;
+  }
+
+  // Chart 1: 12-Month Revenue Comparison & Trend Combo
+  const trendCanvas = document.getElementById('chart-monthly-trends');
+  if (trendCanvas && chartData) {
+    const ctx = trendCanvas.getContext('2d');
+    executiveRevenueTrendChart = new Chart(ctx, {
+      data: {
+        labels: chartData.labels || ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+        datasets: [
+          {
+            type: 'bar',
+            label: 'หน้าร้าน (สด+โอน)',
+            data: chartData.storefrontSeries || [],
+            backgroundColor: 'rgba(16, 185, 129, 0.75)',
+            borderRadius: 4,
+            barPercentage: 0.6,
+            categoryPercentage: 0.8,
+            order: 2
+          },
+          {
+            type: 'bar',
+            label: 'บิลส่งของ (ร้านค้า)',
+            data: chartData.deliverySeries || [],
+            backgroundColor: 'rgba(59, 130, 246, 0.75)',
+            borderRadius: 4,
+            barPercentage: 0.6,
+            categoryPercentage: 0.8,
+            order: 2
+          },
+          {
+            type: 'bar',
+            label: 'บิลน้ำมัน (ปั๊ม)',
+            data: chartData.fuelSeries || [],
+            backgroundColor: 'rgba(20, 184, 166, 0.75)',
+            borderRadius: 4,
+            barPercentage: 0.6,
+            categoryPercentage: 0.8,
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'รวมรายรับทั้งระบบ',
+            data: chartData.totalSeries || [],
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            borderWidth: 2.5,
+            pointBackgroundColor: '#fbbf24',
+            pointBorderColor: '#0f172a',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.25,
+            fill: true,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#f1f5f9',
+            titleFont: { family: 'Prompt', size: 12, weight: 'bold' },
+            bodyColor: '#cbd5e1',
+            bodyFont: { family: 'Prompt', size: 11 },
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) label += ': ';
+                if (context.parsed.y !== null) {
+                  label += Number(context.parsed.y).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
+                }
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(51, 65, 85, 0.25)' },
+            ticks: { color: '#94a3b8', font: { family: 'Prompt', size: 11 } }
+          },
+          y: {
+            grid: { color: 'rgba(51, 65, 85, 0.25)' },
+            ticks: {
+              color: '#94a3b8',
+              font: { family: 'JetBrains Mono', size: 10 },
+              callback: function(val) {
+                if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+                if (val >= 1000) return (val / 1000).toFixed(0) + 'k';
+                return val;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Chart 2: Cash Flow Mix Donut
+  const cashFlowCanvas = document.getElementById('chart-cashflow-mix');
+  if (cashFlowCanvas && chartData && chartData.cashFlowMix) {
+    const ctx = cashFlowCanvas.getContext('2d');
+    const cf = chartData.cashFlowMix;
+    const cfValues = [
+      Number(cf.cash || 0),
+      Number(cf.transfer || 0),
+      Number(cf.paidDebtors || 0),
+      Number(cf.pendingDebtors || 0)
+    ];
+    const hasData = cfValues.some(v => v > 0);
+
+    executiveCashFlowChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['เงินสดหน้าร้าน', 'เงินโอนหน้าร้าน', 'รับชำระหนี้แล้ว', 'ลูกหนี้ค้างชำระ'],
+        datasets: [{
+          data: hasData ? cfValues : [1, 1, 1, 1],
+          backgroundColor: [
+            'rgba(16, 185, 129, 0.85)',
+            'rgba(59, 130, 246, 0.85)',
+            'rgba(168, 85, 247, 0.85)',
+            'rgba(245, 158, 11, 0.85)'
+          ],
+          borderColor: '#0f172a',
+          borderWidth: 2,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#cbd5e1',
+              boxWidth: 10,
+              boxHeight: 10,
+              padding: 10,
+              font: { family: 'Prompt', size: 10 }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#f1f5f9',
+            titleFont: { family: 'Prompt', size: 12, weight: 'bold' },
+            bodyColor: '#cbd5e1',
+            bodyFont: { family: 'Prompt', size: 11 },
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              label: function(context) {
+                const val = Number(cfValues[context.dataIndex] || 0);
+                return ` ${context.label}: ${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
 }
 
 // ==========================================
