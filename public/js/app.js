@@ -101,12 +101,29 @@ function toggleSidebar(forceState) {
   const isDesktop = window.innerWidth >= 1024;
   if (isDesktop) {
     if (forceState !== undefined) {
-      if (forceState) sidebar.classList.remove('lg:hidden');
-      else sidebar.classList.add('lg:hidden');
+      if (forceState) {
+        sidebar.classList.remove('lg:hidden');
+        sidebar.classList.add('lg:flex');
+        sidebar.style.display = '';
+      } else {
+        sidebar.classList.add('lg:hidden');
+        sidebar.classList.remove('lg:flex');
+        sidebar.style.display = 'none';
+      }
     } else {
-      sidebar.classList.toggle('lg:hidden');
+      const isHidden = sidebar.style.display === 'none' || sidebar.classList.contains('lg:hidden');
+      if (isHidden) {
+        sidebar.classList.remove('lg:hidden');
+        sidebar.classList.add('lg:flex');
+        sidebar.style.display = '';
+      } else {
+        sidebar.classList.add('lg:hidden');
+        sidebar.classList.remove('lg:flex');
+        sidebar.style.display = 'none';
+      }
     }
   } else {
+    sidebar.style.display = '';
     if (forceState !== undefined) isSidebarOpenMobile = forceState;
     else isSidebarOpenMobile = !isSidebarOpenMobile;
 
@@ -222,15 +239,30 @@ function navigateTo(viewName) {
   const backdrop = document.getElementById('sidebar-backdrop');
 
   if (viewName === 'login') {
-    if (header) header.classList.add('hidden');
-    if (sidebar) sidebar.classList.add('hidden');
+    if (header) {
+      header.classList.add('hidden');
+      header.classList.remove('flex');
+      header.style.display = 'none';
+    }
+    if (sidebar) {
+      sidebar.classList.add('hidden');
+      sidebar.classList.add('lg:hidden');
+      sidebar.classList.remove('lg:flex');
+      sidebar.style.display = 'none';
+    }
     if (backdrop) backdrop.classList.add('hidden');
     syncUrlRoute('/');
   } else {
-    if (header) header.classList.remove('hidden');
+    if (header) {
+      header.classList.remove('hidden');
+      header.classList.add('flex');
+      header.style.display = '';
+    }
     if (sidebar) {
       sidebar.classList.remove('hidden');
-      sidebar.classList.add('flex');
+      sidebar.classList.remove('lg:hidden');
+      sidebar.classList.add('lg:flex');
+      sidebar.style.display = '';
     }
     // Synchronize browser address bar with current portal mode
     syncUrlRoute(currentPortalMode === 'staff' ? '/staff' : '/manager');
@@ -755,6 +787,13 @@ async function handleLogout() {
   localStorage.removeItem('erp_token');
   currentToken = '';
   currentUser = null;
+  currentPortalMode = 'staff';
+
+  const sideUserName = document.getElementById('side-user-name');
+  const sideUserRole = document.getElementById('side-user-role');
+  if (sideUserName) sideUserName.innerText = 'User';
+  if (sideUserRole) sideUserRole.innerText = 'Role';
+
   navigateTo('login');
   syncUrlRoute('/');
   showToast("ออกจากระบบเรียบร้อยแล้ว");
