@@ -2144,7 +2144,14 @@ function openImageViewer(url, title = 'รูปภาพบิล') {
   const titleEl = document.getElementById('viewer-title');
   const linkEl = document.getElementById('viewer-open-link');
 
-  img.src = url;
+  let displayUrl = url;
+  // If Google Drive link, extract fileId and use high-speed direct CDN
+  const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch && driveMatch[1]) {
+    displayUrl = `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+  }
+
+  img.src = displayUrl;
   titleEl.innerText = `รูปบิล: ${title}`;
   linkEl.href = url;
 
