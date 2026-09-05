@@ -2144,11 +2144,201 @@ function renderMasterBillsTable(bills) {
         <td class="py-2.5 px-3 text-center">${photoCell}</td>
         <td class="py-2.5 px-3 text-center">${statusBadge}</td>
         <td class="py-2.5 px-3 text-slate-400">${b.createdBy || b.approvedBy || '-'}</td>
+        <td class="py-2.5 px-3 text-center">
+          ${b.status === 'รอวางบิล' ? `
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="openEditBillModal('${b.billId}')" class="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition" title="แก้ไขข้อมูลบิล">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="openCancelBillModal('${b.billId}')" class="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition" title="ยกเลิกบิล">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          ` : `
+            <div class="flex items-center justify-center text-slate-500 text-[10px]" title="บิลถูกนำไปวางบิลหรือชำระแล้ว (ล็อกการแก้ไข)">
+              <i data-lucide="lock" class="w-3 h-3 mr-0.5"></i>
+              <span>ล็อก</span>
+            </div>
+          `}
+        </td>
       </tr>
     `;
   }).join('');
 
   refreshIcons();
+}
+
+// ==============================================
+// EDIT MASTER BILL MODAL & LOGIC
+// ==============================================
+
+let editCustDebounceTimer = null;
+
+function openEditBillModal(billId) {
+  const bill = currentMasterBillsList.find(b => b.billId === billId);
+  if (!bill) {
+    showToast("ไม่พบบิลที่ต้องการแก้ไข", false);
+    return;
+  }
+
+  if (bill.status !== 'รอวางบิล') {
+    showToast(`บิลนี้อยู่ในสถานะ '${bill.status}' แล้ว ไม่อนุญาตให้แก้ไข`, false);
+    return;
+  }
+
+  document.getElementById('edit-bill-id').value = bill.billId;
+  document.getElementById('edit-bill-id-title').innerText = bill.billId;
+  document.getElementById('edit-bill-date').value = bill.date;
+  document.getElementById('edit-bill-ref').value = bill.billRef || '';
+  document.getElementById('edit-bill-amount').value = parseFloat(String(bill.amount).replace(/,/g, '')) || 0;
+  document.getElementById('edit-bill-notes').value = bill.notes || '';
+
+  // Set Customer
+  document.getElementById('edit-cust-id').value = bill.customerId || '';
+  document.getElementById('edit-cust-name').value = bill.customerName || '';
+
+  const pill = document.getElementById('edit-selected-cust-pill');
+  const searchInput = document.getElementById('edit-cust-search');
+
+  if (bill.customerId || bill.customerName) {
+    document.getElementById('edit-pill-text').innerText = `${bill.customerId || '-'} - ${bill.customerName || '-'}`;
+    pill.classList.remove('hidden');
+    searchInput.classList.add('hidden');
+  } else {
+    pill.classList.add('hidden');
+    searchInput.classList.remove('hidden');
+    searchInput.value = '';
+  }
+
+  document.getElementById('modal-edit-bill').classList.remove('hidden');
+  refreshIcons();
+}
+
+function closeEditBillModal() {
+  const modal = document.getElementById('modal-edit-bill');
+  if (modal) modal.classList.add('hidden');
+}
+
+function handleEditCustSearch(e) {
+  clearTimeout(editCustDebounceTimer);
+  const q = (e.target.value || '').trim().toLowerCase();
+  const dropdown = document.getElementById('edit-cust-dropdown');
+
+  if (!q) {
+    dropdown.classList.add('hidden');
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  editCustDebounceTimer = setTimeout(() => {
+    const matches = currentCustomersList.filter(c =>
+      c.id.toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
+      c.fullName.toLowerCase().includes(q) ||
+      (c.phone && c.phone.includes(q))
+    ).slice(0, 8);
+
+    if (matches.length === 0) {
+      dropdown.innerHTML = `<div class="p-2.5 text-xs text-slate-400 text-center">ไม่พบชื่อลูกค้านี้</div>`;
+    } else {
+      dropdown.innerHTML = matches.map(c => `
+        <div onclick="selectEditCust('${c.id}')" class="p-2.5 hover:bg-slate-800 cursor-pointer transition flex items-center justify-between">
+          <div>
+            <div class="font-bold text-white text-xs">${c.id} - ${c.name}</div>
+            ${c.fullName && c.fullName !== c.name ? `<div class="text-[10px] text-slate-400">${c.fullName}</div>` : ''}
+          </div>
+          <div class="text-[10px] text-slate-400">${c.phone || ''}</div>
+        </div>
+      `).join('');
+    }
+    dropdown.classList.remove('hidden');
+  }, 150);
+}
+
+function selectEditCust(id) {
+  const c = currentCustomersList.find(x => x.id === id);
+  if (!c) return;
+
+  document.getElementById('edit-cust-id').value = c.id;
+  document.getElementById('edit-cust-name').value = c.name;
+
+  document.getElementById('edit-cust-search').classList.add('hidden');
+  document.getElementById('edit-cust-dropdown').classList.add('hidden');
+
+  const pill = document.getElementById('edit-selected-cust-pill');
+  document.getElementById('edit-pill-text').innerText = `${c.id} - ${c.name}`;
+  pill.classList.remove('hidden');
+}
+
+function clearEditCustSelection() {
+  document.getElementById('edit-cust-id').value = '';
+  document.getElementById('edit-cust-name').value = '';
+
+  const pill = document.getElementById('edit-selected-cust-pill');
+  pill.classList.add('hidden');
+
+  const searchInput = document.getElementById('edit-cust-search');
+  searchInput.classList.remove('hidden');
+  searchInput.value = '';
+}
+
+async function handleSaveEditBill(e) {
+  e.preventDefault();
+
+  const billId = document.getElementById('edit-bill-id').value;
+  const date = document.getElementById('edit-bill-date').value.trim();
+  const billRef = document.getElementById('edit-bill-ref').value.trim();
+  const customerId = document.getElementById('edit-cust-id').value;
+  const customerName = document.getElementById('edit-cust-name').value;
+  const amount = document.getElementById('edit-bill-amount').value;
+  const notes = document.getElementById('edit-bill-notes').value.trim();
+
+  const btn = document.getElementById('btn-save-edit-bill');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> กำลังบันทึก...`;
+  }
+
+  try {
+    const res = await fetch('/api/delivery/bills/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken || localStorage.getItem('erp_token') || ''}`
+      },
+      body: JSON.stringify({
+        billId,
+        date,
+        billRef,
+        customerId,
+        customerName,
+        amount,
+        notes
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'บันทึกการแก้ไขไม่สำเร็จ');
+    }
+
+    showToast(`แก้ไขบิล ${billId} เรียบร้อยแล้ว`, true);
+    closeEditBillModal();
+
+    // Reload master bills
+    if (typeof fetchMasterBillsList === 'function') {
+      await fetchMasterBillsList();
+    }
+  } catch (err) {
+    console.error('Update bill error:', err);
+    showToast(err.message || 'เกิดข้อผิดพลาดในการแก้ไขบิล', false);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>บันทึกการแก้ไข</span>`;
+      refreshIcons();
+    }
+  }
 }
 
 function debounceMasterSearch() {
@@ -2230,7 +2420,7 @@ async function executeSyncFuel() {
       throw new Error(data.message || 'ไม่สามารถซิงค์บิลน้ำมันได้');
     }
 
-    const { totalInScope, importedCount, skippedCount } = data;
+    const { totalInScope, importedCount, updatedCount, skippedCount } = data;
 
     if (statusArea) {
       statusArea.innerHTML = `
@@ -2238,6 +2428,7 @@ async function executeSyncFuel() {
         <div class="text-slate-300 space-y-0.5">
           <div>• บิลทั้งหมดในเดือนนี้: <span class="text-white font-bold font-mono">${totalInScope}</span> รายการ</div>
           <div>• นำเข้าบิลใหม่: <span class="text-emerald-300 font-bold font-mono">${importedCount}</span> รายการ</div>
+          ${(updatedCount && updatedCount > 0) ? `<div>• อัปเดตบิลที่แก้ไข: <span class="text-amber-300 font-bold font-mono">${updatedCount}</span> รายการ</div>` : ''}
           <div>• ข้ามบิลที่มีอยู่แล้ว: <span class="text-slate-400 font-mono">${skippedCount}</span> รายการ</div>
         </div>
       `;
@@ -2253,7 +2444,10 @@ async function executeSyncFuel() {
       await fetchMasterBillsList();
     }
 
-    showToast(`ซิงค์บิลน้ำมันสำเร็จ: นำเข้าใหม่ ${importedCount} รายการ (ข้ามบิลซ้ำ ${skippedCount} รายการ)`, true);
+    const toastMsg = (updatedCount && updatedCount > 0)
+      ? `ซิงค์บิลน้ำมันสำเร็จ: นำเข้าใหม่ ${importedCount} รายการ, อัปเดต ${updatedCount} รายการ (ข้าม ${skippedCount} รายการ)`
+      : `ซิงค์บิลน้ำมันสำเร็จ: นำเข้าใหม่ ${importedCount} รายการ (ข้ามบิลซ้ำ ${skippedCount} รายการ)`;
+    showToast(toastMsg, true);
 
     setTimeout(() => {
       closeSyncFuelModal();
