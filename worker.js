@@ -369,8 +369,8 @@ export default {
         }
       }
 
-      // 9. POST /api/delivery/direct
-      if (pathname === '/api/delivery/direct' && method === 'POST') {
+      // 9. POST /api/delivery/inbox & /api/delivery/direct
+      if ((pathname === '/api/delivery/inbox' || pathname === '/api/delivery/direct') && method === 'POST') {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
         try {
           const body = await request.json();
@@ -388,8 +388,10 @@ export default {
             finalPhotoUrl = imageBase64;
           }
 
+          const assignedCategory = category || (customerType === 'หน่วยงานราชการ' ? 'store_gov' : 'store_general');
+
           const result = await googleSheets.recordBillDirect({
-            category,
+            category: assignedCategory,
             customerType,
             date,
             customerId: customerId || '',
@@ -412,16 +414,21 @@ export default {
         }
       }
 
-      // 10. POST /api/delivery/cancel
-      if (pathname === '/api/delivery/cancel' && method === 'POST') {
+      // 10. POST /api/delivery/bills/:id/cancel & /api/delivery/cancel
+      if ((pathname.includes('/cancel') || pathname === '/api/delivery/cancel') && method === 'POST') {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
         try {
           const body = await request.json();
-          const { billId, reason } = body;
+          let billId = body.billId;
+          if (!billId) {
+            const parts = pathname.split('/');
+            const cancelIndex = parts.indexOf('cancel');
+            billId = cancelIndex > 0 ? parts[cancelIndex - 1] : '';
+          }
           if (!billId) return jsonResponse({ success: false, message: 'กรุณาระบุรหัสบิลที่ต้องการยกเลิก' }, 400);
-          if (!reason || !reason.trim()) return jsonResponse({ success: false, message: 'กรุณาระบุเหตุผลการขอยกเลิกบิล' }, 400);
+          const reason = body.reason || 'บันทึกข้อมูลผิด ขอยกเลิกเพื่อบันทึกใหม่';
 
-          const result = await googleSheets.cancelBillDirect(billId, reason.trim(), currentUser);
+          const result = await googleSheets.cancelBill(billId, reason.trim(), currentUser);
           return jsonResponse({
             success: true,
             message: 'บันทึกขอยกเลิกบิลเรียบร้อยแล้ว',
@@ -432,13 +439,13 @@ export default {
         }
       }
 
-      // 11. GET /api/delivery/today
-      if (pathname === '/api/delivery/today' && method === 'GET') {
+      // 11. GET /api/delivery/bills/today & /api/delivery/inbox/today & /api/delivery/today
+      if ((pathname === '/api/delivery/bills/today' || pathname === '/api/delivery/inbox/today' || pathname === '/api/delivery/today') && method === 'GET') {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
         try {
           const category = url.searchParams.get('category') || 'ALL';
-          const stats = await googleSheets.getTodayBills(category);
-          return jsonResponse({ success: true, ...stats });
+          const bills = await googleSheets.getTodayBills(currentUser.username, currentUser.role, category);
+          return jsonResponse({ success: true, bills });
         } catch (err) {
           return jsonResponse({ success: false, message: err.message }, 500);
         }
