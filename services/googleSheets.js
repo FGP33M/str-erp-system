@@ -1021,33 +1021,52 @@ class GoogleSheetsService {
     const data = await res.json();
     const rows = data.values || [];
 
-    let bills = rows.map((r, idx) => ({
-      rowIndex: idx + 2,
-      billId: r[0] || '',
-      date: r[1] || '',
-      companyRegistration: r[2] || 'ร้านค้า',
-      source: r[3] || '',
-      billRef: r[4] || '',
-      customerId: r[5] || '',
-      customerName: r[6] || '',
-      amount: r[7] || '0',
-      photoUrl: r[8] || '',
-      createdBy: r[9] || '',
-      approvedBy: r[10] || '',
-      approvedAt: r[11] || '',
-      billingNoteNo: r[12] || '',
-      status: r[13] || 'รอวางบิล',
-      notes: r[14] || ''
-    })).filter(b => b.billId);
+    let bills = rows.map((r, idx) => {
+      const billId = r[0] || '';
+      const date = r[1] || '';
+      const companyRegistration = r[2] || 'ร้านค้า';
+      const source = r[3] || '';
+      let category = 'store_general';
+      if (companyRegistration === 'ปั๊มน้ำมัน' || (source && source.includes('น้ำมัน'))) {
+        category = 'fuel';
+      } else if (source && (source.includes('หน่วยงาน') || source.includes('ราชการ'))) {
+        category = 'store_gov';
+      } else {
+        category = 'store_general';
+      }
 
-    if (filters.companyRegistration && filters.companyRegistration !== 'ALL') {
-      bills = bills.filter(b => b.companyRegistration === filters.companyRegistration);
-    }
+      return {
+        rowIndex: idx + 2,
+        billId,
+        date,
+        companyRegistration,
+        source,
+        category,
+        billRef: r[4] || '',
+        customerId: r[5] || '',
+        customerName: r[6] || '',
+        amount: r[7] || '0',
+        photoUrl: r[8] || '',
+        createdBy: r[9] || '',
+        approvedBy: r[10] || '',
+        approvedAt: r[11] || '',
+        billingNoteNo: r[12] || '',
+        status: r[13] || 'รอวางบิล',
+        notes: r[14] || ''
+      };
+    }).filter(b => b.billId);
 
-    if (filters.category && filters.category !== 'ALL') {
-      if (filters.category === 'store_general') bills = bills.filter(b => b.source.includes('ทั่วไป'));
-      else if (filters.category === 'store_gov') bills = bills.filter(b => b.source.includes('หน่วยงาน'));
-      else if (filters.category === 'fuel') bills = bills.filter(b => b.companyRegistration === 'ปั๊มน้ำมัน');
+    const cat = filters.category || filters.companyRegistration || 'ALL';
+    if (cat !== 'ALL') {
+      if (cat === 'store_general') {
+        bills = bills.filter(b => b.category === 'store_general');
+      } else if (cat === 'store_gov') {
+        bills = bills.filter(b => b.category === 'store_gov');
+      } else if (cat === 'fuel' || cat === 'ปั๊มน้ำมัน') {
+        bills = bills.filter(b => b.category === 'fuel');
+      } else if (cat === 'ร้านค้า') {
+        bills = bills.filter(b => b.category === 'store_general' || b.category === 'store_gov');
+      }
     }
 
     if (filters.status && filters.status !== 'ALL') {
