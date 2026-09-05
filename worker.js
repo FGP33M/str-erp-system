@@ -427,9 +427,12 @@ export default {
         }
       }
 
-      // 8.1 POST /api/customers (Create customer)
+      // 8.1 POST /api/customers (Create customer - Senior Staff, Manager, Admin)
       if (pathname === '/api/customers' && method === 'POST') {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
+        if (currentUser.role !== 'senior_staff' && currentUser.role !== 'manager' && currentUser.role !== 'admin') {
+          return jsonResponse({ success: false, message: 'ไม่มีสิทธิ์: เฉพาะพนักงานอาวุโส หรือผู้จัดการเท่านั้น' }, 403);
+        }
         try {
           const body = await request.json();
           const result = await googleSheets.addCustomer(body, currentUser);
@@ -439,10 +442,13 @@ export default {
         }
       }
 
-      // 8.2 POST /api/customers/:id/update or PUT /api/customers/:id (Update customer)
+      // 8.2 POST /api/customers/:id/update or PUT /api/customers/:id (Update customer - Manager, Admin only)
       const updateCustMatch = pathname.match(/^\/api\/customers\/([^\/]+)(?:\/update)?$/);
       if (updateCustMatch && (method === 'PUT' || (method === 'POST' && pathname.endsWith('/update')))) {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
+        if (currentUser.role !== 'manager' && currentUser.role !== 'admin') {
+          return jsonResponse({ success: false, message: 'ไม่มีสิทธิ์แก้ไข: การแก้ไขข้อมูลลูกค้าต้องดำเนินการโดยผู้จัดการ หรือได้รับการอนุมัติเท่านั้น' }, 403);
+        }
         const customerId = decodeURIComponent(updateCustMatch[1]);
         try {
           const body = await request.json();
@@ -451,6 +457,15 @@ export default {
         } catch (err) {
           return jsonResponse({ success: false, message: err.message }, 400);
         }
+      }
+
+      // 8.3 DELETE /api/customers/:id (Delete customer - Manager, Admin only)
+      if (updateCustMatch && method === 'DELETE') {
+        if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
+        if (currentUser.role !== 'manager' && currentUser.role !== 'admin') {
+          return jsonResponse({ success: false, message: 'ไม่มีสิทธิ์ลบ: การลบข้อมูลลูกค้าต้องดำเนินการโดยผู้จัดการ หรือได้รับการอนุมัติเท่านั้น' }, 403);
+        }
+        return jsonResponse({ success: false, message: 'ระบบยังไม่เปิดให้ลบข้อมูลลูกค้าโดยตรง กรุณาติดต่อผู้ดูแลระบบ' }, 403);
       }
 
       // 9. POST /api/delivery/inbox & /api/delivery/direct
