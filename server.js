@@ -352,6 +352,40 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { success: true, customers });
     }
 
+    // POST /api/customers (Add new customer - Authenticated users)
+    if (pathname === '/api/customers' && method === 'POST') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      try {
+        const body = await parseBody(req);
+        const result = await googleSheets.addCustomer(body, currentUser);
+        return sendJson(res, 201, result);
+      } catch (err) {
+        return sendJson(res, 400, { success: false, message: err.message });
+      }
+    }
+
+    // POST /api/customers/:id/update or PUT /api/customers/:id (Update customer)
+    const updateCustomerMatch = pathname.match(/^\/api\/customers\/([^\/]+)(?:\/update)?$/);
+    if (updateCustomerMatch && (method === 'PUT' || (method === 'POST' && pathname.endsWith('/update')))) {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const customerId = decodeURIComponent(updateCustomerMatch[1]);
+      try {
+        const body = await parseBody(req);
+        const result = await googleSheets.updateCustomer(customerId, body, currentUser);
+        return sendJson(res, 200, result);
+      } catch (err) {
+        return sendJson(res, 400, { success: false, message: err.message });
+      }
+    }
+
     // POST /api/delivery/inbox & /api/delivery/direct (Direct Bill Recording - Staff & higher)
     if ((pathname === '/api/delivery/inbox' || pathname === '/api/delivery/direct') && method === 'POST') {
       const currentUser = getSessionUser(req);
