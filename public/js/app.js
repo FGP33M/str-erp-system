@@ -2178,6 +2178,12 @@ let bnCustomerSearchDebounce = null;
 let currentActiveBillingNote = null;
 let capturedSlipBase64 = null;
 
+// Receipts State (Phase 6)
+let currentReceiptsList = [];
+let currentReceiptDetail = null;
+let isReceiptCopy = false;
+let receiptSearchDebounce = null;
+
 function initBillingPage() {
   // Set default dates
   const now = new Date();
@@ -2210,16 +2216,18 @@ function switchBillingTab(tab) {
   const btnList = document.getElementById('btn-tab-bn-list');
   const btnCreate = document.getElementById('btn-tab-bn-create');
   const btnPayments = document.getElementById('btn-tab-bn-payments');
+  const btnReceipts = document.getElementById('btn-tab-bn-receipts');
 
   const panelList = document.getElementById('panel-bn-list');
   const panelCreate = document.getElementById('panel-bn-create');
   const panelPayments = document.getElementById('panel-bn-payments');
+  const panelReceipts = document.getElementById('panel-bn-receipts');
 
   // Reset styles
-  [btnList, btnCreate, btnPayments].forEach(b => {
+  [btnList, btnCreate, btnPayments, btnReceipts].forEach(b => {
     if (b) b.className = "px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5";
   });
-  [panelList, panelCreate, panelPayments].forEach(p => {
+  [panelList, panelCreate, panelPayments, panelReceipts].forEach(p => {
     if (p) p.classList.add('hidden');
   });
 
@@ -2234,6 +2242,10 @@ function switchBillingTab(tab) {
     if (btnPayments) btnPayments.className = "px-3.5 py-2 rounded-lg font-bold bg-violet-600 text-white shadow transition flex items-center gap-1.5";
     if (panelPayments) panelPayments.classList.remove('hidden');
     fetchPaymentsList();
+  } else if (tab === 'receipts') {
+    if (btnReceipts) btnReceipts.className = "px-3.5 py-2 rounded-lg font-bold bg-sky-600 text-white shadow transition flex items-center gap-1.5";
+    if (panelReceipts) panelReceipts.classList.remove('hidden');
+    fetchReceiptsList();
   }
 
   refreshIcons();
@@ -2970,9 +2982,15 @@ async function handlePaymentSubmit(e) {
 
     const data = await res.json();
     if (data.success) {
-      showToast(`บันทึกรับเงินสำเร็จ! รหัส ${data.payment?.paymentNo} (ตัดร้านค้า: ${data.payment?.cutStore.toLocaleString()} / ตัดน้ำมัน: ${data.payment?.cutFuel.toLocaleString()})`, true);
+      const recMsg = data.receiptNo ? ` | ออกใบเสร็จ ${data.receiptNo}` : '';
+      showToast(`บันทึกรับเงินสำเร็จ! รหัส ${data.payment?.paymentNo}${recMsg} (ตัดร้านค้า: ${data.payment?.cutStore.toLocaleString()} / ตัดน้ำมัน: ${data.payment?.cutFuel.toLocaleString()})`, true);
       closePaymentModal();
       fetchBillingNotesList();
+      if (data.receiptNo) {
+        setTimeout(() => {
+          openReceiptVoucher(data.receiptNo, false);
+        }, 300);
+      }
     } else {
       showToast(data.message || "บันทึกรับชำระเงินไม่สำเร็จ", false);
     }
@@ -3048,8 +3066,361 @@ function renderPaymentsTable(payments) {
 }
 
 // ----------------------------------------------------
-// THAI BAHT TEXT CONVERTER (Utility)
+// TAB 4: OFFICIAL RECEIPTS HUB & VOUCHERS (Phase 6)
 // ----------------------------------------------------
+
+function debounceSearchReceipts() {
+  clearTimeout(receiptSearchDebounce);
+  receiptSearchDebounce = setTimeout(() => {
+    fetchReceiptsList();
+  }, 300);
+}
+
+async function fetchReceiptsList() {
+  const tbody = document.getElementById('receipts-table-body');
+  const countBadge = document.getElementById('receipts-count-badge');
+  const searchInput = document.getElementById('search-receipt-input');
+  const q = searchInput ? searchInput.value.trim() : '';
+
+  try {
+    const url = q ? `/api/billing/receipts?q=${encodeURIComponent(q)}` : '/api/billing/receipts';
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentReceiptsList = data.receipts || [];
+      if (countBadge) countBadge.innerText = `${currentReceiptsList.length} ฉบับ`;
+
+      if (currentReceiptsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="py-10 text-center text-slate-500">ไม่พบรายการใบเสร็จรับเงิน</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = currentReceiptsList.map(r => `
+        <tr class="hover:bg-slate-750/50 transition">
+          <td class="py-3 px-3.5 font-mono font-bold text-sky-400 text-xs">
+            <button onclick="openReceiptVoucher('${r.receiptNo}', false)" class="hover:underline text-left flex items-center gap-1">
+              <i data-lucide="receipt" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>${r.receiptNo}</span>
+            </button>
+          </td>
+          <td class="py-3 px-3 font-mono text-slate-300 text-xs">${r.receiptDate}</td>
+          <td class="py-3 px-3">
+            <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${r.receiptType === 'วางบิล' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}">
+              ${r.receiptType}
+            </span>
+          </td>
+          <td class="py-3 px-3 font-mono text-xs">
+            ${r.billingNo ? `<span class="text-violet-400 font-bold">${r.billingNo}</span>` : '<span class="text-slate-500">-</span>'}
+          </td>
+          <td class="py-3 px-4 font-semibold text-white text-xs">${r.customerName}</td>
+          <td class="py-3 px-3 text-right font-mono font-bold text-white text-sm">${r.totalAmountFormatted || Number(r.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          <td class="py-3 px-3 text-slate-300 text-xs">${r.paymentMethod || '-'}</td>
+          <td class="py-3 px-3 text-slate-300 text-xs">${r.bankAccount || '-'}</td>
+          <td class="py-3 px-3 text-center">
+            ${r.slipUrl ? `
+              <button onclick="openImageViewer('${r.slipUrl}', 'สลิป ${r.receiptNo}')" class="text-emerald-400 hover:text-emerald-300 underline text-xs flex items-center justify-center gap-1 mx-auto">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                <span>ดูสลิป</span>
+              </button>
+            ` : '<span class="text-slate-500 text-[10px]">-</span>'}
+          </td>
+          <td class="py-3 px-3 text-slate-400 text-[11px]">${r.issuedBy || '-'}</td>
+          <td class="py-3 px-3.5 text-center">
+            <div class="flex items-center justify-center gap-1">
+              <button onclick="openReceiptVoucher('${r.receiptNo}', false)" title="เปิดพิมพ์ต้นฉบับ" class="px-2 py-1 rounded-lg bg-sky-600/20 hover:bg-sky-600/40 text-sky-300 border border-sky-500/30 transition text-[11px] font-bold flex items-center gap-1">
+                <i data-lucide="printer" class="w-3 h-3"></i>
+                <span>ต้นฉบับ</span>
+              </button>
+              <button onclick="openReceiptVoucher('${r.receiptNo}', true)" title="เปิดพิมพ์สำเนา" class="px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 border border-slate-600 transition text-[11px] flex items-center gap-1">
+                <span>สำเนา</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = `<tr><td colspan="11" class="py-10 text-center text-red-400">โหลดข้อมูลไม่สำเร็จ: ${data.message}</td></tr>`;
+    }
+  } catch (err) {
+    console.error("fetchReceiptsList error:", err);
+    tbody.innerHTML = `<tr><td colspan="11" class="py-10 text-center text-slate-500">เกิดข้อผิดพลาดในการโหลดคลังใบเสร็จ</td></tr>`;
+  }
+  refreshIcons();
+}
+
+async function openReceiptVoucher(receiptNo, isCopy = false) {
+  const modal = document.getElementById('modal-receipt-voucher');
+  const target = document.getElementById('receipt-render-target');
+  const title = document.getElementById('receipt-header-title');
+
+  isReceiptCopy = !!isCopy;
+  title.innerText = receiptNo;
+  target.innerHTML = `<div class="py-16 text-center text-slate-400">กำลังจัดเตรียมข้อมูลใบเสร็จ ${receiptNo}...</div>`;
+  modal.classList.remove('hidden');
+
+  updateReceiptCopyButtons();
+
+  try {
+    const res = await fetch(`/api/billing/receipts/${encodeURIComponent(receiptNo)}`, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentReceiptDetail = data;
+      renderReceiptVoucher(data, isReceiptCopy);
+    } else {
+      target.innerHTML = `<div class="py-16 text-center text-red-500">โหลดข้อมูลไม่สำเร็จ: ${data.message}</div>`;
+    }
+  } catch (err) {
+    target.innerHTML = `<div class="py-16 text-center text-slate-500">เกิดข้อผิดพลาดในการโหลดใบเสร็จ</div>`;
+  }
+  refreshIcons();
+}
+
+function closeReceiptVoucherModal() {
+  document.getElementById('modal-receipt-voucher').classList.add('hidden');
+}
+
+function toggleReceiptCopy(isCopy) {
+  isReceiptCopy = !!isCopy;
+  updateReceiptCopyButtons();
+  if (currentReceiptDetail) {
+    renderReceiptVoucher(currentReceiptDetail, isReceiptCopy);
+  }
+}
+
+function updateReceiptCopyButtons() {
+  const btnOrig = document.getElementById('btn-receipt-original');
+  const btnCopy = document.getElementById('btn-receipt-copy');
+  if (isReceiptCopy) {
+    if (btnOrig) btnOrig.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition";
+    if (btnCopy) btnCopy.className = "px-3 py-1.5 rounded-lg font-bold bg-sky-600 text-white transition";
+  } else {
+    if (btnOrig) btnOrig.className = "px-3 py-1.5 rounded-lg font-bold bg-sky-600 text-white transition";
+    if (btnCopy) btnCopy.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition";
+  }
+}
+
+function renderReceiptVoucher(data, isCopy) {
+  const target = document.getElementById('receipt-render-target');
+  const r = data.receipt || {};
+  const settings = data.storeSettings || {};
+  const cust = data.customer || {};
+  const bills = data.bills || [];
+
+  const totalNum = r.totalAmount || 0;
+  const bahtTextStr = thaiBahtText(totalNum);
+
+  const shopName = settings.shop_name || 'สหธรรม';
+  const shopSubtitle = settings.shop_subtitle || 'ระบบบริหารจัดการสต็อก วัสดุก่อสร้าง และสถานีบริการน้ำมัน';
+  const shopTaxId = settings.shop_tax_id || '0423533000123';
+  const shopPhone = settings.shop_phone || '042-298022';
+  const shopAddress = settings.shop_address || '';
+  const shopFooter = settings.shop_footer || `ในนาม ${shopName}`;
+
+  target.innerHTML = `
+    <div class="space-y-6 text-slate-900 font-sans">
+      
+      <!-- Company & Document Header -->
+      <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+        <div>
+          <div class="text-xl font-extrabold tracking-wide text-slate-900">${shopName}</div>
+          <div class="text-xs text-slate-600 mt-1 leading-relaxed">
+            ${shopSubtitle ? `${shopSubtitle}<br>` : ''}
+            ${shopTaxId ? `เลขประจำตัวผู้เสียภาษี: ${shopTaxId}` : ''}${shopPhone ? ` • โทร. ${shopPhone}` : ''}
+            ${shopAddress ? `<br>${shopAddress}` : ''}
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-black text-slate-900 tracking-wider">ใบเสร็จรับเงิน</div>
+          <div class="text-xs font-bold text-slate-600 font-mono tracking-widest uppercase">RECEIPT</div>
+          <div class="mt-1.5 flex items-center justify-end gap-2">
+            ${isCopy 
+              ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-300">สำเนา (COPY)</span>`
+              : `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-300">ต้นฉบับ (ORIGINAL)</span>`
+            }
+          </div>
+          <div class="mt-2 text-xs font-mono font-bold text-sky-800 bg-sky-50 px-2.5 py-1 rounded border border-sky-200 inline-block">
+            เลขที่: ${r.receiptNo}
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Info & Reference Box -->
+      <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+        <div>
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">ข้อมูลลูกค้า / ผู้ชำระเงิน</div>
+          <div class="text-sm font-bold text-slate-900">${r.customerName}</div>
+          <div class="text-slate-600 font-mono mt-0.5">รหัสลูกค้า: ${r.customerId || cust.code || '-'}</div>
+          ${cust.taxId ? `<div class="text-slate-600 mt-0.5">เลขประจำตัวผู้เสียภาษี: <span class="font-mono">${cust.taxId}</span></div>` : ''}
+          ${cust.address ? `<div class="text-slate-600 mt-0.5 leading-relaxed">${cust.address}</div>` : ''}
+          ${cust.phone ? `<div class="text-slate-600 mt-0.5">โทร. ${cust.phone}</div>` : ''}
+        </div>
+        <div class="text-right space-y-1">
+          <div><span class="text-slate-500">วันที่ออกใบเสร็จ:</span> <strong class="font-mono text-slate-800">${r.receiptDate}</strong></div>
+          ${r.billingNo ? `<div><span class="text-slate-500">อ้างอิงใบวางบิล:</span> <strong class="font-mono text-violet-700 font-bold">${r.billingNo}</strong></div>` : ''}
+          <div><span class="text-slate-500">วิธีการชำระ:</span> <span class="text-slate-800 font-semibold">${r.paymentMethod || '-'}</span></div>
+          ${r.bankAccount ? `<div><span class="text-slate-500">ธนาคาร/บัญชี:</span> <span class="text-slate-800 font-medium">${r.bankAccount}</span></div>` : ''}
+          <div><span class="text-slate-500">ผู้ออกใบเสร็จ:</span> <span class="text-slate-800 font-medium">${r.issuedBy || '-'}</span></div>
+        </div>
+      </div>
+
+      <!-- Itemized Table (ลำดับ | รายการ / เอกสารอ้างอิง | วันที่ | จำนวนเงิน) -->
+      <div>
+        <table class="w-full text-left text-xs border border-slate-300">
+          <thead class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+            <tr>
+              <th class="py-2.5 px-3 text-center w-14 border-r border-slate-300">ลำดับ</th>
+              <th class="py-2.5 px-4 border-r border-slate-300">รายการ / เอกสารอ้างอิง</th>
+              <th class="py-2.5 px-3 text-center w-28 border-r border-slate-300">วันที่</th>
+              <th class="py-2.5 px-4 text-right w-40">จำนวนเงิน</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 font-sans">
+            ${bills && bills.length > 0 ? bills.map((b, idx) => `
+              <tr>
+                <td class="py-2.5 px-3 text-center text-slate-600 border-r border-slate-200 font-mono">${idx + 1}</td>
+                <td class="py-2.5 px-4 text-slate-800 border-r border-slate-200">
+                  <div class="font-bold text-slate-900 font-mono text-sm">ใบส่งของเลขที่ ${b.billRef || '-'}</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                    ${b.companyRegistration ? `<span class="px-1.5 py-0.2 rounded text-[10px] ${b.companyRegistration === 'ปั๊มน้ำมัน' ? 'bg-teal-50 text-teal-800' : 'bg-amber-50 text-amber-800'}">${b.source || b.companyRegistration}</span>` : ''}
+                    ${b.notes ? `<span class="italic text-slate-400">(${b.notes})</span>` : ''}
+                  </div>
+                </td>
+                <td class="py-2.5 px-3 text-center text-slate-700 font-mono border-r border-slate-200">${b.date || '-'}</td>
+                <td class="py-2.5 px-4 text-right font-mono font-bold text-slate-900 text-sm">${b.amount}</td>
+              </tr>
+            `).join('') : `
+              <tr>
+                <td class="py-3 px-3 text-center text-slate-600 border-r border-slate-200 font-mono">1</td>
+                <td class="py-3 px-4 text-slate-800 border-r border-slate-200">
+                  <div class="font-bold text-slate-900 text-sm">รับชำระเงินค่าสินค้าตามใบวางบิล ${r.billingNo || '-'}</div>
+                  ${r.billRefs ? `<div class="text-[11px] text-slate-500 mt-0.5 font-mono">บิลอ้างอิง: ${r.billRefs}</div>` : ''}
+                </td>
+                <td class="py-3 px-3 text-center text-slate-700 font-mono border-r border-slate-200">${r.receiptDate}</td>
+                <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 text-sm">${r.totalAmountFormatted}</td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Grand Total & Baht Text -->
+      <div class="grid grid-cols-2 gap-4 pt-2">
+        <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col justify-center text-xs">
+          <div class="text-slate-500 text-[11px] mb-1">จำนวนเงินตัวอักษร:</div>
+          <div class="font-bold text-slate-900 text-xs leading-relaxed">(${bahtTextStr})</div>
+          ${r.notes ? `<div class="mt-2 pt-2 border-t border-slate-200 text-[11px] text-slate-500 italic">หมายเหตุ: ${r.notes}</div>` : ''}
+        </div>
+
+        <div class="border border-slate-300 rounded-lg overflow-hidden flex flex-col justify-between">
+          <div class="bg-slate-100 p-3 flex items-center justify-between border-b border-slate-300">
+            <span class="text-xs font-bold text-slate-800">จำนวนเงินรวมทั้งสิ้น:</span>
+            <span class="text-xl font-black text-slate-900 font-mono">${r.totalAmountFormatted}</span>
+          </div>
+          <div class="p-2.5 bg-white text-right text-[11px] text-slate-600 font-medium">
+            ชำระโดย: ${r.paymentMethod || 'เงินสด / โอน'} ${r.bankAccount ? `(${r.bankAccount})` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Signatures Block -->
+      <div class="grid grid-cols-2 gap-8 pt-8 border-t border-slate-300 text-xs text-center">
+        <div class="space-y-6">
+          <div class="text-slate-600 font-medium">ได้รับเงินตามรายการข้างต้นถูกต้องเรียบร้อยแล้ว</div>
+          <div class="w-48 mx-auto border-b border-slate-400"></div>
+          <div>
+            <div class="text-slate-800 font-bold">ผู้ชำระเงิน</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">วันที่: _____/_____/_________</div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="text-slate-600 font-medium">${shopFooter}</div>
+          <div class="w-48 mx-auto border-b border-slate-400"></div>
+          <div>
+            <div class="text-slate-800 font-bold">ผู้รับเงิน / ผู้มีอำนาจลงนาม</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">วันที่: ${r.receiptDate}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+function printReceiptVoucher() {
+  const content = document.getElementById('printable-receipt-area');
+  if (!content) return window.print();
+
+  let printFrame = document.getElementById('receipt-print-iframe');
+  if (!printFrame) {
+    printFrame = document.createElement('iframe');
+    printFrame.id = 'receipt-print-iframe';
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+  }
+
+  const shopName = storeSettings.shop_name || 'สหธรรม';
+  const recNo = (currentReceiptDetail && currentReceiptDetail.receipt) ? currentReceiptDetail.receipt.receiptNo : 'REC';
+  const copyText = isReceiptCopy ? 'สำเนา' : 'ต้นฉบับ';
+
+  const frameDoc = printFrame.contentWindow.document;
+  frameDoc.open();
+  frameDoc.write(`
+    <!DOCTYPE html>
+    <html lang="th">
+    <head>
+      <meta charset="utf-8">
+      <title>ใบเสร็จรับเงิน ${recNo} (${copyText}) - ${shopName}</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <style>
+        @page {
+          size: A4 portrait;
+          margin: 12mm 15mm;
+        }
+        * {
+          box-sizing: border-box;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        body {
+          font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+          background: #ffffff !important;
+          color: #0f172a !important;
+          margin: 0;
+          padding: 0;
+        }
+        table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+        }
+        th, td {
+          border-color: #cbd5e1 !important;
+        }
+      </style>
+    </head>
+    <body class="p-2">
+      ${content.innerHTML}
+    </body>
+    </html>
+  `);
+  frameDoc.close();
+
+  setTimeout(() => {
+    printFrame.contentWindow.focus();
+    printFrame.contentWindow.print();
+  }, 400);
+}
 
 function thaiBahtText(num) {
   if (isNaN(num)) return '';
