@@ -970,10 +970,19 @@ export default {
     }
 
     // ==========================================
-    // STATIC ASSETS (Frontend from public/)
+    // STATIC ASSETS & SPA ROUTING (Frontend from public/)
     // ==========================================
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      const cleanPath = pathname.replace(/\/+$/, '');
+      if (cleanPath === '/staff' || cleanPath === '/manager' || cleanPath === '/dashboard') {
+        return env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
+      }
+
+      const assetRes = await env.ASSETS.fetch(request);
+      if (assetRes.status === 404 && !pathname.startsWith('/api/') && !pathname.includes('.')) {
+        return env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
+      }
+      return assetRes;
     }
 
     return new Response("Not Found", { status: 404 });
