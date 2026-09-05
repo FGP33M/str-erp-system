@@ -572,6 +572,35 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // POST /api/delivery/bills/update (Manager / Admin update bill)
+    if (pathname === '/api/delivery/bills/update' && method === 'POST') {
+      const manager = checkManagerPermission(req, res);
+      if (!manager) return;
+
+      const body = await parseBody(req);
+      const { billId, date, billRef, customerId, customerName, amount, notes } = body;
+      if (!billId) {
+        return sendJson(res, 400, { success: false, message: 'กรุณาระบุรหัสบิลที่ต้องการแก้ไข' });
+      }
+
+      try {
+        const result = await googleSheets.updateMasterBill({
+          billId,
+          date,
+          billRef,
+          customerId,
+          customerName,
+          amount,
+          notes,
+          user: manager
+        });
+        return sendJson(res, 200, result);
+      } catch (err) {
+        console.error('Update bill error:', err);
+        return sendJson(res, 400, { success: false, message: err.message });
+      }
+    }
+
     // GET /api/delivery/manager/master-bills (View Master Bills)
     if (pathname === '/api/delivery/manager/master-bills' && method === 'GET') {
       const manager = checkManagerPermission(req, res);
