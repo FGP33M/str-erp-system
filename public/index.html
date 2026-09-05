@@ -146,7 +146,7 @@
         <button id="btn-sidebar-toggle" onclick="toggleSidebar()" class="p-2 -ml-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center justify-center" title="สลับแถบเมนูข้าง (Sidebar)">
           <i data-lucide="menu" class="w-5 h-5"></i>
         </button>
-        <div class="flex items-center gap-2.5 cursor-pointer" onclick="navigateTo('dashboard')">
+        <div class="flex items-center gap-2.5 cursor-pointer" onclick="handleLogoClick()">
           <div id="brand-logo-text" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-950/60 text-white font-bold text-sm tracking-wider border border-blue-400/30">
             สหธรรม
           </div>
@@ -160,10 +160,29 @@
         </div>
       </div>
 
-      <!-- User Info & Action -->
+      <!-- User Info & Portal Switcher & Action -->
       <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Dual URL Portal Mode Switcher (For Manager/Admin) -->
+        <div id="header-portal-switcher" class="hidden sm:flex items-center p-1 rounded-xl bg-slate-800/90 border border-slate-700 text-xs">
+          <button id="btn-portal-staff" onclick="switchPortalMode('staff')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">
+            <i data-lucide="store" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>หน้าร้าน (/staff)</span>
+          </button>
+          <button id="btn-portal-manager" onclick="switchPortalMode('manager')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">
+            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-indigo-400"></i>
+            <span>ผู้บริหาร (/manager)</span>
+          </button>
+        </div>
+
+        <!-- Staff Single Mode Badge (For Staff Users) -->
+        <div id="header-staff-badge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
+          <i data-lucide="store" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span class="hidden md:inline">โหมดหน้าร้าน</span>
+          <span class="font-mono text-[10px] bg-emerald-500/20 px-1.5 py-0.2 rounded">/staff</span>
+        </div>
+
         <!-- Date display -->
-        <div class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 font-mono">
+        <div class="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 font-mono">
           <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-400"></i>
           <span id="nav-live-date">วันนี้</span>
         </div>
@@ -203,13 +222,38 @@
 
       <!-- Quick Home Dashboard Button -->
       <div class="p-3 border-b border-slate-800/80">
-        <button onclick="navigateSidebar('dashboard')" id="side-item-dashboard"
+        <button onclick="handleLogoClick()" id="side-item-dashboard"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600/20 border border-blue-500/30 transition group">
           <div class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center transition shadow">
             <i data-lucide="layout-grid" class="w-4 h-4"></i>
           </div>
-          <span>หน้าหลักแดชบอร์ด</span>
+          <span id="side-main-home-text">หน้าหลักแดชบอร์ด</span>
         </button>
+      </div>
+
+      <!-- Portal Mode Info Banner -->
+      <div id="sidebar-portal-banner" class="px-3 pt-3">
+        <div id="sidebar-staff-banner" class="hidden p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 font-bold text-xs">
+              <i data-lucide="store" class="w-4 h-4 text-emerald-400"></i>
+              <span>โหมดหน้าร้าน</span>
+            </div>
+            <span class="font-mono text-[10px] bg-emerald-500/20 px-1.5 py-0.2 rounded font-semibold text-emerald-300">/staff</span>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1 leading-tight">เน้นงานขาย เปิดบิล และรอบเงินสดประจำวัน</p>
+        </div>
+
+        <div id="sidebar-manager-banner" class="hidden p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-300">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 font-bold text-xs">
+              <i data-lucide="briefcase" class="w-4 h-4 text-indigo-400"></i>
+              <span>โหมดผู้บริหาร</span>
+            </div>
+            <span class="font-mono text-[10px] bg-indigo-500/20 px-1.5 py-0.2 rounded font-semibold text-indigo-300">/manager</span>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1 leading-tight">ศูนย์ควบคุมธุรกิจและวิเคราะห์ข้อมูลองค์รวม</p>
+        </div>
       </div>
 
       <!-- Scrollable Navigation Items -->
@@ -218,22 +262,22 @@
         <!-- 1. SALES & INVENTORY -->
         <div id="side-group-sales" class="space-y-1">
           <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">งานขาย & คลังสินค้า</div>
-          <button onclick="navigateSidebar('search')" id="side-item-search"
+          <button onclick="navigateSidebar('search')" id="side-item-search" data-portal="all"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="search" class="w-4 h-4 text-blue-400 flex-shrink-0"></i>
             <span>ค้นหาสินค้า & สต็อก</span>
           </button>
-          <button onclick="navigateSidebar('delivery-bill')" id="side-item-delivery-bill"
+          <button onclick="navigateSidebar('delivery-bill')" id="side-item-delivery-bill" data-portal="all"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="clipboard-list" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
             <span>บันทึกใบส่งของ / เปิดบิล</span>
           </button>
-          <button onclick="navigateSidebar('manager-audit')" id="side-item-manager-audit"
+          <button onclick="navigateSidebar('manager-audit')" id="side-item-manager-audit" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="database" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
             <span>ทะเบียนบิลส่งของ</span>
           </button>
-          <button onclick="navigateSidebar('customers')" id="side-item-customers"
+          <button onclick="navigateSidebar('customers')" id="side-item-customers" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="users-round" class="w-4 h-4 text-cyan-400 flex-shrink-0"></i>
             <span>ทะเบียนข้อมูลลูกค้า</span>
@@ -243,17 +287,17 @@
         <!-- 2. FINANCE & BILLING -->
         <div id="side-group-finance" class="space-y-1">
           <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">การเงิน & ลูกหนี้การค้า</div>
-          <button onclick="navigateSidebar('daily-revenue')" id="side-item-daily-revenue"
+          <button onclick="navigateSidebar('daily-revenue')" id="side-item-daily-revenue" data-portal="all"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="wallet" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
             <span>ปิดกะ & รายรับหน้าร้าน</span>
           </button>
-          <button onclick="navigateSidebar('billing-notes')" id="side-item-billing-notes"
+          <button onclick="navigateSidebar('billing-notes')" id="side-item-billing-notes" data-portal="manager"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="receipt" class="w-4 h-4 text-violet-400 flex-shrink-0"></i>
             <span>วางบิล & ลูกหนี้การค้า</span>
           </button>
-          <button onclick="navigateSidebarReceipts()" id="side-item-receipts"
+          <button onclick="navigateSidebarReceipts()" id="side-item-receipts" data-portal="all"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
             <i data-lucide="receipt-text" class="w-4 h-4 text-sky-400 flex-shrink-0"></i>
             <span>คลังใบเสร็จรับเงิน</span>
@@ -261,7 +305,7 @@
         </div>
 
         <!-- 3. EXECUTIVE & ANALYTICS -->
-        <div id="side-group-analytics" class="space-y-1">
+        <div id="side-group-analytics" data-portal="manager" class="space-y-1">
           <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">บริหาร & รายงาน</div>
           <button onclick="navigateSidebar('executive-dashboard')" id="side-item-executive-dashboard"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
@@ -271,7 +315,7 @@
         </div>
 
         <!-- 4. SYSTEM & SECURITY -->
-        <div id="side-group-system" class="space-y-1">
+        <div id="side-group-system" data-portal="manager" class="space-y-1">
           <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">ระบบ & ความปลอดภัย</div>
           <button onclick="navigateSidebar('users')" id="side-item-users"
             class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
@@ -290,6 +334,14 @@
           </button>
         </div>
 
+      </div>
+
+      <!-- Manager Portal Switch Button inside Sidebar -->
+      <div id="side-portal-toggle-container" class="hidden px-3 pb-2 pt-1">
+        <button id="btn-side-portal-toggle" onclick="toggleCurrentPortalMode()" class="w-full py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 font-medium flex items-center justify-center gap-2 transition shadow-sm">
+          <i id="btn-side-portal-icon" data-lucide="shuffle" class="w-3.5 h-3.5 text-blue-400"></i>
+          <span id="btn-side-portal-text">สลับไปโหมดผู้บริหาร</span>
+        </button>
       </div>
 
       <!-- Sidebar Footer User Profile Card -->
