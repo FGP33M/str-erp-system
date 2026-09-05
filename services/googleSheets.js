@@ -1605,6 +1605,121 @@ class GoogleSheetsService {
       notes: r[10] || ''
     })).filter(p => p.paymentNo).reverse();
   }
+
+  async getStoreSettings() {
+    const defaultSettings = {
+      shop_name: 'สหธรรม',
+      shop_subtitle: 'ระบบบริหารจัดการสต็อก วัสดุก่อสร้าง และสถานีบริการน้ำมัน',
+      shop_tax_id: '0423533000123',
+      shop_phone: '042-298022',
+      shop_address: '',
+      shop_footer: 'ในนาม สหธรรม'
+    };
+
+    try {
+      const token = await this.getAccessToken();
+      const spreadsheetId = config.SHEETS.DELIVERY_MASTER;
+      const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/SETTINGS!A1:B10`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        try {
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              requests: [{ addSheet: { properties: { title: 'SETTINGS' } } }]
+            })
+          });
+
+          const initData = [
+            ["key", "value"],
+            ["shop_name", defaultSettings.shop_name],
+            ["shop_subtitle", defaultSettings.shop_subtitle],
+            ["shop_tax_id", defaultSettings.shop_tax_id],
+            ["shop_phone", defaultSettings.shop_phone],
+            ["shop_address", defaultSettings.shop_address],
+            ["shop_footer", defaultSettings.shop_footer]
+          ];
+
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/SETTINGS!A1:B7?valueInputOption=USER_ENTERED`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ values: initData })
+          });
+        } catch (initErr) {
+          console.error("Error creating SETTINGS sheet:", initErr);
+        }
+        return defaultSettings;
+      }
+
+      const data = await res.json();
+      const rows = data.values || [];
+      const settings = { ...defaultSettings };
+
+      rows.forEach(r => {
+        if (r[0] && r[0] !== 'key') {
+          settings[r[0]] = r[1] !== undefined ? String(r[1]) : '';
+        }
+      });
+
+      return settings;
+    } catch (err) {
+      console.error("getStoreSettings error:", err);
+      return defaultSettings;
+    }
+  }
+
+  async updateStoreSettings(newSettings, currentUser) {
+    if (!currentUser || currentUser.role !== 'admin') {
+      throw new Error("เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถตั้งค่าข้อมูลร้านค้าได้");
+    }
+
+    const current = await this.getStoreSettings();
+    const merged = {
+      shop_name: (newSettings.shop_name !== undefined ? String(newSettings.shop_name).trim() : current.shop_name) || 'สหธรรม',
+      shop_subtitle: newSettings.shop_subtitle !== undefined ? String(newSettings.shop_subtitle).trim() : current.shop_subtitle,
+      shop_tax_id: newSettings.shop_tax_id !== undefined ? String(newSettings.shop_tax_id).trim() : current.shop_tax_id,
+      shop_phone: newSettings.shop_phone !== undefined ? String(newSettings.shop_phone).trim() : current.shop_phone,
+      shop_address: newSettings.shop_address !== undefined ? String(newSettings.shop_address).trim() : current.shop_address,
+      shop_footer: newSettings.shop_footer !== undefined ? String(newSettings.shop_footer).trim() : current.shop_footer
+    };
+
+    const token = await this.getAccessToken();
+    const spreadsheetId = config.SHEETS.DELIVERY_MASTER;
+
+    const values = [
+      ["key", "value"],
+      ["shop_name", merged.shop_name],
+      ["shop_subtitle", merged.shop_subtitle],
+      ["shop_tax_id", merged.shop_tax_id],
+      ["shop_phone", merged.shop_phone],
+      ["shop_address", merged.shop_address],
+      ["shop_footer", merged.shop_footer]
+    ];
+
+    const putRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/SETTINGS!A1:B7?valueInputOption=USER_ENTERED`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values })
+    });
+
+    if (!putRes.ok) {
+      throw new Error("Failed to update SETTINGS in Google Sheets");
+    }
+
+    return merged;
+  }
 }
 
 module.exports = new GoogleSheetsService();
