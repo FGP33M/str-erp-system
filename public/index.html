@@ -14,6 +14,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
   <script>
     tailwind.config = {
@@ -1230,7 +1232,7 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- 8. EXECUTIVE DASHBOARD VIEW -->
+    <!-- 8. EXECUTIVE DASHBOARD 2.0 VIEW -->
     <!-- ======================================================== -->
     <section id="view-executive-dashboard" class="hidden flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
       
@@ -1242,17 +1244,17 @@
           </button>
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-xl font-bold text-white tracking-wide">แดชบอร์ดผู้บริหาร (Executive Dashboard)</h2>
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ภาพรวมธุรกิจ</span>
+              <h2 class="text-xl font-bold text-white tracking-wide">แดชบอร์ดผู้บริหาร (Executive Dashboard 2.0)</h2>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ศูนย์รวมข้อมูลธุรกิจ</span>
             </div>
-            <p class="text-xs text-slate-400 mt-0.5">ภาพรวมรายได้ ยอดขายแยก 3 หมวด ลูกหนี้ค้างชำระ และประวัติการยกเลิกบิล</p>
+            <p class="text-xs text-slate-400 mt-0.5">ภาพรวมรายรับหน้าร้าน บิลส่งของ ปั๊มน้ำมัน ผลประกอบการ 12 เดือน และสภาพคล่องธุรกิจ</p>
           </div>
         </div>
 
         <!-- Period Filter Selector -->
         <div class="flex items-center gap-2">
           <div class="flex items-center p-1 rounded-xl bg-slate-800/90 border border-slate-700 text-xs">
-            <button id="btn-period-all" onclick="changeDashboardPeriod('ALL')" class="px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition">ทั้งหมด</button>
+            <button id="btn-period-all" onclick="changeDashboardPeriod('ALL')" class="px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition shadow">ทั้งหมด</button>
             <button id="btn-period-today" onclick="changeDashboardPeriod('TODAY')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">วันนี้</button>
             <button id="btn-period-month" onclick="changeDashboardPeriod('MONTH')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">เดือนนี้</button>
             <button id="btn-period-year" onclick="changeDashboardPeriod('YEAR')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">ปีนี้</button>
@@ -1263,67 +1265,223 @@
         </div>
       </div>
 
-      <!-- ROW 1: 4 KEY METRIC CARDS -->
+      <!-- ROW 1: 4 HERO METRIC CARDS -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         
-        <!-- Total Active Revenue -->
-        <div class="bg-gradient-to-br from-slate-800 to-indigo-950/40 border border-indigo-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+        <!-- 1. Combined Grand Total Revenue -->
+        <div class="bg-gradient-to-br from-slate-800 via-indigo-950/40 to-slate-900 border border-indigo-500/40 rounded-2xl p-5 shadow-xl relative overflow-hidden">
           <div class="flex items-center justify-between text-xs text-indigo-300 font-medium mb-2">
-            <span>ยอดขายรวมทั้งหมด (ปกติ)</span>
-            <i data-lucide="trending-up" class="w-4 h-4 text-indigo-400"></i>
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i>
+              <span>ยอดขายรวมทั้งระบบ</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 font-semibold">Grand Total</span>
           </div>
-          <div class="text-2xl font-bold text-white font-mono" id="dash-stat-total-amount">0.00</div>
-          <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
-            <span class="text-indigo-400 font-semibold" id="dash-stat-total-count">0</span> บิลที่ใช้งานอยู่
+          <div class="text-2xl lg:text-3xl font-bold text-white font-mono" id="dash-stat-grand-total">0.00</div>
+          <div class="text-[11px] text-slate-400 mt-1.5 flex items-center justify-between">
+            <span>หน้าร้าน + บิลส่งของ + น้ำมัน</span>
+            <span class="text-indigo-400 font-medium font-mono text-[10px]">บาท</span>
           </div>
         </div>
 
-        <!-- Store General -->
-        <div class="bg-gradient-to-br from-slate-800 to-amber-950/30 border border-amber-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+        <!-- 2. Storefront Daily Receipts -->
+        <div class="bg-gradient-to-br from-slate-800 via-emerald-950/40 to-slate-900 border border-emerald-500/40 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-emerald-300 font-medium mb-2">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="wallet" class="w-4 h-4 text-emerald-400"></i>
+              <span>เงินสด & โอนหน้าร้าน</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold">หน้าร้าน</span>
+          </div>
+          <div class="text-2xl lg:text-3xl font-bold text-emerald-400 font-mono" id="dash-stat-storefront-total">0.00</div>
+          <div class="text-[11px] text-slate-300 mt-1.5 flex items-center justify-between pt-1 border-t border-emerald-500/20">
+            <span>สด: <strong id="dash-stat-sf-cash" class="font-mono text-emerald-300">0.00</strong></span>
+            <span>โอน: <strong id="dash-stat-sf-transfer" class="font-mono text-cyan-300">0.00</strong></span>
+          </div>
+        </div>
+
+        <!-- 3. Delivery Bills (Active) -->
+        <div class="bg-gradient-to-br from-slate-800 via-amber-950/40 to-slate-900 border border-amber-500/40 rounded-2xl p-5 shadow-xl relative overflow-hidden">
           <div class="flex items-center justify-between text-xs text-amber-300 font-medium mb-2">
-            <span>🏢 ร้านค้า - ทั่วไป</span>
-            <i data-lucide="store" class="w-4 h-4 text-amber-400"></i>
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="truck" class="w-4 h-4 text-amber-400"></i>
+              <span>บิลส่งของ & เครดิต</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-semibold">บิลหลัก</span>
           </div>
-          <div class="text-2xl font-bold text-amber-300 font-mono" id="dash-stat-gen-amount">0.00</div>
-          <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
-            <span class="text-amber-400 font-semibold" id="dash-stat-gen-count">0</span> บิล (เงินสด/เครดิตทั่วไป)
-          </div>
-        </div>
-
-        <!-- Store Government -->
-        <div class="bg-gradient-to-br from-slate-800 to-purple-950/30 border border-purple-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
-          <div class="flex items-center justify-between text-xs text-purple-300 font-medium mb-2">
-            <span>🏛️ ร้านค้า - หน่วยงาน</span>
-            <i data-lucide="landmark" class="w-4 h-4 text-purple-400"></i>
-          </div>
-          <div class="text-2xl font-bold text-purple-300 font-mono" id="dash-stat-gov-amount">0.00</div>
-          <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
-            <span class="text-purple-400 font-semibold" id="dash-stat-gov-count">0</span> บิล (ราชการ/มี PO)
+          <div class="text-2xl lg:text-3xl font-bold text-amber-300 font-mono" id="dash-stat-total-amount">0.00</div>
+          <div class="text-[11px] text-slate-400 mt-1.5 flex items-center justify-between">
+            <span><strong id="dash-stat-total-count" class="text-amber-400 font-mono">0</strong> บิลส่งของที่ปกติ</span>
+            <span class="text-amber-400 font-medium font-mono text-[10px]">บาท</span>
           </div>
         </div>
 
-        <!-- Gas Station / Fuel -->
-        <div class="bg-gradient-to-br from-slate-800 to-teal-950/30 border border-teal-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+        <!-- 4. Gas Station / Fuel Sales -->
+        <div class="bg-gradient-to-br from-slate-800 via-teal-950/40 to-slate-900 border border-teal-500/40 rounded-2xl p-5 shadow-xl relative overflow-hidden">
           <div class="flex items-center justify-between text-xs text-teal-300 font-medium mb-2">
-            <span>⛽ ปั๊มน้ำมัน</span>
-            <i data-lucide="fuel" class="w-4 h-4 text-teal-400"></i>
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="fuel" class="w-4 h-4 text-teal-400"></i>
+              <span>ยอดขายน้ำมัน</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] bg-teal-500/20 text-teal-300 font-semibold">ปั๊มน้ำมัน</span>
           </div>
-          <div class="text-2xl font-bold text-teal-300 font-mono" id="dash-stat-fuel-amount">0.00</div>
-          <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
-            <span class="text-teal-400 font-semibold" id="dash-stat-fuel-count">0</span> บิลน้ำมัน
+          <div class="text-2xl lg:text-3xl font-bold text-teal-300 font-mono" id="dash-stat-fuel-amount">0.00</div>
+          <div class="text-[11px] text-slate-400 mt-1.5 flex items-center justify-between">
+            <span><strong id="dash-stat-fuel-count" class="text-teal-400 font-mono">0</strong> บิลน้ำมัน</span>
+            <span class="text-teal-400 font-medium font-mono text-[10px]">บาท</span>
           </div>
         </div>
 
       </div>
 
-      <!-- ROW 2: STATUS SPLIT & REVENUE MIX -->
+      <!-- ROW 2: STOREFRONT DETAIL BREAKDOWN -->
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl mb-6">
+        <div class="flex items-center justify-between mb-3.5 pb-2 border-b border-slate-700">
+          <div class="flex items-center gap-2">
+            <i data-lucide="calculator" class="w-4 h-4 text-emerald-400"></i>
+            <h3 class="text-xs font-bold text-slate-200 tracking-wide uppercase">รายละเอียดการปิดรอบเงินสดหน้าร้าน (Storefront Cash Settlement)</h3>
+          </div>
+          <span class="text-[11px] text-slate-400 font-medium">ข้อมูลตรงจากบันทึกรอบเงินสดประจำวัน</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          <div class="p-3 bg-slate-900/70 border border-emerald-500/20 rounded-xl">
+            <div class="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5">
+              <i data-lucide="banknote" class="w-3.5 h-3.5"></i>
+              <span>เงินสดสุทธิ</span>
+            </div>
+            <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-sf-netcash">0.00</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">เงินสดคงเหลือส่งรอบ</div>
+          </div>
+          <div class="p-3 bg-slate-900/70 border border-blue-500/20 rounded-xl">
+            <div class="text-[11px] text-blue-400 font-medium flex items-center gap-1.5">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+              <span>ยอดเงินโอนเข้าบัญชี</span>
+            </div>
+            <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-sf-transfertotal">0.00</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">ยอดสแกน QR / โอนเงิน</div>
+          </div>
+          <div class="p-3 bg-slate-900/70 border border-amber-500/20 rounded-xl">
+            <div class="text-[11px] text-amber-400 font-medium flex items-center gap-1.5">
+              <i data-lucide="package" class="w-3.5 h-3.5"></i>
+              <span>ยอดขายสินค้าหน้าร้าน</span>
+            </div>
+            <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-sf-goodstotal">0.00</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">รวมสินค้าและอะไหล่</div>
+          </div>
+          <div class="p-3 bg-slate-900/70 border border-purple-500/20 rounded-xl">
+            <div class="text-[11px] text-purple-400 font-medium flex items-center gap-1.5">
+              <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+              <span>ค่าแรงบริการ</span>
+            </div>
+            <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-sf-labortotal">0.00</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">ค่าช่างและงานบริการ</div>
+          </div>
+          <div class="p-3 bg-slate-900/70 border border-rose-500/20 rounded-xl col-span-2 sm:col-span-1">
+            <div class="text-[11px] text-rose-400 font-medium flex items-center gap-1.5">
+              <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+              <span>เซ็นเชื่อหน้าร้าน</span>
+            </div>
+            <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-sf-credittotal">0.00</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">ค้างชำระหน้าร้าน</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3: VISUAL CHARTS (CHART.JS) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+        
+        <!-- Revenue Trends 12 Months (8 cols) -->
+        <div class="lg:col-span-8 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-700">
+            <div class="flex items-center gap-2">
+              <i data-lucide="line-chart" class="w-4 h-4 text-indigo-400"></i>
+              <h3 class="text-xs font-bold text-white tracking-wide uppercase">แนวโน้มรายได้ 12 เดือน (12-Month Revenue Comparison & Trends)</h3>
+            </div>
+            <div class="flex items-center gap-2 text-[10px] text-slate-400">
+              <span class="inline-block w-2.5 h-2.5 rounded bg-emerald-500"></span> หน้าร้าน
+              <span class="inline-block w-2.5 h-2.5 rounded bg-blue-500"></span> บิลส่งของ
+              <span class="inline-block w-2.5 h-2.5 rounded bg-teal-500"></span> น้ำมัน
+              <span class="inline-block w-2.5 h-1 rounded bg-amber-400"></span> รายรับรวม
+            </div>
+          </div>
+          <div class="relative w-full h-[260px]">
+            <canvas id="chart-monthly-trends"></canvas>
+          </div>
+        </div>
+
+        <!-- Cash Flow Mix Donut (4 cols) -->
+        <div class="lg:col-span-4 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-700">
+            <div class="flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
+              <h3 class="text-xs font-bold text-white tracking-wide uppercase">สภาพคล่องเงินสด & ลูกหนี้</h3>
+            </div>
+            <span class="text-[10px] text-slate-400">Cash Flow Mix</span>
+          </div>
+          <div class="relative w-full h-[260px] flex items-center justify-center">
+            <canvas id="chart-cashflow-mix"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 4: 12-MONTH PERFORMANCE MATRIX TABLE -->
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-slate-700">
+          <div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="calendar" class="w-4 h-4 text-indigo-400"></i>
+              <h3 class="text-sm font-bold text-white">ตารางสรุปรายได้รายเดือน ประจำปี <span id="dash-matrix-year" class="text-indigo-400">2569</span> (Performance Matrix)</h3>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">สรุปยอดขายแยกรายเดือน มกราคม - ธันวาคม พร้อมยอดรวมสะสมทั้งปีและค่าเฉลี่ยต่อเดือน</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs">
+              <span class="text-slate-400">ยอดรวมทั้งปี:</span>
+              <strong id="dash-matrix-annual-total" class="font-mono text-emerald-400 ml-1 font-bold">0.00</strong>
+            </div>
+            <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs">
+              <span class="text-slate-400">เฉลี่ยต่อเดือน:</span>
+              <strong id="dash-matrix-monthly-avg" class="font-mono text-indigo-400 ml-1 font-bold">0.00</strong>
+            </div>
+            <div class="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+              <span class="text-amber-400 font-medium">เดือนยอดสูงสุด:</span>
+              <strong id="dash-matrix-peak-month" class="text-white ml-1 font-bold">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="text-slate-400 bg-slate-900/60 border-y border-slate-700/80">
+              <tr>
+                <th class="py-2.5 px-3 font-semibold">เดือน</th>
+                <th class="py-2.5 px-3 text-right font-semibold text-emerald-300">สด+โอนหน้าร้าน</th>
+                <th class="py-2.5 px-3 text-right font-semibold text-rose-300">เซ็นเชื่อหน้าร้าน</th>
+                <th class="py-2.5 px-3 text-right font-semibold text-blue-300">บิลส่งของ</th>
+                <th class="py-2.5 px-3 text-right font-semibold text-teal-300">บิลน้ำมัน</th>
+                <th class="py-2.5 px-3 text-right font-semibold text-purple-300">รับชำระหนี้</th>
+                <th class="py-2.5 px-3 text-right font-bold text-white bg-slate-900/80">รายรับรวมทั้งระบบ</th>
+              </tr>
+            </thead>
+            <tbody id="dash-monthly-matrix-tbody" class="divide-y divide-slate-700/40 font-mono">
+              <tr><td colspan="7" class="text-center py-8 text-slate-500 font-sans">กำลังประมวลผลตาราง 12 เดือน...</td></tr>
+            </tbody>
+            <tfoot id="dash-monthly-matrix-tfoot" class="border-t-2 border-slate-600 bg-slate-900/80 font-mono text-xs font-semibold">
+              <!-- Rendered dynamically -->
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ROW 5: STATUS SPLIT & COMMERCIAL MIX -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
         
         <!-- Status Breakdown (7 cols) -->
         <div class="lg:col-span-7 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
           <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
             <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i>
-            <span>สถานะบิลในระบบ</span>
+            <span>สถานะบิลส่งของ & เครดิตในระบบ</span>
           </h3>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
@@ -1354,7 +1512,7 @@
           <div>
             <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
               <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-400"></i>
-              <span>สัดส่วนรายได้แยก 3 หมวด (Revenue Mix)</span>
+              <span>สัดส่วนบิลหลักแยก 3 หมวด (Delivery Mix)</span>
             </h3>
             
             <!-- Stacked bar -->
@@ -1393,7 +1551,7 @@
 
       </div>
 
-      <!-- ROW 3: TOP DEBTORS & CANCELLATION AUDIT LOG -->
+      <!-- ROW 6: TOP DEBTORS & CANCELLATION AUDIT LOG -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
         
         <!-- Top Debtors (7 cols) -->
