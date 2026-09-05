@@ -42,7 +42,7 @@ function refreshIcons() {
 
 // Navigation router
 function navigateTo(viewName) {
-  const views = ['login', 'dashboard', 'search', 'users', 'logs'];
+  const views = ['login', 'dashboard', 'search', 'users', 'logs', 'delivery-bill', 'manager-audit', 'executive-dashboard', 'billing-notes'];
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
     if (el) el.classList.add('hidden');
@@ -66,6 +66,14 @@ function navigateTo(viewName) {
     initUsersPage();
   } else if (viewName === 'logs') {
     fetchLoginLogs();
+  } else if (viewName === 'delivery-bill') {
+    initDeliveryBillPage();
+  } else if (viewName === 'manager-audit') {
+    initManagerAuditPage();
+  } else if (viewName === 'executive-dashboard') {
+    initExecutiveDashboardPage();
+  } else if (viewName === 'billing-notes') {
+    initBillingPage();
   }
 
   refreshIcons();
@@ -231,8 +239,9 @@ function renderDashboard() {
   // Cards
   const cardSearch = document.getElementById('card-menu-search');
   const cardDelivery = document.getElementById('card-menu-delivery-bill');
-  const cardIncome = document.getElementById('card-menu-income');
-  const cardPurchase = document.getElementById('card-menu-purchase');
+  const cardExecutive = document.getElementById('card-menu-executive');
+  const cardMaster = document.getElementById('card-menu-master');
+  const cardBilling = document.getElementById('card-menu-billing');
   const cardUsers = document.getElementById('card-menu-users');
   const cardLogs = document.getElementById('card-menu-logs');
   const badgeUsersScope = document.getElementById('badge-users-scope');
@@ -242,22 +251,24 @@ function renderDashboard() {
   const role = currentUser.role || 'staff';
 
   if (role === 'staff' || role === 'senior_staff') {
-    // พนักงาน: เห็นแค่ 2 เมนู (ค้นหาสินค้า + บันทึกใบส่งของ)
+    // พนักงาน: ค้นหาสินค้า + บันทึกใบส่งของ
     cardSearch.classList.remove('hidden');
     cardDelivery.classList.remove('hidden');
-    cardIncome.classList.add('hidden');
-    cardPurchase.classList.add('hidden');
+    if (cardExecutive) cardExecutive.classList.add('hidden');
+    if (cardMaster) cardMaster.classList.add('hidden');
+    if (cardBilling) cardBilling.classList.add('hidden');
     cardUsers.classList.add('hidden');
     cardLogs.classList.add('hidden');
 
     roleDesc.innerText = "สิทธิ์พนักงาน: เข้าถึง 2 เมนูหลัก (ค้นหาข้อมูลสินค้า และ บันทึกใบส่งของ)";
     menuScopeBadge.innerText = "พนักงาน: เข้าถึง 2 เมนู";
   } else if (role === 'manager') {
-    // ผู้จัดการ: เห็นทั้งหมด และจัดการพนักงานได้
+    // ผู้จัดการ: งานขาย, แดชบอร์ดผู้บริหาร, ออกใบวางบิล & รับชำระ, คลังบิลหลัก และจัดการพนักงาน
     cardSearch.classList.remove('hidden');
     cardDelivery.classList.remove('hidden');
-    cardIncome.classList.remove('hidden');
-    cardPurchase.classList.remove('hidden');
+    if (cardExecutive) cardExecutive.classList.remove('hidden');
+    if (cardMaster) cardMaster.classList.remove('hidden');
+    if (cardBilling) cardBilling.classList.remove('hidden');
     cardUsers.classList.remove('hidden');
     cardLogs.classList.add('hidden');
 
@@ -265,14 +276,15 @@ function renderDashboard() {
     titleUsers.innerText = "จัดการพนักงาน";
     descUsers.innerText = "เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านของพนักงานหน้าร้าน";
 
-    roleDesc.innerText = "สิทธิ์ผู้จัดการ: เข้าถึงทุกเมนูงานขายและคลังสินค้า พร้อมสิทธิ์จัดการบัญชีพนักงาน";
-    menuScopeBadge.innerText = "ผู้จัดการ: สิทธิ์จัดการพนักงาน & เข้าถึงทุกเมนู";
+    roleDesc.innerText = "สิทธิ์ผู้จัดการ: แดชบอร์ดผู้บริหาร, ออกใบวางบิล & รับชำระ, คลังบิลหลัก และจัดการพนักงาน";
+    menuScopeBadge.innerText = "ผู้จัดการ: สิทธิ์บริหาร & วางบิล";
   } else if (role === 'admin') {
-    // Admin: เห็นทุกอย่าง + จัดการผู้ใช้ทุกคน + ดู Login Logs
+    // Admin: สิทธิ์เต็มรูปแบบ
     cardSearch.classList.remove('hidden');
     cardDelivery.classList.remove('hidden');
-    cardIncome.classList.remove('hidden');
-    cardPurchase.classList.remove('hidden');
+    if (cardExecutive) cardExecutive.classList.remove('hidden');
+    if (cardMaster) cardMaster.classList.remove('hidden');
+    if (cardBilling) cardBilling.classList.remove('hidden');
     cardUsers.classList.remove('hidden');
     cardLogs.classList.remove('hidden');
 
@@ -280,8 +292,8 @@ function renderDashboard() {
     titleUsers.innerText = "จัดการผู้เข้าใช้ทั้งหมด";
     descUsers.innerText = "จัดการบัญชีผู้ใช้ทุกระดับ (พนักงาน, ผู้จัดการ, แอดมิน)";
 
-    roleDesc.innerText = "สิทธิ์ผู้ดูแลระบบ (Admin): เข้าถึงได้ทุกฟังก์ชันและจัดการผู้ใช้งานได้ทั้งหมด";
-    menuScopeBadge.innerText = "ผู้ดูแลระบบ: สิทธิ์ระดับสูงสุด";
+    roleDesc.innerText = "สิทธิ์ผู้ดูแลระบบ (Admin): เข้าถึงได้ทุกฟังก์ชัน รวมทั้งระบบออกใบวางบิลและรับชำระ";
+    menuScopeBadge.innerText = "ผู้ดูแลระบบ: สิทธิ์เต็มรูปแบบ";
   }
 }
 
@@ -819,3 +831,1850 @@ function renderLogsTable(logs) {
     tbody.appendChild(tr);
   });
 }
+
+// ==========================================
+// DELIVERY BILL ENTRY & CUSTOMERS
+// ==========================================
+
+let currentCustomersList = [];
+let selectedCustomer = null;
+let capturedPhotoBase64 = null;
+let customerSearchDebounce = null;
+
+async function initDeliveryBillPage() {
+  // 1. Set current date display
+  const now = new Date();
+  const thDate = now.toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const displayEl = document.getElementById('bill-today-display');
+  if (displayEl) displayEl.innerText = thDate;
+
+  // 2. Fetch customers if not already loaded
+  if (currentCustomersList.length === 0) {
+    await fetchCustomers();
+  }
+
+  // 3. Fetch today's bills
+  fetchTodayBills();
+}
+
+async function fetchCustomers() {
+  try {
+    const res = await fetch('/api/customers', {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentCustomersList = data.customers || [];
+    }
+  } catch (err) {
+    console.error("Failed to fetch customers:", err);
+  }
+}
+
+function handleCustomerSearchInput(e) {
+  clearTimeout(customerSearchDebounce);
+  const q = (e.target.value || '').trim().toLowerCase();
+  const dropdown = document.getElementById('customer-dropdown');
+  const clearBtn = document.getElementById('btn-clear-customer');
+
+  if (clearBtn) {
+    if (q) clearBtn.classList.remove('hidden');
+    else clearBtn.classList.add('hidden');
+  }
+
+  if (!q) {
+    dropdown.classList.add('hidden');
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  customerSearchDebounce = setTimeout(() => {
+    const matches = currentCustomersList.filter(c => 
+      c.id.toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
+      c.fullName.toLowerCase().includes(q) ||
+      (c.phone && c.phone.includes(q))
+    ).slice(0, 10);
+
+    if (matches.length === 0) {
+      dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">ไม่พบชื่อหรือรหัสลูกค้านี้ในฐานข้อมูล</div>`;
+    } else {
+      dropdown.innerHTML = matches.map(c => `
+        <div onclick="selectCustomer('${c.id}')" class="p-3 hover:bg-slate-800 cursor-pointer transition flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-1.5 py-0.5 rounded font-mono text-[10px] bg-amber-500/20 text-amber-300 font-bold">${c.id}</span>
+              <span class="text-xs font-semibold text-white">${c.name}</span>
+            </div>
+            ${c.fullName && c.fullName !== c.name ? `<div class="text-[11px] text-slate-400 mt-0.5">${c.fullName}</div>` : ''}
+            ${c.address ? `<div class="text-[10px] text-slate-500 mt-0.5 truncate max-w-sm">${c.address}</div>` : ''}
+          </div>
+          <div class="text-right">
+            ${c.phone ? `<div class="text-[10px] text-slate-400 font-mono">${c.phone}</div>` : ''}
+            ${c.contact ? `<div class="text-[10px] text-amber-400/80">${c.contact}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    dropdown.classList.remove('hidden');
+  }, 150);
+}
+
+function selectCustomer(customerId) {
+  const c = currentCustomersList.find(x => x.id === customerId);
+  if (!c) return;
+
+  selectedCustomer = c;
+  document.getElementById('bill-customer-id').value = c.id;
+  document.getElementById('bill-customer-name').value = c.name;
+
+  // Update UI
+  const searchInput = document.getElementById('bill-customer-search');
+  searchInput.value = '';
+  searchInput.classList.add('hidden');
+
+  const dropdown = document.getElementById('customer-dropdown');
+  dropdown.classList.add('hidden');
+
+  const pill = document.getElementById('selected-customer-pill');
+  document.getElementById('pill-cust-id').innerText = c.id;
+  document.getElementById('pill-cust-name').innerText = `${c.name} ${c.fullName && c.fullName !== c.name ? '(' + c.fullName + ')' : ''}`;
+  pill.classList.remove('hidden');
+
+  const clearBtn = document.getElementById('btn-clear-customer');
+  if (clearBtn) clearBtn.classList.add('hidden');
+}
+
+function clearCustomerSelection() {
+  selectedCustomer = null;
+  document.getElementById('bill-customer-id').value = '';
+  document.getElementById('bill-customer-name').value = '';
+
+  const pill = document.getElementById('selected-customer-pill');
+  pill.classList.add('hidden');
+
+  const searchInput = document.getElementById('bill-customer-search');
+  searchInput.classList.remove('hidden');
+  searchInput.value = '';
+  searchInput.focus();
+
+  const clearBtn = document.getElementById('btn-clear-customer');
+  if (clearBtn) clearBtn.classList.add('hidden');
+
+  const dropdown = document.getElementById('customer-dropdown');
+  dropdown.classList.add('hidden');
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('customer-dropdown');
+  const searchInput = document.getElementById('bill-customer-search');
+  if (dropdown && searchInput && !dropdown.contains(e.target) && e.target !== searchInput) {
+    dropdown.classList.add('hidden');
+  }
+});
+
+// Photo selection & compression
+function handleBillPhotoSelect(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Compress image client-side to max 1280px dimension
+      const maxDim = 1280;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.82);
+
+      // Show preview
+      const previewImg = document.getElementById('photo-preview-img');
+      previewImg.src = capturedPhotoBase64;
+      document.getElementById('photo-preview-container').classList.remove('hidden');
+      document.getElementById('photo-prompt').classList.add('hidden');
+      refreshIcons();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetBillPhoto(event) {
+  if (event) event.stopPropagation();
+  capturedPhotoBase64 = null;
+  const input = document.getElementById('bill-photo-input');
+  if (input) input.value = '';
+
+  document.getElementById('photo-preview-img').src = '';
+  document.getElementById('photo-preview-container').classList.add('hidden');
+  document.getElementById('photo-prompt').classList.remove('hidden');
+  refreshIcons();
+}
+
+// Store Category Switcher
+let currentStoreCategory = 'store_general';
+
+function selectStoreCategory(cat) {
+  currentStoreCategory = cat;
+  const btnGen = document.getElementById('btn-cat-general');
+  const btnGov = document.getElementById('btn-cat-gov');
+  const catInput = document.getElementById('bill-category');
+  const poContainer = document.getElementById('container-po-ref');
+  const descEl = document.getElementById('cat-description');
+  const labelRef = document.getElementById('label-bill-ref');
+
+  if (cat === 'store_gov') {
+    if (catInput) catInput.value = 'store_gov';
+    if (btnGov) {
+      btnGov.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-md";
+    }
+    if (btnGen) {
+      btnGen.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+    }
+    if (poContainer) poContainer.classList.remove('hidden');
+    if (descEl) descEl.innerText = "สำหรับหน่วยงานราชการ อบต. เทศบาล โรงเรียน มีใบส่งของและเลขที่สั่งจ้างกำกับ";
+    if (labelRef) labelRef.innerText = "เลขที่บิลส่งของ / ใบส่งของชั่วคราว *";
+  } else {
+    if (catInput) catInput.value = 'store_general';
+    if (btnGen) {
+      btnGen.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md";
+    }
+    if (btnGov) {
+      btnGov.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+    }
+    if (poContainer) poContainer.classList.add('hidden');
+    if (descEl) descEl.innerText = "สำหรับลูกค้าเงินสด, บิลเครดิตบุคคลทั่วไป, ผู้รับเหมา หรือร้านค้าช่วง";
+    if (labelRef) labelRef.innerText = "เลขที่บิลส่งของ (บิลกระดาษ) *";
+  }
+  refreshIcons();
+}
+
+// Form Submit: Direct Recording into MASTER_BILLS
+async function handleDeliveryBillSubmit(event) {
+  event.preventDefault();
+
+  const customerId = document.getElementById('bill-customer-id').value;
+  const customerName = document.getElementById('bill-customer-name').value;
+  const category = document.getElementById('bill-category') ? document.getElementById('bill-category').value : currentStoreCategory;
+  const billRef = document.getElementById('bill-ref-no').value.trim();
+  const poRef = document.getElementById('bill-po-no') ? document.getElementById('bill-po-no').value.trim() : '';
+  const amount = document.getElementById('bill-amount').value;
+  const notes = document.getElementById('bill-notes').value.trim();
+
+  if (!customerId || !customerName) {
+    showToast("กรุณาเลือกลูกค้าจากรายชื่อก่อนบันทึก", false);
+    return;
+  }
+
+  if (!billRef) {
+    showToast("กรุณาระบุเลขที่บิลส่งของ", false);
+    return;
+  }
+
+  if (!amount || parseFloat(amount) <= 0) {
+    showToast("กรุณากรอกจำนวนเงินให้ถูกต้อง", false);
+    return;
+  }
+
+  const btnSubmit = document.getElementById('btn-submit-bill');
+  const originalBtnText = btnSubmit.innerHTML;
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = `
+    <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+    <span>กำลังบันทึกลงระบบ...</span>
+  `;
+
+  try {
+    const res = await fetch('/api/delivery/inbox', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify({
+        category,
+        customerId,
+        customerName,
+        billRef,
+        poRef,
+        amount: parseFloat(amount),
+        notes,
+        imageBase64: capturedPhotoBase64
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      const billId = data.bill?.billId || '';
+      showToast(`บันทึกบิลเรียบร้อย! รหัสบิล: ${billId} (สถานะ: รอวางบิล)`, true);
+
+      // Reset form
+      document.getElementById('bill-ref-no').value = '';
+      if (document.getElementById('bill-po-no')) document.getElementById('bill-po-no').value = '';
+      document.getElementById('bill-amount').value = '';
+      document.getElementById('bill-notes').value = '';
+      resetBillPhoto();
+      clearCustomerSelection();
+
+      // Refresh today's list
+      await fetchTodayBills();
+    } else {
+      showToast(data.message || "บันทึกล้มเหลว กรุณาลองใหม่อีกครั้ง", false);
+    }
+  } catch (err) {
+    console.error("Submit bill error:", err);
+    showToast("เชื่อมต่อระบบล้มเหลว กรุณาตรวจสอบอินเทอร์เน็ต", false);
+  } finally {
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = originalBtnText;
+    refreshIcons();
+  }
+}
+
+// Fetch & Filter Today's Bills
+let allTodayBills = [];
+let currentTodayFilter = 'ALL';
+
+function filterTodayBills(cat) {
+  currentTodayFilter = cat;
+  const btnAll = document.getElementById('filter-today-all');
+  const btnGen = document.getElementById('filter-today-gen');
+  const btnGov = document.getElementById('filter-today-gov');
+
+  [btnAll, btnGen, btnGov].forEach(b => {
+    if (b) b.className = "px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition";
+  });
+
+  if (cat === 'ALL' && btnAll) btnAll.className = "px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition";
+  if (cat === 'store_general' && btnGen) btnGen.className = "px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition";
+  if (cat === 'store_gov' && btnGov) btnGov.className = "px-2.5 py-1 rounded-lg bg-purple-500 text-white font-bold transition";
+
+  renderTodayBills(allTodayBills);
+}
+
+async function fetchTodayBills() {
+  const container = document.getElementById('today-bills-list');
+  try {
+    const res = await fetch('/api/delivery/bills/today', {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      allTodayBills = data.bills || [];
+      renderTodayBills(allTodayBills);
+    } else {
+      container.innerHTML = `<div class="p-6 text-center text-xs text-red-400">โหลดข้อมูลไม่สำเร็จ</div>`;
+    }
+  } catch (err) {
+    console.error("Error fetching today bills:", err);
+    container.innerHTML = `<div class="p-6 text-center text-xs text-slate-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>`;
+  }
+}
+
+function renderTodayBills(bills) {
+  const container = document.getElementById('today-bills-list');
+  const countEl = document.getElementById('stat-today-count');
+  const sumEl = document.getElementById('stat-today-sum');
+
+  // Filter bills by current category filter
+  let filtered = bills;
+  if (currentTodayFilter === 'store_general') {
+    filtered = bills.filter(b => (b.source || '').includes('ทั่วไป'));
+  } else if (currentTodayFilter === 'store_gov') {
+    filtered = bills.filter(b => (b.source || '').includes('หน่วยงาน'));
+  }
+
+  // Active stats calculation (exclude cancelled)
+  let activeCount = 0;
+  let activeSum = 0;
+  bills.forEach(b => {
+    if (b.status !== 'ยกเลิก') {
+      activeCount++;
+      const num = parseFloat(String(b.amount).replace(/,/g, '')) || 0;
+      activeSum += num;
+    }
+  });
+
+  if (countEl) countEl.innerText = activeCount;
+  if (sumEl) sumEl.innerText = `฿${activeSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="py-12 text-center text-slate-500">
+        <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+        <p class="text-xs">ไม่มีรายการบิลในหมวดหมู่นี้</p>
+      </div>
+    `;
+    refreshIcons();
+    return;
+  }
+
+  container.innerHTML = filtered.map(b => {
+    const isCancelled = b.status === 'ยกเลิก';
+
+    // Source Badge
+    let sourceBadge = `<span class="px-2 py-0.2 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">🏢 ทั่วไป</span>`;
+    if ((b.source || '').includes('หน่วยงาน')) {
+      sourceBadge = `<span class="px-2 py-0.2 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">🏛️ หน่วยงาน</span>`;
+    } else if (b.companyRegistration === 'ปั๊มน้ำมัน') {
+      sourceBadge = `<span class="px-2 py-0.2 rounded-full text-[10px] font-semibold bg-teal-500/20 text-teal-300 border border-teal-500/30">⛽ น้ำมัน</span>`;
+    }
+
+    // Status Badge
+    const statusBadge = isCancelled
+      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">ยกเลิกแล้ว</span>`
+      : `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">รอวางบิล</span>`;
+
+    const amountDisplay = isCancelled
+      ? `<span class="line-through text-slate-500 text-xs font-mono">฿${b.amount}</span>`
+      : `<span class="text-sm font-bold text-amber-400 font-mono">฿${b.amount}</span>`;
+
+    // Action button
+    const actionBtn = isCancelled
+      ? `<span class="text-[10px] text-red-400/80 italic">ยกเลิกแล้ว (บันทึกบิลใหม่แทนแล้ว)</span>`
+      : `<button onclick="openCancelModal('${b.billId}')" class="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 text-[10px] font-semibold transition flex items-center gap-1">
+           <i data-lucide="trash-2" class="w-3 h-3"></i>
+           <span>ขอยกเลิกบิล</span>
+         </button>`;
+
+    return `
+      <div class="p-3.5 ${isCancelled ? 'bg-slate-900/40 border-slate-800 opacity-75' : 'bg-slate-900/70 border-slate-700/60'} border rounded-xl flex flex-col gap-2 transition hover:border-slate-600">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-bold text-white tracking-wide font-mono">${b.billId}</span>
+              ${sourceBadge}
+              ${statusBadge}
+            </div>
+            <div class="text-[11px] text-slate-300 mt-1 flex items-center gap-1.5">
+              <span class="font-mono text-amber-300 font-bold">${b.billRef || 'ไม่ระบุเลขบิล'}</span>
+              <span>•</span>
+              <span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-slate-400">${b.customerId || '-'}</span>
+              <span class="font-medium text-slate-200 truncate max-w-[180px]">${b.customerName || '-'}</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <div>${amountDisplay}</div>
+            <div class="text-[10px] text-slate-500 mt-0.5 font-mono">${b.date || ''}</div>
+          </div>
+        </div>
+
+        ${b.notes ? `<div class="text-[10px] text-slate-400 bg-slate-800/40 p-1.5 rounded-lg italic">${b.notes}</div>` : ''}
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-[10px] text-slate-500">
+          <div class="flex items-center gap-3">
+            <div>ผู้บันทึก: <strong class="text-slate-400">${b.createdBy}</strong></div>
+            ${b.photoUrl ? `
+              <button onclick="openImageViewer('${b.photoUrl}', '${b.billRef}')" class="text-amber-400 hover:text-amber-300 flex items-center gap-1 underline">
+                <i data-lucide="image" class="w-3 h-3"></i>
+                <span>ดูรูปบิล</span>
+              </button>
+            ` : ''}
+          </div>
+          <div>${actionBtn}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  refreshIcons();
+}
+
+// ==========================================
+// CANCELLATION / VOID BILL MODAL
+// ==========================================
+
+let targetCancelBillId = null;
+
+function openCancelModal(billId) {
+  targetCancelBillId = billId;
+  const display = document.getElementById('cancel-bill-id-display');
+  if (display) display.innerText = billId;
+  const reasonInput = document.getElementById('cancel-bill-reason');
+  if (reasonInput) reasonInput.value = '';
+
+  document.getElementById('modal-cancel-bill').classList.remove('hidden');
+  refreshIcons();
+}
+
+function closeCancelModal() {
+  document.getElementById('modal-cancel-bill').classList.add('hidden');
+  targetCancelBillId = null;
+}
+
+async function submitCancelBill() {
+  if (!targetCancelBillId) return;
+  const reason = (document.getElementById('cancel-bill-reason').value || '').trim();
+  if (!reason) {
+    showToast("กรุณาระบุเหตุผลในการขอยกเลิกบิล", false);
+    return;
+  }
+
+  const btn = document.getElementById('btn-confirm-cancel-bill');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span><span>กำลังยกเลิก...</span>`;
+
+  try {
+    const res = await fetch(`/api/delivery/bills/${targetCancelBillId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify({ reason })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast("ยกเลิกบิลเรียบร้อย สามารถบันทึกบิลใบใหม่แทนได้ทันที", true);
+      closeCancelModal();
+      await fetchTodayBills();
+      if (document.getElementById('view-executive-dashboard') && !document.getElementById('view-executive-dashboard').classList.contains('hidden')) {
+        loadExecutiveDashboard();
+      }
+    } else {
+      showToast(data.message || "ยกเลิกไม่สำเร็จ", false);
+    }
+  } catch (err) {
+    console.error("Cancel bill error:", err);
+    showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i><span>ยืนยันยกเลิกบิลนี้</span>`;
+    refreshIcons();
+  }
+}
+
+// ==========================================
+// MASTER BILLS & FUEL BILLS EXPLORER
+// ==========================================
+
+let currentMasterBills = [];
+let masterSearchDebounceTimer = null;
+let manualCustDebounceTimer = null;
+
+// ==========================================
+// EXECUTIVE DASHBOARD
+// ==========================================
+
+let currentExecutivePeriod = 'ALL';
+
+async function initExecutiveDashboardPage() {
+  if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+    showToast("เฉพาะผู้บริหารหรือผู้จัดการเท่านั้น", false);
+    navigateTo('dashboard');
+    return;
+  }
+  changeDashboardPeriod('ALL');
+}
+
+function changeDashboardPeriod(period) {
+  currentExecutivePeriod = period;
+  const periods = ['all', 'today', 'month', 'year'];
+  periods.forEach(p => {
+    const btn = document.getElementById(`btn-period-${p}`);
+    if (btn) {
+      if (p.toUpperCase() === period) {
+        btn.className = "px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition shadow";
+      } else {
+        btn.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition";
+      }
+    }
+  });
+  loadExecutiveDashboard();
+}
+
+async function loadExecutiveDashboard() {
+  try {
+    const res = await fetch(`/api/dashboard/executive?period=${currentExecutivePeriod}`, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success && data.stats) {
+      renderExecutiveDashboardStats(data.stats);
+    } else {
+      showToast(data.message || "โหลดแดชบอร์ดไม่สำเร็จ", false);
+    }
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    showToast("เชื่อมต่อข้อมูลแดชบอร์ดล้มเหลว", false);
+  }
+}
+
+function renderExecutiveDashboardStats(stats) {
+  const sum = stats.summary;
+
+  // Row 1: KPI Cards
+  const totalAmtEl = document.getElementById('dash-stat-total-amount');
+  const totalCntEl = document.getElementById('dash-stat-total-count');
+  if (totalAmtEl) totalAmtEl.innerText = `฿${sum.formattedTotalActiveAmount}`;
+  if (totalCntEl) totalCntEl.innerText = sum.totalActiveCount;
+
+  const genAmtEl = document.getElementById('dash-stat-gen-amount');
+  const genCntEl = document.getElementById('dash-stat-gen-count');
+  if (genAmtEl) genAmtEl.innerText = `฿${sum.storeGeneral.formattedAmount}`;
+  if (genCntEl) genCntEl.innerText = sum.storeGeneral.count;
+
+  const govAmtEl = document.getElementById('dash-stat-gov-amount');
+  const govCntEl = document.getElementById('dash-stat-gov-count');
+  if (govAmtEl) govAmtEl.innerText = `฿${sum.storeGov.formattedAmount}`;
+  if (govCntEl) govCntEl.innerText = sum.storeGov.count;
+
+  const fuelAmtEl = document.getElementById('dash-stat-fuel-amount');
+  const fuelCntEl = document.getElementById('dash-stat-fuel-count');
+  if (fuelAmtEl) fuelAmtEl.innerText = `฿${sum.fuel.formattedAmount}`;
+  if (fuelCntEl) fuelCntEl.innerText = sum.fuel.count;
+
+  // Row 2: Status Breakdown
+  const pendAmtEl = document.getElementById('dash-stat-pending-amt');
+  const pendCntEl = document.getElementById('dash-stat-pending-cnt');
+  if (pendAmtEl) pendAmtEl.innerText = `฿${sum.pendingBilling.formattedAmount}`;
+  if (pendCntEl) pendCntEl.innerText = sum.pendingBilling.count;
+
+  const billAmtEl = document.getElementById('dash-stat-billed-amt');
+  const billCntEl = document.getElementById('dash-stat-billed-cnt');
+  if (billAmtEl) billAmtEl.innerText = `฿${sum.billed.formattedAmount}`;
+  if (billCntEl) billCntEl.innerText = sum.billed.count;
+
+  const paidAmtEl = document.getElementById('dash-stat-paid-amt');
+  const paidCntEl = document.getElementById('dash-stat-paid-cnt');
+  if (paidAmtEl) paidAmtEl.innerText = `฿${sum.paid.formattedAmount}`;
+  if (paidCntEl) paidCntEl.innerText = sum.paid.count;
+
+  const cancelAmtEl = document.getElementById('dash-stat-cancel-amt');
+  const cancelCntEl = document.getElementById('dash-stat-cancel-cnt');
+  if (cancelAmtEl) cancelAmtEl.innerText = `฿${sum.cancelled.formattedAmount}`;
+  if (cancelCntEl) cancelCntEl.innerText = sum.cancelled.count;
+
+  // Revenue Mix %
+  const totalAmt = sum.totalActiveAmount || 1;
+  const pctGen = Math.round((sum.storeGeneral.amount / totalAmt) * 100);
+  const pctGov = Math.round((sum.storeGov.amount / totalAmt) * 100);
+  const pctFuel = Math.max(0, 100 - pctGen - pctGov);
+
+  const pctGenEl = document.getElementById('pct-mix-gen');
+  const pctGovEl = document.getElementById('pct-mix-gov');
+  const pctFuelEl = document.getElementById('pct-mix-fuel');
+  if (pctGenEl) pctGenEl.innerText = `${pctGen}% (฿${sum.storeGeneral.formattedAmount})`;
+  if (pctGovEl) pctGovEl.innerText = `${pctGov}% (฿${sum.storeGov.formattedAmount})`;
+  if (pctFuelEl) pctFuelEl.innerText = `${pctFuel}% (฿${sum.fuel.formattedAmount})`;
+
+  const barGen = document.getElementById('bar-mix-gen');
+  const barGov = document.getElementById('bar-mix-gov');
+  const barFuel = document.getElementById('bar-mix-fuel');
+  if (barGen) barGen.style.width = `${pctGen}%`;
+  if (barGov) barGov.style.width = `${pctGov}%`;
+  if (barFuel) barFuel.style.width = `${pctFuel}%`;
+
+  // Top Debtors Table
+  const debtorsTbody = document.getElementById('dash-debtors-tbody');
+  if (debtorsTbody) {
+    if (!stats.topDebtors || stats.topDebtors.length === 0) {
+      debtorsTbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500 text-xs">ไม่มีรายการหนี้ค้างชำระ</td></tr>`;
+    } else {
+      debtorsTbody.innerHTML = stats.topDebtors.map(d => `
+        <tr class="hover:bg-slate-700/30 transition">
+          <td class="py-2.5 px-2">
+            <div class="font-semibold text-white">${d.customerName}</div>
+            <div class="text-[10px] text-slate-400 font-mono">${d.customerId || '-'} • ${d.billCount} บิล</div>
+          </td>
+          <td class="py-2.5 px-2 text-right font-mono text-slate-300">฿${d.storeAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2.5 px-2 text-right font-mono text-teal-300">฿${d.fuelAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="py-2.5 px-2 text-right font-mono font-bold text-amber-400">฿${d.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  // Cancellation Audit Log
+  const cancelList = document.getElementById('dash-cancel-list');
+  const badgeCount = document.getElementById('dash-cancel-count-badge');
+  if (badgeCount) badgeCount.innerText = `${stats.cancelledBills.length} บิล`;
+
+  if (cancelList) {
+    if (!stats.cancelledBills || stats.cancelledBills.length === 0) {
+      cancelList.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">ไม่มีประวัติบิลที่ขอยกเลิก</div>`;
+    } else {
+      cancelList.innerHTML = stats.cancelledBills.map(b => `
+        <div class="p-3 bg-slate-900/80 border border-red-500/20 rounded-xl flex flex-col gap-1.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="font-mono font-bold text-white text-xs">${b.billId}</span>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-500/20 text-red-400">ยกเลิกแล้ว</span>
+              <span class="text-[10px] text-slate-400 font-mono">${b.billRef || ''}</span>
+            </div>
+            <span class="font-mono text-slate-400 line-through text-xs">฿${b.amount}</span>
+          </div>
+          <div class="text-xs text-slate-300">${b.customerName}</div>
+          <div class="text-[11px] text-red-300/90 bg-red-500/10 p-1.5 rounded-lg mt-0.5">
+            ${b.notes || 'ไม่มีเหตุผลระบุ'}
+          </div>
+          <div class="text-[10px] text-slate-500 flex items-center justify-between pt-1">
+            <span>ผู้บันทึก: ${b.createdBy}</span>
+            <span>${b.createdAt || b.date}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  refreshIcons();
+}
+
+// ==========================================
+// MASTER BILLS & FUEL BILLS EXPLORER
+// ==========================================
+async function initManagerAuditPage() {
+  if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+    showToast("คุณไม่มีสิทธิ์เข้าถึงหน้านี้", false);
+    navigateTo('dashboard');
+    return;
+  }
+
+  // Pre-load customers list if empty
+  if (currentCustomersList.length === 0) {
+    await fetchCustomers();
+  }
+
+  fetchMasterBillsList();
+}
+
+// Master Bills List
+async function fetchMasterBillsList() {
+  const tbody = document.getElementById('master-bills-table-body');
+  const badgeEl = document.getElementById('master-bills-count-badge');
+  tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-slate-500 text-xs">กำลังโหลดคลังบิลหลัก...</td></tr>`;
+
+  const reg = document.getElementById('filter-master-reg').value;
+  const status = document.getElementById('filter-master-status').value;
+  const q = (document.getElementById('search-master-input').value || '').trim();
+
+  try {
+    const url = `/api/delivery/manager/master-bills?reg=${encodeURIComponent(reg)}&status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentMasterBills = data.bills || [];
+      if (badgeEl) badgeEl.innerText = `${currentMasterBills.length} บิล`;
+      renderMasterBillsTable(currentMasterBills);
+    } else {
+      tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-red-400 text-xs">${data.message || 'โหลดข้อมูลไม่สำเร็จ'}</td></tr>`;
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-slate-500 text-xs">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
+  }
+}
+
+function renderMasterBillsTable(bills) {
+  const tbody = document.getElementById('master-bills-table-body');
+  if (bills.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-slate-500 text-xs">ยังไม่มีบิลในคลังหลักตามเงื่อนไขที่เลือก</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = bills.map(b => {
+    const regBadge = b.companyRegistration === 'ปั๊มน้ำมัน'
+      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">ปั๊มน้ำมัน</span>`
+      : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">ร้านค้า</span>`;
+
+    const statusBadge = b.status === 'วางบิลแล้ว'
+      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">วางบิลแล้ว</span>`
+      : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300">รอวางบิล</span>`;
+
+    const photoCell = b.photoUrl
+      ? `<button onclick="openImageViewer('${b.photoUrl}', '${b.billRef}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 transition" title="ดูรูปบิล">
+           <i data-lucide="image" class="w-3.5 h-3.5"></i>
+         </button>`
+      : `<span class="text-slate-600">-</span>`;
+
+    return `
+      <tr class="hover:bg-slate-700/20 transition">
+        <td class="py-2.5 px-3.5 font-mono font-bold text-white">${b.billId}</td>
+        <td class="py-2.5 px-3 font-mono text-slate-400">${b.date}</td>
+        <td class="py-2.5 px-3 text-center">${regBadge}</td>
+        <td class="py-2.5 px-3 font-mono text-slate-200">${b.billRef || '-'}</td>
+        <td class="py-2.5 px-4">
+          <div class="font-medium text-slate-200">${b.customerName || '-'}</div>
+          <div class="font-mono text-[10px] text-slate-400">${b.customerId || '-'}</div>
+        </td>
+        <td class="py-2.5 px-4 text-right font-mono font-bold text-amber-400">฿${b.amount}</td>
+        <td class="py-2.5 px-3 text-center">${photoCell}</td>
+        <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+        <td class="py-2.5 px-3 text-slate-400">${b.createdBy || b.approvedBy || '-'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  refreshIcons();
+}
+
+function debounceMasterSearch() {
+  clearTimeout(masterSearchDebounceTimer);
+  masterSearchDebounceTimer = setTimeout(() => {
+    fetchMasterBillsList();
+  }, 250);
+}
+
+// Manual Master Bill Modal
+function openManualBillModal() {
+  const now = new Date();
+  const thDate = now.toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  document.getElementById('manual-date').value = thDate;
+  document.getElementById('manual-bill-ref').value = '';
+  document.getElementById('manual-amount').value = '';
+  document.getElementById('manual-notes').value = '';
+  clearManualCustSelection();
+
+  document.getElementById('modal-manual-master').classList.remove('hidden');
+  refreshIcons();
+}
+
+function closeManualBillModal() {
+  document.getElementById('modal-manual-master').classList.add('hidden');
+}
+
+function handleManualCustSearch(e) {
+  clearTimeout(manualCustDebounceTimer);
+  const q = (e.target.value || '').trim().toLowerCase();
+  const dropdown = document.getElementById('manual-cust-dropdown');
+
+  if (!q) {
+    dropdown.classList.add('hidden');
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  manualCustDebounceTimer = setTimeout(() => {
+    const matches = currentCustomersList.filter(c =>
+      c.id.toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
+      c.fullName.toLowerCase().includes(q) ||
+      (c.phone && c.phone.includes(q))
+    ).slice(0, 8);
+
+    if (matches.length === 0) {
+      dropdown.innerHTML = `<div class="p-2.5 text-xs text-slate-400 text-center">ไม่พบชื่อลูกค้านี้</div>`;
+    } else {
+      dropdown.innerHTML = matches.map(c => `
+        <div onclick="selectManualCust('${c.id}')" class="p-2.5 hover:bg-slate-800 cursor-pointer transition flex items-center justify-between">
+          <div>
+            <div class="font-bold text-white text-xs">${c.id} - ${c.name}</div>
+            ${c.fullName && c.fullName !== c.name ? `<div class="text-[10px] text-slate-400">${c.fullName}</div>` : ''}
+          </div>
+          <div class="text-[10px] text-slate-400">${c.phone || ''}</div>
+        </div>
+      `).join('');
+    }
+    dropdown.classList.remove('hidden');
+  }, 150);
+}
+
+function selectManualCust(id) {
+  const c = currentCustomersList.find(x => x.id === id);
+  if (!c) return;
+
+  document.getElementById('manual-cust-id').value = c.id;
+  document.getElementById('manual-cust-name').value = c.name;
+
+  document.getElementById('manual-cust-search').classList.add('hidden');
+  document.getElementById('manual-cust-dropdown').classList.add('hidden');
+
+  const pill = document.getElementById('manual-selected-cust-pill');
+  document.getElementById('manual-pill-text').innerText = `${c.id} - ${c.name}`;
+  pill.classList.remove('hidden');
+}
+
+function clearManualCustSelection() {
+  document.getElementById('manual-cust-id').value = '';
+  document.getElementById('manual-cust-name').value = '';
+
+  const pill = document.getElementById('manual-selected-cust-pill');
+  pill.classList.add('hidden');
+
+  const searchInput = document.getElementById('manual-cust-search');
+  searchInput.classList.remove('hidden');
+  searchInput.value = '';
+}
+
+async function handleSaveManualMaster(e) {
+  e.preventDefault();
+
+  const companyRegRadio = document.querySelector('input[name="manualReg"]:checked');
+  const companyRegistration = companyRegRadio ? companyRegRadio.value : 'ปั๊มน้ำมัน';
+  const date = document.getElementById('manual-date').value.trim();
+  const billRef = document.getElementById('manual-bill-ref').value.trim();
+  const customerId = document.getElementById('manual-cust-id').value;
+  const customerName = document.getElementById('manual-cust-name').value;
+  const amount = document.getElementById('manual-amount').value;
+  const notes = document.getElementById('manual-notes').value.trim();
+
+  if (!customerId || !customerName) {
+    showToast("กรุณาเลือกลูกค้าจากรายชื่อก่อนบันทึก", false);
+    return;
+  }
+
+  if (!billRef) {
+    showToast("กรุณาระบุเลขที่บิล", false);
+    return;
+  }
+
+  if (!amount || parseFloat(amount) <= 0) {
+    showToast("กรุณาระบุยอดเงินให้ถูกต้อง", false);
+    return;
+  }
+
+  const btn = document.getElementById('btn-save-manual-bill');
+  btn.disabled = true;
+  btn.innerText = "กำลังบันทึก...";
+
+  try {
+    const res = await fetch('/api/delivery/manager/manual-bill', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify({
+        companyRegistration,
+        date,
+        billRef,
+        customerId,
+        customerName,
+        amount: parseFloat(amount),
+        notes
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(`บันทึกเข้า Master สำเร็จ! (รหัส ${data.bill?.billId})`, true);
+      closeManualBillModal();
+      await fetchMasterBillsList();
+    } else {
+      showToast(data.message || "บันทึกไม่สำเร็จ", false);
+    }
+  } catch (err) {
+    showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>บันทึกเข้า Master</span>`;
+    refreshIcons();
+  }
+}
+
+// Lightbox / Image Viewer Modal
+function openImageViewer(url, title = 'รูปภาพบิล') {
+  if (!url) return;
+  const modal = document.getElementById('modal-image-viewer');
+  const img = document.getElementById('viewer-img');
+  const titleEl = document.getElementById('viewer-title');
+  const linkEl = document.getElementById('viewer-open-link');
+
+  img.src = url;
+  titleEl.innerText = `รูปบิล: ${title}`;
+  linkEl.href = url;
+
+  modal.classList.remove('hidden');
+  refreshIcons();
+}
+
+function closeImageViewer() {
+  const modal = document.getElementById('modal-image-viewer');
+  modal.classList.add('hidden');
+  document.getElementById('viewer-img').src = '';
+}
+
+// ==========================================
+// BILLING NOTES & PAYMENT COLLECTION
+// ==========================================
+
+let allBillingNotes = [];
+let currentBillingFilter = 'ALL';
+let currentPendingBNBills = [];
+let selectedBNBillIds = new Set();
+let selectedBNCustomer = null;
+let bnCustomerSearchDebounce = null;
+let currentActiveBillingNote = null;
+let capturedSlipBase64 = null;
+
+function initBillingPage() {
+  // Set default dates
+  const now = new Date();
+  const yy = (now.getFullYear() + 543).toString();
+  const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+  const dd = now.getDate().toString().padStart(2, '0');
+  const todayStr = `${dd}/${mm}/${yy}`;
+
+  const due = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const dueYy = (due.getFullYear() + 543).toString();
+  const dueMm = (due.getMonth() + 1).toString().padStart(2, '0');
+  const dueDd = due.getDate().toString().padStart(2, '0');
+  const dueStr = `${dueDd}/${dueMm}/${dueYy}`;
+
+  const dateInput = document.getElementById('bn-input-date');
+  const dueDateInput = document.getElementById('bn-input-due-date');
+  if (dateInput) dateInput.value = todayStr;
+  if (dueDateInput) dueDateInput.value = dueStr;
+
+  // Load customer list if empty
+  if (currentCustomersList.length === 0) {
+    fetchCustomers();
+  }
+
+  // Switch to list tab and fetch
+  switchBillingTab('list');
+}
+
+function switchBillingTab(tab) {
+  const btnList = document.getElementById('btn-tab-bn-list');
+  const btnCreate = document.getElementById('btn-tab-bn-create');
+  const btnPayments = document.getElementById('btn-tab-bn-payments');
+
+  const panelList = document.getElementById('panel-bn-list');
+  const panelCreate = document.getElementById('panel-bn-create');
+  const panelPayments = document.getElementById('panel-bn-payments');
+
+  // Reset styles
+  [btnList, btnCreate, btnPayments].forEach(b => {
+    if (b) b.className = "px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5";
+  });
+  [panelList, panelCreate, panelPayments].forEach(p => {
+    if (p) p.classList.add('hidden');
+  });
+
+  if (tab === 'list') {
+    if (btnList) btnList.className = "px-3.5 py-2 rounded-lg font-bold bg-violet-600 text-white shadow transition flex items-center gap-1.5";
+    if (panelList) panelList.classList.remove('hidden');
+    fetchBillingNotesList();
+  } else if (tab === 'create') {
+    if (btnCreate) btnCreate.className = "px-3.5 py-2 rounded-lg font-bold bg-violet-600 text-white shadow transition flex items-center gap-1.5";
+    if (panelCreate) panelCreate.classList.remove('hidden');
+  } else if (tab === 'payments') {
+    if (btnPayments) btnPayments.className = "px-3.5 py-2 rounded-lg font-bold bg-violet-600 text-white shadow transition flex items-center gap-1.5";
+    if (panelPayments) panelPayments.classList.remove('hidden');
+    fetchPaymentsList();
+  }
+
+  refreshIcons();
+}
+
+// ----------------------------------------------------
+// TAB 1: BILLING NOTES LIST
+// ----------------------------------------------------
+
+function filterBillingNotes(status) {
+  currentBillingFilter = status;
+  const btnAll = document.getElementById('bn-filter-all');
+  const btnPending = document.getElementById('bn-filter-pending');
+  const btnPaid = document.getElementById('bn-filter-paid');
+
+  [btnAll, btnPending, btnPaid].forEach(b => {
+    if (b) b.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition";
+  });
+
+  if (status === 'ALL' && btnAll) btnAll.className = "px-3 py-1.5 rounded-lg font-bold bg-violet-600 text-white transition";
+  if (status === 'รอชำระ' && btnPending) btnPending.className = "px-3 py-1.5 rounded-lg font-bold bg-amber-500 text-slate-950 transition";
+  if (status === 'ชำระแล้ว' && btnPaid) btnPaid.className = "px-3 py-1.5 rounded-lg font-bold bg-emerald-500 text-slate-950 transition";
+
+  fetchBillingNotesList();
+}
+
+async function fetchBillingNotesList() {
+  const tbody = document.getElementById('billing-notes-table-body');
+  try {
+    const res = await fetch(`/api/billing/notes?status=${encodeURIComponent(currentBillingFilter)}`, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      allBillingNotes = data.notes || [];
+      renderBillingNotesTable(allBillingNotes);
+    } else {
+      tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-red-400 text-xs">โหลดข้อมูลไม่สำเร็จ: ${data.message}</td></tr>`;
+    }
+  } catch (err) {
+    console.error("Error fetching billing notes:", err);
+    tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-slate-500 text-xs">เกิดข้อผิดพลาดในการเชื่อมต่อ</td></tr>`;
+  }
+}
+
+function renderBillingNotesTable(notes) {
+  const tbody = document.getElementById('billing-notes-table-body');
+  if (!notes || notes.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" class="py-14 text-center text-slate-500">
+          <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+          <p class="text-xs">ไม่พบรายการใบวางบิลในสถานะนี้</p>
+        </td>
+      </tr>
+    `;
+    refreshIcons();
+    return;
+  }
+
+  tbody.innerHTML = notes.map(n => {
+    const isPaid = n.status === 'ชำระแล้ว';
+    const statusBadge = isPaid
+      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ชำระแล้ว</span>`
+      : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">รอชำระ</span>`;
+
+    const payButton = isPaid
+      ? `<span class="text-[10px] text-emerald-400/80 font-medium">ชำระเรียบร้อย</span>`
+      : `<button onclick="openPaymentModal('${n.billingNo}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] shadow transition flex items-center gap-1">
+           <i data-lucide="credit-card" class="w-3 h-3"></i>
+           <span>รับชำระ</span>
+         </button>`;
+
+    return `
+      <tr class="hover:bg-slate-800/40 transition">
+        <td class="py-3 px-3.5 font-mono font-bold text-violet-400 text-xs">${n.billingNo}</td>
+        <td class="py-3 px-3 text-slate-300 font-mono text-[11px]">${n.billingDate}</td>
+        <td class="py-3 px-3 text-slate-400 font-mono text-[11px]">${n.dueDate || '-'}</td>
+        <td class="py-3 px-4">
+          <div class="font-semibold text-white text-xs">${n.customerName}</div>
+          <div class="text-[10px] text-slate-500 font-mono">${n.customerId || ''}</div>
+        </td>
+        <td class="py-3 px-3 text-center">
+          <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono text-[10px] font-bold">${n.billCount} บิล</span>
+        </td>
+        <td class="py-3 px-3 text-right font-mono text-amber-300 text-xs">฿${n.storeAmountFormatted}</td>
+        <td class="py-3 px-3 text-right font-mono text-teal-300 text-xs">฿${n.fuelAmountFormatted}</td>
+        <td class="py-3 px-4 text-right font-mono font-bold text-white text-sm">฿${n.grandTotalFormatted}</td>
+        <td class="py-3 px-3 text-center">${statusBadge}</td>
+        <td class="py-3 px-3">
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openBillingVoucherModal('${n.billingNo}')" title="พิมพ์ใบวางบิล" class="p-1.5 rounded-lg bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30 transition">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            </button>
+            ${payButton}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  refreshIcons();
+}
+
+let bnSearchTimer = null;
+function debounceSearchBillingNotes() {
+  clearTimeout(bnSearchTimer);
+  bnSearchTimer = setTimeout(() => {
+    const q = (document.getElementById('search-bn-input')?.value || '').trim().toLowerCase();
+    if (!q) {
+      renderBillingNotesTable(allBillingNotes);
+      return;
+    }
+    const filtered = allBillingNotes.filter(n =>
+      n.billingNo.toLowerCase().includes(q) ||
+      n.customerName.toLowerCase().includes(q) ||
+      (n.customerId && n.customerId.toLowerCase().includes(q))
+    );
+    renderBillingNotesTable(filtered);
+  }, 200);
+}
+
+// ----------------------------------------------------
+// TAB 2: CREATE NEW BILLING NOTE WIZARD
+// ----------------------------------------------------
+
+function handleBNCustSearch(e) {
+  clearTimeout(bnCustomerSearchDebounce);
+  const q = (e.target.value || '').trim().toLowerCase();
+  const dropdown = document.getElementById('bn-cust-dropdown');
+
+  if (!q) {
+    dropdown.classList.add('hidden');
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  bnCustomerSearchDebounce = setTimeout(() => {
+    const matches = currentCustomersList.filter(c =>
+      c.id.toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
+      c.fullName.toLowerCase().includes(q) ||
+      (c.phone && c.phone.includes(q))
+    ).slice(0, 10);
+
+    if (matches.length === 0) {
+      dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">ไม่พบชื่อหรือรหัสลูกค้านี้</div>`;
+    } else {
+      dropdown.innerHTML = matches.map(c => `
+        <div onclick="selectBNCustomer('${c.id}')" class="p-3 hover:bg-slate-800 cursor-pointer transition flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-1.5 py-0.5 rounded font-mono text-[10px] bg-violet-500/20 text-violet-300 font-bold">${c.id}</span>
+              <span class="text-xs font-semibold text-white">${c.name}</span>
+            </div>
+            ${c.fullName && c.fullName !== c.name ? `<div class="text-[11px] text-slate-400 mt-0.5">${c.fullName}</div>` : ''}
+          </div>
+          <div class="text-right text-[10px] text-slate-400 font-mono">${c.phone || ''}</div>
+        </div>
+      `).join('');
+    }
+    dropdown.classList.remove('hidden');
+  }, 150);
+}
+
+function selectBNCustomer(custId) {
+  const c = currentCustomersList.find(x => x.id === custId);
+  if (!c) return;
+
+  selectedBNCustomer = c;
+  document.getElementById('bn-selected-cust-id').value = c.id;
+  document.getElementById('bn-selected-cust-name').value = c.name;
+
+  document.getElementById('bn-pill-id').innerText = c.id;
+  document.getElementById('bn-pill-name').innerText = `${c.name} ${c.fullName && c.fullName !== c.name ? '(' + c.fullName + ')' : ''}`;
+  document.getElementById('bn-selected-cust-pill').classList.remove('hidden');
+
+  document.getElementById('bn-cust-search').classList.add('hidden');
+  document.getElementById('bn-cust-dropdown').classList.add('hidden');
+
+  fetchPendingBillsForCustomer(c.id, c.name);
+}
+
+function clearBNCustSelection() {
+  selectedBNCustomer = null;
+  document.getElementById('bn-selected-cust-id').value = '';
+  document.getElementById('bn-selected-cust-name').value = '';
+
+  document.getElementById('bn-selected-cust-pill').classList.add('hidden');
+  const searchInput = document.getElementById('bn-cust-search');
+  searchInput.value = '';
+  searchInput.classList.remove('hidden');
+
+  currentPendingBNBills = [];
+  selectedBNBillIds.clear();
+  renderBNPendingBillsTable([]);
+  updateBNSummaryCalculation();
+}
+
+async function fetchPendingBillsForCustomer(customerId, customerName) {
+  const tbody = document.getElementById('bn-pending-bills-table-body');
+  tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-slate-400 text-xs"><span class="animate-spin inline-block mr-2">⚙️</span> กำลังค้นหาบิลรอวางบิลของลูกค้านี้...</td></tr>`;
+
+  try {
+    const res = await fetch(`/api/billing/pending-bills?customerId=${encodeURIComponent(customerId)}&customerName=${encodeURIComponent(customerName)}`, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentPendingBNBills = data.bills || [];
+      selectedBNBillIds = new Set(currentPendingBNBills.map(b => b.billId)); // Default: select all
+      const checkAll = document.getElementById('bn-check-all');
+      if (checkAll) checkAll.checked = (currentPendingBNBills.length > 0);
+      renderBNPendingBillsTable(currentPendingBNBills);
+      updateBNSummaryCalculation();
+    } else {
+      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-400 text-xs">${data.message}</td></tr>`;
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500 text-xs">เกิดข้อผิดพลาดในการโหลดบิล</td></tr>`;
+  }
+}
+
+function renderBNPendingBillsTable(bills) {
+  const tbody = document.getElementById('bn-pending-bills-table-body');
+  if (!bills || bills.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="py-10 text-center text-slate-500">
+          <i data-lucide="check-circle" class="w-7 h-7 mx-auto mb-1 text-emerald-500/60"></i>
+          <p class="text-xs">ไม่มีบิลค้างรอวางบิลสำหรับลูกค้ารายนี้ (หรือบิลทั้งหมดถูกวางบิลแล้ว)</p>
+        </td>
+      </tr>
+    `;
+    refreshIcons();
+    return;
+  }
+
+  tbody.innerHTML = bills.map(b => {
+    const isChecked = selectedBNBillIds.has(b.billId);
+    let typeBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300">🏢 ร้านค้าทั่วไป</span>`;
+    if (b.source && b.source.includes('หน่วยงาน')) {
+      typeBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-300">🏛️ ร้านค้าหน่วยงาน</span>`;
+    } else if (b.companyRegistration === 'ปั๊มน้ำมัน') {
+      typeBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-500/20 text-teal-300">⛽ ปั๊มน้ำมัน</span>`;
+    }
+
+    return `
+      <tr class="hover:bg-slate-800/60 transition cursor-pointer" onclick="toggleBNBillCheck('${b.billId}')">
+        <td class="py-2.5 px-3 text-center" onclick="event.stopPropagation()">
+          <input type="checkbox" value="${b.billId}" ${isChecked ? 'checked' : ''} onchange="onBNBillCheckboxChange('${b.billId}', this.checked)"
+            class="bn-bill-cb w-4 h-4 rounded border-slate-700 bg-slate-900 text-violet-600 focus:ring-0 cursor-pointer">
+        </td>
+        <td class="py-2.5 px-3 font-mono font-bold text-white text-xs">${b.billId}</td>
+        <td class="py-2.5 px-3 text-slate-300 font-mono text-[11px]">${b.date}</td>
+        <td class="py-2.5 px-3 text-center">${typeBadge}</td>
+        <td class="py-2.5 px-3 text-slate-300 text-xs font-mono">
+          ${b.billRef || '-'}
+          ${b.notes ? `<div class="text-[10px] text-slate-500 italic mt-0.5">${b.notes}</div>` : ''}
+        </td>
+        <td class="py-2.5 px-3 text-right font-mono font-bold text-amber-400 text-xs">฿${b.amount}</td>
+      </tr>
+    `;
+  }).join('');
+
+  refreshIcons();
+}
+
+function toggleBNBillCheck(billId) {
+  if (selectedBNBillIds.has(billId)) {
+    selectedBNBillIds.delete(billId);
+  } else {
+    selectedBNBillIds.add(billId);
+  }
+  syncBNCheckboxes();
+  updateBNSummaryCalculation();
+}
+
+function onBNBillCheckboxChange(billId, isChecked) {
+  if (isChecked) {
+    selectedBNBillIds.add(billId);
+  } else {
+    selectedBNBillIds.delete(billId);
+  }
+  syncBNCheckboxes();
+  updateBNSummaryCalculation();
+}
+
+function toggleSelectAllBNBills(masterCb) {
+  if (masterCb.checked) {
+    selectedBNBillIds = new Set(currentPendingBNBills.map(b => b.billId));
+  } else {
+    selectedBNBillIds.clear();
+  }
+  syncBNCheckboxes();
+  updateBNSummaryCalculation();
+}
+
+function syncBNCheckboxes() {
+  const cbs = document.querySelectorAll('.bn-bill-cb');
+  cbs.forEach(cb => {
+    cb.checked = selectedBNBillIds.has(cb.value);
+  });
+  const masterCb = document.getElementById('bn-check-all');
+  if (masterCb && currentPendingBNBills.length > 0) {
+    masterCb.checked = (selectedBNBillIds.size === currentPendingBNBills.length);
+  }
+}
+
+function updateBNSummaryCalculation() {
+  let storeSum = 0;
+  let fuelSum = 0;
+
+  currentPendingBNBills.forEach(b => {
+    if (selectedBNBillIds.has(b.billId)) {
+      if (b.companyRegistration === 'ปั๊มน้ำมัน') {
+        fuelSum += b.amountNum;
+      } else {
+        storeSum += b.amountNum;
+      }
+    }
+  });
+
+  const grandTotal = storeSum + fuelSum;
+
+  const countEl = document.getElementById('bn-calc-count');
+  const storeEl = document.getElementById('bn-calc-store');
+  const fuelEl = document.getElementById('bn-calc-fuel');
+  const totalEl = document.getElementById('bn-calc-total');
+
+  if (countEl) countEl.innerText = `${selectedBNBillIds.size} บิล`;
+  if (storeEl) storeEl.innerText = `฿${storeSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (fuelEl) fuelEl.innerText = `฿${fuelSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (totalEl) totalEl.innerText = `฿${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+async function handleCreateBillingNoteSubmit(e) {
+  e.preventDefault();
+
+  const customerId = document.getElementById('bn-selected-cust-id').value;
+  const customerName = document.getElementById('bn-selected-cust-name').value;
+  const billingDate = document.getElementById('bn-input-date').value.trim();
+  const dueDate = document.getElementById('bn-input-due-date').value.trim();
+  const notes = document.getElementById('bn-input-notes').value.trim();
+
+  if (!customerId || !customerName) {
+    showToast("กรุณาเลือกลูกค้าก่อนออกใบวางบิล", false);
+    return;
+  }
+
+  if (selectedBNBillIds.size === 0) {
+    showToast("กรุณาเลือกบิลอย่างน้อย 1 รายการเพื่อออกใบวางบิล", false);
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-create-bn');
+  const origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span><span>กำลังสร้างใบวางบิล...</span>`;
+
+  try {
+    const res = await fetch('/api/billing/notes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify({
+        customerId,
+        customerName,
+        billIds: Array.from(selectedBNBillIds),
+        billingDate,
+        dueDate,
+        notes
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(`สร้างใบวางบิล ${data.billingNote?.billingNo} สำเร็จ!`, true);
+      clearBNCustSelection();
+      document.getElementById('bn-input-notes').value = '';
+      
+      // Open printable voucher modal immediately for preview
+      openBillingVoucherModal(data.billingNote.billingNo);
+      
+      // Switch to list tab
+      switchBillingTab('list');
+    } else {
+      showToast(data.message || "สร้างใบวางบิลไม่สำเร็จ", false);
+    }
+  } catch (err) {
+    console.error("Create billing note error:", err);
+    showToast("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+    refreshIcons();
+  }
+}
+
+// ----------------------------------------------------
+// PRINTABLE BILLING NOTE VOUCHER (A4)
+// ----------------------------------------------------
+
+async function openBillingVoucherModal(billingNo) {
+  const modal = document.getElementById('modal-billing-voucher');
+  const target = document.getElementById('voucher-render-target');
+  const title = document.getElementById('voucher-header-title');
+
+  title.innerText = billingNo;
+  target.innerHTML = `<div class="py-16 text-center text-slate-400">กำลังจัดเตรียมข้อมูลใบวางบิล ${billingNo}...</div>`;
+  modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch(`/api/billing/notes/${encodeURIComponent(billingNo)}`, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentActiveBillingNote = data.note;
+      renderBillingVoucher(data.note, data.bills);
+    } else {
+      target.innerHTML = `<div class="py-16 text-center text-red-500">โหลดข้อมูลไม่สำเร็จ: ${data.message}</div>`;
+    }
+  } catch (err) {
+    target.innerHTML = `<div class="py-16 text-center text-slate-500">เกิดข้อผิดพลาดในการโหลดใบวางบิล</div>`;
+  }
+  refreshIcons();
+}
+
+function closeBillingVoucherModal() {
+  document.getElementById('modal-billing-voucher').classList.add('hidden');
+}
+
+function renderBillingVoucher(note, bills) {
+  const target = document.getElementById('voucher-render-target');
+  const totalNum = note.grandTotal || 0;
+  const bahtTextStr = thaiBahtText(totalNum);
+
+  target.innerHTML = `
+    <div class="space-y-6 text-slate-900 font-sans">
+      
+      <!-- Company & Document Header -->
+      <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+        <div>
+          <div class="text-xl font-extrabold tracking-wide text-slate-900">ห้างหุ้นส่วนจำกัด ส.ทวีรุ่งเรือง (STR)</div>
+          <div class="text-xs text-slate-600 mt-1 leading-relaxed">
+            ระบบบริหารจัดการสต็อก วัสดุก่อสร้าง และสถานีบริการน้ำมัน<br>
+            เลขประจำตัวผู้เสียภาษี: 0423533000123 • โทร. 042-298022
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-black text-slate-900 tracking-wider">ใบวางบิล</div>
+          <div class="text-xs font-bold text-slate-600 font-mono tracking-widest uppercase">BILLING NOTE</div>
+          <div class="mt-2 text-xs font-mono font-bold text-violet-700 bg-violet-50 px-2.5 py-1 rounded border border-violet-200 inline-block">
+            เลขที่: ${note.billingNo}
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Info & Meta Box -->
+      <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+        <div>
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">ข้อมูลลูกค้า / ผู้รับวางบิล</div>
+          <div class="text-sm font-bold text-slate-900">${note.customerName}</div>
+          <div class="text-slate-600 font-mono mt-0.5">รหัสลูกค้า: ${note.customerId || '-'}</div>
+        </div>
+        <div class="text-right space-y-1">
+          <div><span class="text-slate-500">วันที่วางบิล:</span> <strong class="font-mono text-slate-800">${note.billingDate}</strong></div>
+          <div><span class="text-slate-500">วันครบกำหนดชำระ:</span> <strong class="font-mono text-red-600">${note.dueDate || '-'}</strong></div>
+          <div><span class="text-slate-500">ผู้ออกเอกสาร:</span> <span class="text-slate-800 font-medium">${note.issuedBy || '-'}</span></div>
+        </div>
+      </div>
+
+      <!-- Itemized Bills Table -->
+      <div>
+        <table class="w-full text-left text-xs border border-slate-300">
+          <thead class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+            <tr>
+              <th class="py-2 px-2 text-center w-8 border-r border-slate-300">ลำดับ</th>
+              <th class="py-2 px-2.5 font-mono border-r border-slate-300">รหัสบิล (Bill ID)</th>
+              <th class="py-2 px-2.5 text-center font-mono border-r border-slate-300">วันที่</th>
+              <th class="py-2 px-3 border-r border-slate-300">เลขที่บิลส่งของ / เลขที่ PO</th>
+              <th class="py-2 px-2.5 text-center border-r border-slate-300">ประเภทรายการ</th>
+              <th class="py-2 px-3 text-right">จำนวนเงิน (บาท)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 font-sans">
+            ${bills.map((b, idx) => `
+              <tr>
+                <td class="py-2 px-2 text-center text-slate-600 border-r border-slate-200 font-mono">${idx + 1}</td>
+                <td class="py-2 px-2.5 font-mono font-semibold text-slate-900 border-r border-slate-200">${b.billId}</td>
+                <td class="py-2 px-2.5 text-center font-mono text-slate-700 border-r border-slate-200">${b.date}</td>
+                <td class="py-2 px-3 text-slate-800 border-r border-slate-200">
+                  ${b.billRef || '-'}
+                  ${b.notes ? `<div class="text-[10px] text-slate-500 italic">${b.notes}</div>` : ''}
+                </td>
+                <td class="py-2 px-2.5 text-center border-r border-slate-200">
+                  <span class="text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                    b.companyRegistration === 'ปั๊มน้ำมัน' ? 'bg-teal-50 text-teal-800' : 'bg-amber-50 text-amber-800'
+                  }">
+                    ${b.source || b.companyRegistration}
+                  </span>
+                </td>
+                <td class="py-2 px-3 text-right font-mono font-bold text-slate-900">฿${b.amount}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Subtotals & Split Summary -->
+      <div class="grid grid-cols-2 gap-4 pt-2">
+        <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1 text-[11px]">
+          <div class="font-bold text-slate-700 mb-1">ยอดแยกตามทะเบียนพาณิชย์:</div>
+          <div class="flex justify-between text-slate-600">
+            <span>• ยอดฝั่งร้านค้า (ทั่วไป / หน่วยงาน):</span>
+            <strong class="font-mono text-slate-900">฿${note.storeAmountFormatted}</strong>
+          </div>
+          <div class="flex justify-between text-slate-600">
+            <span>• ยอดฝั่งปั๊มน้ำมัน (บิลน้ำมัน):</span>
+            <strong class="font-mono text-slate-900">฿${note.fuelAmountFormatted}</strong>
+          </div>
+          ${note.notes ? `<div class="pt-2 border-t border-slate-200 text-[10px] text-slate-500 italic">หมายเหตุ: ${note.notes}</div>` : ''}
+        </div>
+
+        <div class="border border-slate-300 rounded-lg overflow-hidden flex flex-col justify-between">
+          <div class="bg-slate-100 p-3 flex items-center justify-between border-b border-slate-300">
+            <span class="text-xs font-bold text-slate-800">ยอดรวมสุทธิทั้งสิ้น:</span>
+            <span class="text-lg font-black text-slate-900 font-mono">฿${note.grandTotalFormatted}</span>
+          </div>
+          <div class="p-2.5 bg-white text-center text-xs font-bold text-slate-800">
+            (${bahtTextStr})
+          </div>
+        </div>
+      </div>
+
+      <!-- Signatures Block -->
+      <div class="grid grid-cols-2 gap-8 pt-8 border-t border-slate-300 text-xs text-center">
+        <div class="space-y-6">
+          <div class="text-slate-600 font-medium">ได้รับวางบิลตามรายการข้างต้นถูกต้องเรียบร้อยแล้ว</div>
+          <div class="w-48 mx-auto border-b border-slate-400"></div>
+          <div>
+            <div class="text-slate-800 font-bold">ผู้รับวางบิล (ลูกค้า)</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">วันที่: _____/_____/_________</div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="text-slate-600 font-medium">ในนาม ห้างหุ้นส่วนจำกัด ส.ทวีรุ่งเรือง</div>
+          <div class="w-48 mx-auto border-b border-slate-400"></div>
+          <div>
+            <div class="text-slate-800 font-bold">ผู้วางบิล / ผู้มีอำนาจลงนาม</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">วันที่: ${note.billingDate}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+// ----------------------------------------------------
+// PAYMENT COLLECTION MODAL
+// ----------------------------------------------------
+
+async function openPaymentModal(billingNo) {
+  const modal = document.getElementById('modal-record-payment');
+  currentActiveBillingNote = null;
+  capturedSlipBase64 = null;
+  clearSlipPreview();
+
+  // Reset fields
+  document.getElementById('pay-hidden-bn-no').value = billingNo;
+  document.getElementById('pay-modal-bn-no').innerText = billingNo;
+  document.getElementById('pay-notes').value = '';
+
+  const now = new Date();
+  const yy = (now.getFullYear() + 543).toString();
+  const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+  const dd = now.getDate().toString().padStart(2, '0');
+  document.getElementById('pay-date').value = `${dd}/${mm}/${yy}`;
+
+  modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch(`/api/billing/notes/${encodeURIComponent(billingNo)}`, {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentActiveBillingNote = data.note;
+      document.getElementById('pay-modal-customer').innerText = data.note.customerName;
+      document.getElementById('pay-modal-grand-total').innerText = `฿${data.note.grandTotalFormatted}`;
+      document.getElementById('pay-modal-split-store').innerText = `฿${data.note.storeAmountFormatted}`;
+      document.getElementById('pay-modal-split-fuel').innerText = `฿${data.note.fuelAmountFormatted}`;
+      document.getElementById('pay-amount').value = data.note.grandTotal;
+    }
+  } catch (err) {
+    console.error("Error opening payment modal:", err);
+  }
+
+  refreshIcons();
+}
+
+function closePaymentModal() {
+  document.getElementById('modal-record-payment').classList.add('hidden');
+}
+
+function handleSlipFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    capturedSlipBase64 = evt.target.result;
+    document.getElementById('pay-slip-preview-box').classList.remove('hidden');
+    refreshIcons();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearSlipPreview() {
+  capturedSlipBase64 = null;
+  const input = document.getElementById('pay-slip-input');
+  if (input) input.value = '';
+  document.getElementById('pay-slip-preview-box').classList.add('hidden');
+}
+
+async function handlePaymentSubmit(e) {
+  e.preventDefault();
+
+  const billingNo = document.getElementById('pay-hidden-bn-no').value;
+  const paymentDate = document.getElementById('pay-date').value.trim();
+  const paidAmount = parseFloat(document.getElementById('pay-amount').value);
+  const bankAccount = document.getElementById('pay-bank').value;
+  const notes = document.getElementById('pay-notes').value.trim();
+
+  if (!paidAmount || paidAmount <= 0) {
+    showToast("กรุณาระบุยอดเงินที่รับชำระให้ถูกต้อง", false);
+    return;
+  }
+
+  const btn = document.getElementById('btn-confirm-payment');
+  const origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span><span>กำลังบันทึกและตัดยอด...</span>`;
+
+  try {
+    const res = await fetch(`/api/billing/notes/${encodeURIComponent(billingNo)}/payment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      body: JSON.stringify({
+        paymentDate,
+        paidAmount,
+        bankAccount,
+        imageBase64: capturedSlipBase64,
+        notes
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(`บันทึกรับเงินสำเร็จ! รหัส ${data.payment?.paymentNo} (ตัดร้านค้า: ฿${data.payment?.cutStore.toLocaleString()} / ตัดน้ำมัน: ฿${data.payment?.cutFuel.toLocaleString()})`, true);
+      closePaymentModal();
+      fetchBillingNotesList();
+    } else {
+      showToast(data.message || "บันทึกรับชำระเงินไม่สำเร็จ", false);
+    }
+  } catch (err) {
+    console.error("Submit payment error:", err);
+    showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+    refreshIcons();
+  }
+}
+
+// ----------------------------------------------------
+// TAB 3: PAYMENTS HISTORY HUB
+// ----------------------------------------------------
+
+async function fetchPaymentsList() {
+  const tbody = document.getElementById('payments-table-body');
+  try {
+    const res = await fetch('/api/billing/payments', {
+      headers: { 'Authorization': `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      renderPaymentsTable(data.payments || []);
+    } else {
+      tbody.innerHTML = `<tr><td colspan="10" class="py-10 text-center text-red-400 text-xs">${data.message}</td></tr>`;
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="10" class="py-10 text-center text-slate-500 text-xs">เกิดข้อผิดพลาดในการโหลดประวัติการรับเงิน</td></tr>`;
+  }
+}
+
+function renderPaymentsTable(payments) {
+  const tbody = document.getElementById('payments-table-body');
+  if (!payments || payments.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" class="py-12 text-center text-slate-500">
+          <i data-lucide="receipt" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+          <p class="text-xs">ยังไม่มีประวัติการรับชำระเงินในระบบ</p>
+        </td>
+      </tr>
+    `;
+    refreshIcons();
+    return;
+  }
+
+  tbody.innerHTML = payments.map(p => `
+    <tr class="hover:bg-slate-800/40 transition">
+      <td class="py-3 px-3.5 font-mono font-bold text-emerald-400 text-xs">${p.paymentNo}</td>
+      <td class="py-3 px-3 text-slate-300 font-mono text-[11px]">${p.paymentDate}</td>
+      <td class="py-3 px-3 font-mono text-violet-300 text-xs">${p.billingNo}</td>
+      <td class="py-3 px-4 font-semibold text-white text-xs">${p.customerName}</td>
+      <td class="py-3 px-3 text-right font-mono font-bold text-white text-sm">฿${p.paidAmount}</td>
+      <td class="py-3 px-3 text-right font-mono text-amber-300 text-xs">฿${p.cutStore}</td>
+      <td class="py-3 px-3 text-right font-mono text-teal-300 text-xs">฿${p.cutFuel}</td>
+      <td class="py-3 px-3 text-slate-300 text-xs">${p.bankAccount}</td>
+      <td class="py-3 px-3 text-center">
+        ${p.slipUrl ? `
+          <button onclick="openImageViewer('${p.slipUrl}', 'สลิป ${p.paymentNo}')" class="text-emerald-400 hover:text-emerald-300 underline text-xs flex items-center justify-center gap-1 mx-auto">
+            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+            <span>ดูสลิป</span>
+          </button>
+        ` : '<span class="text-slate-500 text-[10px]">-</span>'}
+      </td>
+      <td class="py-3 px-3 text-slate-400 text-[11px]">${p.recordedBy}</td>
+    </tr>
+  `).join('');
+
+  refreshIcons();
+}
+
+// ----------------------------------------------------
+// THAI BAHT TEXT CONVERTER (Utility)
+// ----------------------------------------------------
+
+function thaiBahtText(num) {
+  if (isNaN(num)) return '';
+  num = Math.round(num * 100) / 100;
+  if (num === 0) return 'ศูนย์บาทถ้วน';
+
+  const numbers = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+  const units = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+
+  function convertGroup(n) {
+    let s = '';
+    const digits = String(n).split('').map(Number);
+    const len = digits.length;
+    for (let i = 0; i < len; i++) {
+      const d = digits[i];
+      const pos = len - i - 1;
+      if (d !== 0) {
+        if (pos === 1 && d === 1) {
+          s += 'สิบ';
+        } else if (pos === 1 && d === 2) {
+          s += 'ยี่สิบ';
+        } else if (pos === 0 && d === 1 && len > 1) {
+          s += 'เอ็ด';
+        } else {
+          s += numbers[d] + units[pos];
+        }
+      }
+    }
+    return s;
+  }
+
+  const parts = num.toFixed(2).split('.');
+  let integerPart = parseInt(parts[0], 10);
+  const fractionPart = parseInt(parts[1], 10);
+
+  let result = '';
+
+  if (integerPart > 0) {
+    let millions = 0;
+    if (integerPart >= 1000000) {
+      millions = Math.floor(integerPart / 1000000);
+      integerPart = integerPart % 1000000;
+      result += convertGroup(millions) + 'ล้าน';
+    }
+    result += convertGroup(integerPart) + 'บาท';
+  }
+
+  if (fractionPart === 0) {
+    result += 'ถ้วน';
+  } else {
+    result += convertGroup(fractionPart) + 'สตางค์';
+  }
+
+  return result;
+}
+
