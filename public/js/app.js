@@ -1111,39 +1111,77 @@ function selectStoreCategory(cat) {
 
 // Form Submit: Direct Recording into MASTER_BILLS
 async function handleDeliveryBillSubmit(event) {
-  event.preventDefault();
+  if (event && typeof event.preventDefault === 'function') {
+    event.preventDefault();
+  }
 
-  const customerId = document.getElementById('bill-customer-id').value;
-  const customerName = document.getElementById('bill-customer-name').value;
-  const category = document.getElementById('bill-category') ? document.getElementById('bill-category').value : currentStoreCategory;
-  const billDate = document.getElementById('bill-date-thai') ? document.getElementById('bill-date-thai').value : '';
-  const billRef = document.getElementById('bill-ref-no').value.trim();
-  const poRef = document.getElementById('bill-po-no') ? document.getElementById('bill-po-no').value.trim() : '';
-  const amount = document.getElementById('bill-amount').value;
-  const notes = document.getElementById('bill-notes').value.trim();
-
-  if (!customerId || !customerName) {
-    showToast("กรุณาเลือกลูกค้าจากรายชื่อก่อนบันทึก", false);
+  // Check login session
+  if (!currentToken) {
+    showToast("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่", false);
+    navigateTo('login');
     return;
   }
 
+  let customerId = document.getElementById('bill-customer-id') ? document.getElementById('bill-customer-id').value : '';
+  let customerName = document.getElementById('bill-customer-name') ? document.getElementById('bill-customer-name').value : '';
+  const searchInput = document.getElementById('bill-customer-search');
+  const searchInputVal = searchInput ? searchInput.value.trim() : '';
+
+  // Auto-match if customer was typed in search input but not clicked from dropdown
+  if ((!customerId || !customerName) && searchInputVal && currentCustomersList && currentCustomersList.length > 0) {
+    const qLower = searchInputVal.toLowerCase();
+    const match = currentCustomersList.find(c => 
+      c.id.toLowerCase() === qLower ||
+      c.name.toLowerCase() === qLower ||
+      (c.fullName && c.fullName.toLowerCase() === qLower) ||
+      c.name.toLowerCase().includes(qLower)
+    );
+    if (match) {
+      selectCustomer(match.id);
+      customerId = match.id;
+      customerName = match.name;
+    }
+  }
+
+  if (!customerId || !customerName) {
+    showToast("กรุณาเลือกลูกค้าจากรายชื่อก่อนบันทึก", false);
+    if (searchInput) {
+      searchInput.classList.remove('hidden');
+      searchInput.focus();
+    }
+    return;
+  }
+
+  const category = document.getElementById('bill-category') ? document.getElementById('bill-category').value : currentStoreCategory;
+  const billDate = document.getElementById('bill-date-thai') ? document.getElementById('bill-date-thai').value : '';
+  const billRef = document.getElementById('bill-ref-no') ? document.getElementById('bill-ref-no').value.trim() : '';
+  const poRef = document.getElementById('bill-po-no') ? document.getElementById('bill-po-no').value.trim() : '';
+  const amount = document.getElementById('bill-amount') ? document.getElementById('bill-amount').value : '';
+  const notes = document.getElementById('bill-notes') ? document.getElementById('bill-notes').value.trim() : '';
+
   if (!billRef) {
-    showToast("กรุณาระบุเลขที่บิลส่งของ", false);
+    showToast("กรุณาระบุเลขที่บิลส่งของ (บิลกระดาษ)", false);
+    const refInput = document.getElementById('bill-ref-no');
+    if (refInput) refInput.focus();
     return;
   }
 
   if (!amount || parseFloat(amount) <= 0) {
     showToast("กรุณากรอกจำนวนเงินให้ถูกต้อง", false);
+    const amtInput = document.getElementById('bill-amount');
+    if (amtInput) amtInput.focus();
     return;
   }
 
   const btnSubmit = document.getElementById('btn-submit-bill');
-  const originalBtnText = btnSubmit.innerHTML;
-  btnSubmit.disabled = true;
-  btnSubmit.innerHTML = `
-    <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-    <span>กำลังบันทึกลงระบบ...</span>
-  `;
+  const originalBtnText = btnSubmit ? btnSubmit.innerHTML : '';
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = `
+      <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+      <span>กำลังบันทึกลงระบบ...</span>
+    `;
+  }
 
   try {
     const res = await fetch('/api/delivery/inbox', {
@@ -1171,10 +1209,10 @@ async function handleDeliveryBillSubmit(event) {
       showToast(`บันทึกบิลเรียบร้อย! รหัสบิล: ${billId} (สถานะ: รอวางบิล)`, true);
 
       // Reset form
-      document.getElementById('bill-ref-no').value = '';
+      if (document.getElementById('bill-ref-no')) document.getElementById('bill-ref-no').value = '';
       if (document.getElementById('bill-po-no')) document.getElementById('bill-po-no').value = '';
-      document.getElementById('bill-amount').value = '';
-      document.getElementById('bill-notes').value = '';
+      if (document.getElementById('bill-amount')) document.getElementById('bill-amount').value = '';
+      if (document.getElementById('bill-notes')) document.getElementById('bill-notes').value = '';
       resetBillPhoto();
       clearCustomerSelection();
 
@@ -1196,8 +1234,10 @@ async function handleDeliveryBillSubmit(event) {
     console.error("Submit bill error:", err);
     showToast("เชื่อมต่อระบบล้มเหลว กรุณาตรวจสอบอินเทอร์เน็ต", false);
   } finally {
-    btnSubmit.disabled = false;
-    btnSubmit.innerHTML = originalBtnText;
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = originalBtnText;
+    }
     refreshIcons();
   }
 }
