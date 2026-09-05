@@ -979,8 +979,22 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ==========================================
-    // STATIC FILES (public/)
+    // STATIC FILES & SPA ROUTING (public/)
     // ==========================================
+    const cleanPath = pathname.replace(/\/+$/, '');
+    if (cleanPath === '/staff' || cleanPath === '/manager' || cleanPath === '/dashboard') {
+      const indexPath = path.join(__dirname, 'public', 'index.html');
+      fs.readFile(indexPath, (readErr, content) => {
+        if (readErr) {
+          res.writeHead(404);
+          return res.end("Not Found");
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(content);
+      });
+      return;
+    }
+
     let filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
     
     if (!filePath.startsWith(path.join(__dirname, 'public'))) {
