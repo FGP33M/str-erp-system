@@ -1720,6 +1720,404 @@ class GoogleSheetsService {
 
     return merged;
   }
+
+  // ==========================================
+  // PHASE 5: DAILY STOREFRONT REVENUE & CLOSING
+  // ==========================================
+
+  async recordCashDrop(data, currentUser) {
+    if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+      throw new Error("เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้นที่สามารถบันทึกเก็บเงินสดได้");
+    }
+
+    const { date, time, amount, notes } = data;
+    const numAmount = parseFloat(String(amount).replace(/,/g, ''));
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new Error("กรุณาระบุจำนวนเงินที่ถูกต้องและมากกว่า 0");
+    }
+
+    const token = await this.getAccessToken();
+    const spreadsheetId = config.SHEETS.DAILY_RECEIPTS;
+
+    // Count rows to generate ID CSH-YYMM-XXXX
+    const countRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/CASH_DROPS!A2:A`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const countData = await countRes.json();
+    const totalCount = (countData.values || []).length;
+    const nextSeq = totalCount + 1;
+
+    const now = new Date();
+    const thaiYearShort = ((now.getFullYear() + 543) % 100).toString().padStart(2, '0');
+    const thaiMonth = (now.getMonth() + 1).toString().padStart(2, '0');
+    const dropId = `CSH-${thaiYearShort}${thaiMonth}-${nextSeq.toString().padStart(4, '0')}`;
+
+    const dateStr = date || `${now.getDate().toString().padStart(2, '0')}/${thaiMonth}/${now.getFullYear() + 543}`;
+    const timeStr = time || `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} น.`;
+    const recordedAt = `${dateStr} ${timeStr}`;
+
+    const newRow = [
+      dropId,
+      dateStr,
+      timeStr,
+      numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      '', // closing_id (blank until daily closing)
+      currentUser.username,
+      recordedAt,
+      notes || ''
+    ];
+
+    const appendRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/CASH_DROPS!A:H:append?valueInputOption=USER_ENTERED`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values: [newRow] })
+    });
+
+    if (!appendRes.ok) {
+      throw new Error("Failed to record cash drop to CASH_DROPS");
+    }
+
+    return {
+      dropId,
+      date: dateStr,
+      time: timeStr,
+      amount: numAmount,
+      amountFormatted: numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      recordedBy: currentUser.username,
+      recordedAt,
+      notes: notes || ''
+    };
+  }
+
+  async getCashDrops(targetDate) {
+    const token = await this.getAccessToken();
+    const spreadsheetId = config.SHEETS.DAILY_RECEIPTS;
+
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/CASH_DROPS!A2:H`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const data = await res.json();
+    const rows = data.values || [];
+
+    const drops = rows.map((r, idx) => {
+      const numAmount = parseFloat(String(r[3] || '0').replace(/,/g, '')) || 0;
+      return {
+        rowIndex: idx + 2,
+        dropId: r[0] || '',
+        date: r[1] || '',
+        time: r[2] || '',
+        amount: numAmount,
+        amountFormatted: numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        closingId: r[4] || '',
+        recordedBy: r[5] || '',
+        recordedAt: r[6] || '',
+        notes: r[7] || ''
+      };
+    }).filter(d => d.dropId);
+
+    const normalizeDate = (dStr) => {
+      if (!dStr) return '';
+      dStr = String(dStr).trim();
+      if (dStr.includes('/')) {
+        const parts = dStr.split('/');
+        if (parts.length === 3) {
+          const d = parts[0].padStart(2, '0');
+          const m = parts[1].padStart(2, '0');
+          let y = parseInt(parts[2]);
+          if (y > 2500) y -= 543;
+          return `${d}/${m}/${y}`;
+        }
+      } else if (dStr.includes('-')) {
+        const parts = dStr.split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0]);
+          const m = parts[1].padStart(2, '0');
+          const d = parts[2].padStart(2, '0');
+          return `${d}/${m}/${y}`;
+        }
+      }
+      return dStr;
+    };
+
+    if (targetDate) {
+      const normTarget = normalizeDate(targetDate);
+      return drops.filter(d => normalizeDate(d.date) === normTarget);
+    }
+    return drops.reverse();
+  }
+
+  async getDailyCreditBills(targetDate) {
+    const token = await this.getAccessToken();
+    const spreadsheetId = config.SHEETS.DELIVERY_MASTER;
+
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/MASTER_BILLS!A2:O`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      return { totalAmount: 0, bills: [], count: 0 };
+    }
+
+    const data = await res.json();
+    const rows = data.values || [];
+
+    const normalizeDate = (dStr) => {
+      if (!dStr) return '';
+      if (dStr.includes('/')) {
+        const parts = dStr.split('/');
+        if (parts.length === 3) {
+          const d = parts[0].padStart(2, '0');
+          const m = parts[1].padStart(2, '0');
+          let y = parseInt(parts[2]);
+          if (y > 2500) y -= 543;
+          return `${d}/${m}/${y}`;
+        }
+      } else if (dStr.includes('-')) {
+        const parts = dStr.split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0]);
+          const m = parts[1].padStart(2, '0');
+          const d = parts[2].padStart(2, '0');
+          return `${d}/${m}/${y}`;
+        }
+      }
+      return dStr;
+    };
+
+    const normTarget = normalizeDate(targetDate);
+
+    const matchedBills = [];
+    let totalCredit = 0;
+
+    for (const r of rows) {
+      const billId = r[0];
+      const billDate = r[1];
+      const category = r[2] || '';
+      const status = r[13] || '';
+      const amount = parseFloat(String(r[7] || '0').replace(/,/g, '')) || 0;
+
+      if (!billId || status === 'ขอยกเลิก' || status === 'ยกเลิก') continue;
+
+      const normBillDate = normalizeDate(billDate);
+      if (!normTarget || normBillDate === normTarget) {
+        matchedBills.push({
+          billId,
+          date: billDate,
+          category,
+          source: r[3] || '',
+          billRef: r[4] || '',
+          customerId: r[5] || '',
+          customerName: r[6] || '',
+          amount,
+          amountFormatted: amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          status
+        });
+        totalCredit += amount;
+      }
+    }
+
+    return {
+      totalAmount: totalCredit,
+      totalAmountFormatted: totalCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      count: matchedBills.length,
+      bills: matchedBills
+    };
+  }
+
+  async recordDailyClosing(payload, currentUser) {
+    if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+      throw new Error("เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้นที่สามารถปิดยอดรายรับประจำวันได้");
+    }
+
+    const {
+      date,
+      changeFloat = 7500,
+      cashDropsTotal = 0,
+      cashDrawerClose = 0,
+      transferTotal = 0,
+      creditTotal = 0,
+      laborCash = 0,
+      laborCredit = 0,
+      notes = ''
+    } = payload;
+
+    const numChangeFloat = parseFloat(String(changeFloat).replace(/,/g, '')) || 0;
+    const numDropsTotal = parseFloat(String(cashDropsTotal).replace(/,/g, '')) || 0;
+    const numDrawerClose = parseFloat(String(cashDrawerClose).replace(/,/g, '')) || 0;
+    const numTransferTotal = parseFloat(String(transferTotal).replace(/,/g, '')) || 0;
+    const numCreditTotal = parseFloat(String(creditTotal).replace(/,/g, '')) || 0;
+    const numLaborCash = parseFloat(String(laborCash).replace(/,/g, '')) || 0;
+    const numLaborCredit = parseFloat(String(laborCredit).replace(/,/g, '')) || 0;
+
+    // Mathematical calculations
+    const cashNet = Math.max(0, (numDropsTotal + numDrawerClose) - numChangeFloat);
+    const cashAndTransfer = cashNet + numTransferTotal;
+    const laborTotal = numLaborCash + numLaborCredit;
+    const goodsCashTransfer = Math.max(0, cashAndTransfer - numLaborCash);
+    const goodsCredit = Math.max(0, numCreditTotal - numLaborCredit);
+    const goodsTotal = goodsCashTransfer + goodsCredit;
+    const grandTotal = goodsTotal + laborTotal;
+
+    const token = await this.getAccessToken();
+    const spreadsheetId = config.SHEETS.DAILY_RECEIPTS;
+
+    // Count rows to generate ID DCR-YYMM-XXXX
+    const countRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/DAILY_CLOSING!A2:A`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const countData = await countRes.json();
+    const totalCount = (countData.values || []).length;
+    const nextSeq = totalCount + 1;
+
+    const now = new Date();
+    const thaiYearShort = ((now.getFullYear() + 543) % 100).toString().padStart(2, '0');
+    const thaiMonth = (now.getMonth() + 1).toString().padStart(2, '0');
+    const closingId = `DCR-${thaiYearShort}${thaiMonth}-${nextSeq.toString().padStart(4, '0')}`;
+
+    const dateStr = date || `${now.getDate().toString().padStart(2, '0')}/${thaiMonth}/${now.getFullYear() + 543}`;
+    const recordedAt = `${now.getDate().toString().padStart(2, '0')}/${thaiMonth}/${now.getFullYear() + 543} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+    const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const newRow = [
+      closingId,
+      dateStr,
+      fmt(numChangeFloat),
+      fmt(numDropsTotal),
+      fmt(numDrawerClose),
+      fmt(cashNet),
+      fmt(numTransferTotal),
+      fmt(cashAndTransfer),
+      fmt(numCreditTotal),
+      fmt(numLaborCash),
+      fmt(numLaborCredit),
+      fmt(laborTotal),
+      fmt(goodsCashTransfer),
+      fmt(goodsCredit),
+      fmt(goodsTotal),
+      fmt(grandTotal),
+      currentUser.username,
+      recordedAt,
+      notes || ''
+    ];
+
+    const appendRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/DAILY_CLOSING!A:S:append?valueInputOption=USER_ENTERED`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values: [newRow] })
+    });
+
+    if (!appendRes.ok) {
+      throw new Error("Failed to append to DAILY_CLOSING");
+    }
+
+    // Update closing_id in CASH_DROPS rows for this date
+    try {
+      const dropsRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/CASH_DROPS!A2:E`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (dropsRes.ok) {
+        const dropsData = await dropsRes.json();
+        const dRows = dropsData.values || [];
+        const updateRanges = [];
+        dRows.forEach((r, idx) => {
+          if (r[1] === dateStr && (!r[4] || r[4] === '')) {
+            updateRanges.push({
+              range: `CASH_DROPS!E${idx + 2}`,
+              values: [[closingId]]
+            });
+          }
+        });
+        if (updateRanges.length > 0) {
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              valueInputOption: 'USER_ENTERED',
+              data: updateRanges
+            })
+          });
+        }
+      }
+    } catch (linkErr) {
+      console.error("Link cash drops error:", linkErr);
+    }
+
+    return {
+      closingId,
+      date: dateStr,
+      changeFloat: numChangeFloat,
+      cashDropsTotal: numDropsTotal,
+      cashDrawerClose: numDrawerClose,
+      cashNet,
+      transferTotal: numTransferTotal,
+      cashAndTransfer,
+      creditTotal: numCreditTotal,
+      laborCash: numLaborCash,
+      laborCredit: numLaborCredit,
+      laborTotal,
+      goodsCashTransfer,
+      goodsCredit,
+      goodsTotal,
+      grandTotal,
+      recordedBy: currentUser.username,
+      recordedAt,
+      notes
+    };
+  }
+
+  async getDailyClosingsList() {
+    const token = await this.getAccessToken();
+    const spreadsheetId = config.SHEETS.DAILY_RECEIPTS;
+
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/DAILY_CLOSING!A2:S`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const data = await res.json();
+    const rows = data.values || [];
+
+    return rows.map((r, idx) => ({
+      rowIndex: idx + 2,
+      closingId: r[0] || '',
+      date: r[1] || '',
+      changeFloat: r[2] || '0.00',
+      cashDropsTotal: r[3] || '0.00',
+      cashDrawerClose: r[4] || '0.00',
+      cashNet: r[5] || '0.00',
+      transferTotal: r[6] || '0.00',
+      cashAndTransfer: r[7] || '0.00',
+      creditTotal: r[8] || '0.00',
+      laborCash: r[9] || '0.00',
+      laborCredit: r[10] || '0.00',
+      laborTotal: r[11] || '0.00',
+      goodsCashTransfer: r[12] || '0.00',
+      goodsCredit: r[13] || '0.00',
+      goodsTotal: r[14] || '0.00',
+      grandTotal: r[15] || '0.00',
+      recordedBy: r[16] || '',
+      recordedAt: r[17] || '',
+      notes: r[18] || ''
+    })).filter(c => c.closingId).reverse();
+  }
 }
 
 module.exports = new GoogleSheetsService();
