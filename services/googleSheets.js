@@ -668,6 +668,199 @@ class GoogleSheetsService {
     return this.recordBillDirect(data, user);
   }
 
+  /**
+   * Sync fuel bills from AppSheet (STRMRec sheet) starting from a specific date (default: 1st of current month)
+   */
+  async syncFuelBillsFromAppSheet({ startDate, user } = {}) {
+    const token = await this.getAccessToken();
+    const now = new Date();
+
+    const yy = (now.getFullYear() + 543).toString().slice(-2);
+    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    const syncedBy = (user && (user.username || user.full_name)) ? (user.username || user.full_name) : 'manager';
+
+    // 1. Determine cutoff date (default: 1st of current month)
+    let cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (startDate) {
+      if (startDate.includes('-')) {
+        const [y, m, d] = startDate.split('-').map(Number);
+        cutoff = new Date(y > 2500 ? y - 543 : y, m - 1, d || 1);
+      } else if (startDate.includes('/')) {
+        const [d, m, y] = startDate.split('/').map(Number);
+        cutoff = new Date(y > 2500 ? y - 543 : y, m - 1, d || 1);
+      }
+    }
+
+    // 2. Load Customers map for accurate name enrichment
+    const customers = await this.getCustomers();
+    const custMap = new Map();
+    customers.forEach(c => custMap.set(c.id, c.name || c.fullName || c.id));
+
+    // 3. Fetch existing MASTER_BILLS to build duplicate prevention sets
+    const masterRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A2:O`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!masterRes.ok) {
+      throw new Error("Failed to read MASTER_BILLS for fuel sync verification");
+    }
+    const masterData = await masterRes.json();
+    const masterRows = masterData.values || [];
+    let currentMasterCount = masterRows.length;
+
+    const existingMmidSet = new Set();
+    const existingRefKeySet = new Set();
+
+    masterRows.forEach(r => {
+      const note = r[14] || '';
+      const mmidMatch = note.match(/\[STRMRec ID:\s*([A-Za-z0-9_-]+)\]/);
+      if (mmidMatch) {
+        existingMmidSet.add(mmidMatch[1]);
+      }
+      const bDate = (r[1] || '').trim();
+      const bReg = (r[2] || '').trim();
+      const bRef = (r[4] || '').trim();
+      const bCust = (r[5] || '').trim();
+      const bAmt = (r[7] || '').trim().replace(/,/g, '');
+      if (bReg === 'ปั๊มน้ำมัน') {
+        existingRefKeySet.add(`${bDate}_${bCust}_${bRef}_${bAmt}`);
+      }
+    });
+
+    // 4. Fetch STRMRec credit sheet
+    const strmSheetId = config.SHEETS.STRMREC || '19c8yjaRbxejRHMmRA-f4ZDiqwlp2_2rCf2dFAe4736Q';
+    const strmRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${strmSheetId}/values/credit!A2:O`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!strmRes.ok) {
+      throw new Error(`Failed to read STRMRec credit sheet (${strmRes.status})`);
+    }
+    const strmData = await strmRes.json();
+    const strmRows = strmData.values || [];
+
+    let totalInScope = 0;
+    let skippedCount = 0;
+    const newMasterRows = [];
+    const importedBills = [];
+
+    for (let i = 0; i < strmRows.length; i++) {
+      const r = strmRows[i];
+      const mmid = (r[0] || '').trim();
+      const dateStr = (r[2] || '').trim(); // e.g. "01/09/2026"
+      if (!dateStr) continue;
+
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) continue;
+
+      let d = parseInt(parts[0], 10);
+      let m = parseInt(parts[1], 10);
+      let y = parseInt(parts[2], 10);
+      if (y > 2500) y -= 543;
+
+      const billDate = new Date(y, m - 1, d);
+      if (billDate < cutoff) continue; // Filter out historical bills before cutoff
+
+      totalInScope++;
+
+      // Check duplicate by STRMRec ID
+      if (mmid && existingMmidSet.has(mmid)) {
+        skippedCount++;
+        continue;
+      }
+
+      const custId = (r[3] || '').trim();
+      const ref = (r[4] || '').trim();
+      const carregit = (r[5] || '').trim();
+      const descritp = (r[6] || '').trim();
+      const amountStr = (r[7] || '0').trim();
+      const numAmt = parseFloat(amountStr.replace(/,/g, '')) || 0;
+      if (numAmt <= 0) continue;
+
+      const custName = custMap.get(custId) || 'ไม่ระบุชื่อ';
+      let billRefText = ref;
+      if (carregit) billRefText += ` [ทะเบียน: ${carregit}]`;
+      if (descritp) billRefText += ` (${descritp})`;
+      billRefText = billRefText.trim();
+
+      const thaiYear = y + 543;
+      const thaiDateStr = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${thaiYear}`;
+      const formattedAmount = numAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Check compound key duplicate
+      const compoundKey = `${thaiDateStr}_${custId}_${billRefText}_${formattedAmount}`;
+      if (existingRefKeySet.has(compoundKey)) {
+        skippedCount++;
+        continue;
+      }
+
+      // Generate next sequential Bill ID
+      currentMasterCount++;
+      const seq = String(currentMasterCount).padStart(4, '0');
+      const billId = `BIL-${yy}${mm}-${seq}`;
+
+      const billNote = `[STRMRec ID: ${mmid}] ${(r[10] || '').trim()}`.trim();
+      const recordedTimestamp = `${thaiDateStr} ${r[14] || now.toLocaleTimeString('th-TH')}`;
+
+      // Master row format: [Bill_ID, วันที่บิล, ทะเบียนพาณิชย์, แหล่งที่มา, เลขที่บิลกระดาษ, รหัสลูกค้า, ชื่อลูกค้า, จำนวนเงิน, รูปถ่ายบิล, ผู้บันทึก, ผู้ยืนยัน, วันที่บันทึก, เลขที่ใบวางบิล, สถานะบิล, หมายเหตุ]
+      const masterRow = [
+        billId,
+        thaiDateStr,
+        'ปั๊มน้ำมัน',
+        '3. ปั๊มน้ำมัน',
+        billRefText,
+        custId,
+        custName,
+        formattedAmount,
+        '', // photoUrl
+        'AppSheet (ปั๊มน้ำมัน)',
+        syncedBy,
+        recordedTimestamp,
+        '', // billingNoteNo
+        'รอวางบิล',
+        billNote
+      ];
+
+      newMasterRows.push(masterRow);
+      importedBills.push({
+        billId,
+        date: thaiDateStr,
+        billRef: billRefText,
+        customerId: custId,
+        customerName: custName,
+        amount: formattedAmount,
+        status: 'รอวางบิล'
+      });
+
+      if (mmid) existingMmidSet.add(mmid);
+      existingRefKeySet.add(compoundKey);
+    }
+
+    // 5. Batch append if any new bills
+    if (newMasterRows.length > 0) {
+      const appendRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A:O:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ values: newMasterRows })
+      });
+
+      if (!appendRes.ok) {
+        const errText = await appendRes.text();
+        throw new Error(`Failed to append synced fuel bills to MASTER_BILLS: ${errText}`);
+      }
+    }
+
+    return {
+      success: true,
+      cutoffDate: `${cutoff.getFullYear() + 543}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`,
+      totalInScope,
+      importedCount: newMasterRows.length,
+      skippedCount,
+      importedBills
+    };
+  }
+
   async cancelBill(billId, reason, user) {
     const token = await this.getAccessToken();
     const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A2:O`, {
