@@ -1422,25 +1422,155 @@ class GoogleSheetsService {
 
   async getExecutiveDashboardStats(period = 'ALL') {
     const token = await this.getAccessToken();
-    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A2:O`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
 
-    if (!res.ok) {
+    // 1. Fetch MASTER_BILLS, DAILY_CLOSING, and RECEIPTS in parallel
+    const [masterRes, dailyRes, receiptsRes] = await Promise.all([
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/MASTER_BILLS!A2:O`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }),
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DAILY_RECEIPTS}/values/DAILY_CLOSING!A2:S`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }),
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.SHEETS.DELIVERY_MASTER}/values/RECEIPTS!A2:H`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+    ]);
+
+    if (!masterRes.ok) {
       throw new Error("Failed to fetch master bills for executive dashboard");
     }
 
-    const data = await res.json();
-    const rows = data.values || [];
+    const masterData = await masterRes.json();
+    const masterRows = masterData.values || [];
+
+    let dailyRows = [];
+    if (dailyRes.ok) {
+      const dailyData = await dailyRes.json();
+      dailyRows = dailyData.values || [];
+    }
+
+    let receiptRows = [];
+    if (receiptsRes.ok) {
+      const receiptsData = await receiptsRes.json();
+      receiptRows = receiptsData.values || [];
+    }
+
+    const parseDateComponents = (dateStr) => {
+      if (!dateStr || typeof dateStr !== 'string') return null;
+      const thMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (thMatch) {
+        let d = parseInt(thMatch[1], 10);
+        let m = parseInt(thMatch[2], 10);
+        let y = parseInt(thMatch[3], 10);
+        let thaiYear = y > 2400 ? y : y + 543;
+        let ceYear = y > 2400 ? y - 543 : y;
+        return { day: d, month: m, year: ceYear, thaiYear };
+      }
+      const isoMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (isoMatch) {
+        let y = parseInt(isoMatch[1], 10);
+        let m = parseInt(isoMatch[2], 10);
+        let d = parseInt(isoMatch[3], 10);
+        let thaiYear = y > 2400 ? y : y + 543;
+        let ceYear = y > 2400 ? y - 543 : y;
+        return { day: d, month: m, year: ceYear, thaiYear };
+      }
+      return null;
+    };
 
     const now = new Date();
-    const yy = (now.getFullYear() + 543).toString();
-    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
-    const dd = now.getDate().toString().padStart(2, '0');
-    const todayStr = `${dd}/${mm}/${yy}`;
-    const monthStr = `/${mm}/${yy}`;
-    const yearStr = `/${yy}`;
+    const currentCeYear = now.getFullYear();
+    const currentThaiYear = currentCeYear + 543;
+    const currentMonth = now.getMonth() + 1;
+    const currentDay = now.getDate();
 
+    const matchesPeriod = (dateStr) => {
+      if (!dateStr) return false;
+      const comp = parseDateComponents(dateStr);
+      if (!comp) return period === 'ALL';
+      if (period === 'TODAY') {
+        return comp.day === currentDay && comp.month === currentMonth && comp.thaiYear === currentThaiYear;
+      }
+      if (period === 'MONTH') {
+        return comp.month === currentMonth && comp.thaiYear === currentThaiYear;
+      }
+      if (period === 'YEAR') {
+        return comp.thaiYear === currentThaiYear;
+      }
+      return true;
+    };
+
+    // 2. Initialize 12-Month Matrix for current Thai Year
+    const THAI_MONTH_NAMES = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const THAI_MONTH_SHORT = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+
+    const monthlyMatrix = Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      monthName: THAI_MONTH_NAMES[i],
+      shortName: THAI_MONTH_SHORT[i],
+      storefrontCashTransfer: 0,
+      storefrontCredit: 0,
+      storefrontTotal: 0,
+      storeDelivery: 0,
+      fuel: 0,
+      receiptsPaid: 0,
+      totalRevenue: 0
+    }));
+
+    // 3. Process Storefront (DAILY_CLOSING)
+    const storefront = {
+      cashNet: 0,
+      transferTotal: 0,
+      cashAndTransfer: 0,
+      creditTotal: 0,
+      grandTotal: 0,
+      laborTotal: 0,
+      goodsTotal: 0,
+      closingsCount: 0
+    };
+
+    dailyRows.forEach(r => {
+      const dateStr = r[1] || '';
+      const dComp = parseDateComponents(dateStr);
+      const cashNet = parseFloat(String(r[5] || '0').replace(/,/g, '')) || 0;
+      const transferTotal = parseFloat(String(r[6] || '0').replace(/,/g, '')) || 0;
+      const cashAndTransfer = parseFloat(String(r[7] || '0').replace(/,/g, '')) || 0;
+      const creditTotal = parseFloat(String(r[8] || '0').replace(/,/g, '')) || 0;
+      const laborTotal = parseFloat(String(r[11] || '0').replace(/,/g, '')) || 0;
+      const goodsTotal = parseFloat(String(r[14] || '0').replace(/,/g, '')) || 0;
+      const grandTotal = parseFloat(String(r[15] || '0').replace(/,/g, '')) || (cashAndTransfer + creditTotal);
+
+      // Add to period summary if matches period
+      if (matchesPeriod(dateStr)) {
+        storefront.cashNet += cashNet;
+        storefront.transferTotal += transferTotal;
+        storefront.cashAndTransfer += cashAndTransfer;
+        storefront.creditTotal += creditTotal;
+        storefront.laborTotal += laborTotal;
+        storefront.goodsTotal += goodsTotal;
+        storefront.grandTotal += grandTotal;
+        storefront.closingsCount++;
+      }
+
+      // Add to 12-month matrix if within current Thai Year
+      if (dComp && dComp.thaiYear === currentThaiYear) {
+        const mIdx = dComp.month - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          monthlyMatrix[mIdx].storefrontCashTransfer += cashAndTransfer;
+          monthlyMatrix[mIdx].storefrontCredit += creditTotal;
+          monthlyMatrix[mIdx].storefrontTotal += grandTotal;
+          monthlyMatrix[mIdx].totalRevenue += grandTotal;
+        }
+      }
+    });
+
+    // 4. Process Master Bills
     let totalActiveAmount = 0;
     let totalActiveCount = 0;
 
@@ -1457,7 +1587,7 @@ class GoogleSheetsService {
     const cancelledBills = [];
     const allParsedBills = [];
 
-    for (const r of rows) {
+    for (const r of masterRows) {
       const billId = r[0] || '';
       if (!billId) continue;
 
@@ -1476,17 +1606,32 @@ class GoogleSheetsService {
       const status = (r[13] || 'รอวางบิล').trim();
       const notes = r[14] || '';
 
-      // Period filter
-      if (period === 'TODAY' && !date.includes(todayStr) && !createdAt.includes(todayStr)) continue;
-      if (period === 'MONTH' && !date.includes(monthStr) && !createdAt.includes(monthStr)) continue;
-      if (period === 'YEAR' && !date.includes(yearStr) && !createdAt.includes(yearStr)) continue;
-
       const billItem = {
         billId, date, companyRegistration: companyReg, source, billRef,
         customerId: custId, customerName: custName, amount: amtStr, amountNum: amount,
         photoUrl, createdBy, createdAt, billingNoteNo, status, notes
       };
       allParsedBills.push(billItem);
+
+      const dComp = parseDateComponents(date);
+      const isFuel = companyReg === 'ปั๊มน้ำมัน' || source.includes('ปั๊มน้ำมัน');
+      const isGov = source.includes('หน่วยงาน');
+
+      // Populate 12-month matrix (for active bills in current year)
+      if (status !== 'ยกเลิก' && dComp && dComp.thaiYear === currentThaiYear) {
+        const mIdx = dComp.month - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          if (isFuel) {
+            monthlyMatrix[mIdx].fuel += amount;
+          } else {
+            monthlyMatrix[mIdx].storeDelivery += amount;
+          }
+          monthlyMatrix[mIdx].totalRevenue += amount;
+        }
+      }
+
+      // Check period match for dashboard period KPIs
+      if (!matchesPeriod(date) && !matchesPeriod(createdAt)) continue;
 
       if (status === 'ยกเลิก') {
         cancelled.count++;
@@ -1496,19 +1641,17 @@ class GoogleSheetsService {
         totalActiveCount++;
         totalActiveAmount += amount;
 
-        // Categories
-        if (source.includes('ทั่วไป')) {
-          storeGeneral.count++;
-          storeGeneral.amount += amount;
-        } else if (source.includes('หน่วยงาน')) {
-          storeGov.count++;
-          storeGov.amount += amount;
-        } else if (companyReg === 'ปั๊มน้ำมัน') {
+        if (isFuel) {
           fuel.count++;
           fuel.amount += amount;
+        } else if (isGov) {
+          storeGov.count++;
+          storeGov.amount += amount;
+        } else {
+          storeGeneral.count++;
+          storeGeneral.amount += amount;
         }
 
-        // Status breakdown
         if (status === 'รอวางบิล') {
           pendingBilling.count++;
           pendingBilling.amount += amount;
@@ -1520,7 +1663,6 @@ class GoogleSheetsService {
           paid.amount += amount;
         }
 
-        // Debtors (บิลค้างชำระ: รอวางบิล หรือ วางบิลแล้ว)
         if (status === 'รอวางบิล' || status === 'วางบิลแล้ว') {
           const key = custId || custName;
           if (!debtorMap[key]) {
@@ -1535,7 +1677,7 @@ class GoogleSheetsService {
           }
           debtorMap[key].totalAmount += amount;
           debtorMap[key].billCount++;
-          if (companyReg === 'ปั๊มน้ำมัน') {
+          if (isFuel) {
             debtorMap[key].fuelAmount += amount;
           } else {
             debtorMap[key].storeAmount += amount;
@@ -1544,12 +1686,59 @@ class GoogleSheetsService {
       }
     }
 
+    // 5. Process Receipts (Collections)
+    let totalReceiptsPaid = 0;
+    receiptRows.forEach(r => {
+      const dateStr = r[1] || '';
+      const amt = parseFloat(String(r[7] || '0').replace(/,/g, '')) || 0;
+      const dComp = parseDateComponents(dateStr);
+
+      if (matchesPeriod(dateStr)) {
+        totalReceiptsPaid += amt;
+      }
+
+      if (dComp && dComp.thaiYear === currentThaiYear) {
+        const mIdx = dComp.month - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          monthlyMatrix[mIdx].receiptsPaid += amt;
+        }
+      }
+    });
+
     const topDebtors = Object.values(debtorMap)
       .sort((a, b) => b.totalAmount - a.totalAmount)
       .slice(0, 10);
 
+    // Calculate Grand Total Combined Revenue
+    const grandCombinedRevenue = storefront.grandTotal + totalActiveAmount;
+
+    // Calculate Annual Matrix Totals
+    let annualStorefrontTotal = 0;
+    let annualDeliveryTotal = 0;
+    let annualFuelTotal = 0;
+    let annualReceiptsTotal = 0;
+    let annualGrandRevenue = 0;
+    let maxRev = -1;
+    let peakMonthName = '-';
+
+    monthlyMatrix.forEach(m => {
+      annualStorefrontTotal += m.storefrontTotal;
+      annualDeliveryTotal += m.storeDelivery;
+      annualFuelTotal += m.fuel;
+      annualReceiptsTotal += m.receiptsPaid;
+      annualGrandRevenue += m.totalRevenue;
+      if (m.totalRevenue > maxRev) {
+        maxRev = m.totalRevenue;
+        peakMonthName = m.monthName;
+      }
+    });
+
+    const activeMonthsCount = currentMonth || 1;
+    const annualMonthlyAverage = annualGrandRevenue / activeMonthsCount;
+
     return {
       period,
+      currentYear: currentThaiYear,
       summary: {
         totalActiveAmount,
         totalActiveCount,
@@ -1581,6 +1770,51 @@ class GoogleSheetsService {
         cancelled: {
           ...cancelled,
           formattedAmount: cancelled.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        }
+      },
+      storefront: {
+        ...storefront,
+        formattedCashNet: storefront.cashNet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        formattedTransferTotal: storefront.transferTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        formattedCashAndTransfer: storefront.cashAndTransfer.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        formattedCreditTotal: storefront.creditTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        formattedLaborTotal: storefront.laborTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        formattedGoodsTotal: storefront.goodsTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        formattedGrandTotal: storefront.grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      },
+      grandCombined: {
+        totalRevenue: grandCombinedRevenue,
+        formattedTotalRevenue: grandCombinedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      },
+      annualSummary: {
+        totalStorefront: annualStorefrontTotal,
+        totalStoreDelivery: annualDeliveryTotal,
+        totalFuel: annualFuelTotal,
+        totalReceiptsPaid: annualReceiptsTotal,
+        grandTotalRevenue: annualGrandRevenue,
+        monthlyAverage: annualMonthlyAverage,
+        peakMonth: peakMonthName,
+        formattedGrandTotalRevenue: annualGrandRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        formattedMonthlyAverage: annualMonthlyAverage.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      },
+      monthlyMatrix,
+      chartData: {
+        labels: THAI_MONTH_SHORT,
+        storefrontSeries: monthlyMatrix.map(m => m.storefrontTotal),
+        deliverySeries: monthlyMatrix.map(m => m.storeDelivery),
+        fuelSeries: monthlyMatrix.map(m => m.fuel),
+        totalSeries: monthlyMatrix.map(m => m.totalRevenue),
+        cashFlowMix: {
+          cash: storefront.cashNet,
+          transfer: storefront.transferTotal,
+          paidDebtors: totalReceiptsPaid,
+          pendingDebtors: pendingBilling.amount + billed.amount
+        },
+        commercialMix: {
+          storeGeneral: storeGeneral.amount,
+          storeGov: storeGov.amount,
+          fuel: fuel.amount,
+          storefrontGoods: storefront.goodsTotal
         }
       },
       topDebtors,
