@@ -13,6 +13,7 @@ module.exports = {
     CUSTOMERS: process.env.CUSTOMERS_SHEET_ID || '1GvHnGGIrUt_H7sMlhwvG_u8jJQozVhzDQjl6G_GX1j4',
     DELIVERY_MASTER: process.env.DELIVERY_MASTER_SHEET_ID || '1DVGGWYvzTWRFtHgrm1fcgaXhk7luFYQu6myBBLLjYus',
     STRMREC: process.env.STRMREC_SHEET_ID || '19c8yjaRbxejRHMmRA-f4ZDiqwlp2_2rCf2dFAe4736Q',
+    DAILY_RECEIPTS: process.env.DAILY_RECEIPTS_SHEET_ID || '1tlQMwfTzdPQ4H1htkEUcWy7YBXfJ6UB59YvorAv0tGs',
   },
 
   // Google Drive Folder for Bill Photos
