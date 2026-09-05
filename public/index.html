@@ -1185,15 +1185,43 @@
       <!-- ============================================== -->
       <div id="panel-audit-master" class="space-y-4">
         
+        <!-- Store / Fuel Category Tabs (แยกหน้า: บิลทั้งหมด / ร้านค้า ทั่วไป / ร้านค้า หน่วยงาน / ปั๊มน้ำมัน) -->
+        <div class="flex flex-wrap items-center gap-2 p-1.5 bg-slate-800/90 rounded-2xl border border-slate-700/80">
+          <button type="button" id="tab-master-cat-all" onclick="switchMasterCategory('ALL')"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-emerald-600 text-white shadow-md">
+            <span>📋 บิลทั้งหมด</span>
+            <span id="badge-master-cat-all" class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-900/60 text-white font-mono">0</span>
+          </button>
+
+          <button type="button" id="tab-master-cat-general" onclick="switchMasterCategory('store_general')"
+            class="px-4 py-2 rounded-xl text-xs font-medium transition flex items-center gap-2 text-slate-400 hover:text-white">
+            <span>🏢 ร้านค้า (ทั่วไป)</span>
+            <span id="badge-master-cat-general" class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-blue-300 font-mono">0</span>
+          </button>
+
+          <button type="button" id="tab-master-cat-gov" onclick="switchMasterCategory('store_gov')"
+            class="px-4 py-2 rounded-xl text-xs font-medium transition flex items-center gap-2 text-slate-400 hover:text-white">
+            <span>🏛️ ร้านค้า (หน่วยงาน)</span>
+            <span id="badge-master-cat-gov" class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-purple-300 font-mono">0</span>
+          </button>
+
+          <button type="button" id="tab-master-cat-fuel" onclick="switchMasterCategory('fuel')"
+            class="px-4 py-2 rounded-xl text-xs font-medium transition flex items-center gap-2 text-slate-400 hover:text-white">
+            <span>⛽ ปั๊มน้ำมัน</span>
+            <span id="badge-master-cat-fuel" class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-amber-300 font-mono">0</span>
+          </button>
+        </div>
+
         <!-- Controls Bar -->
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/60 p-4 rounded-2xl border border-slate-700">
           
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <!-- Registration Filter -->
-            <select id="filter-master-reg" onchange="fetchMasterBillsList()" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-              <option value="ALL">ทุกทะเบียนพาณิชย์</option>
-              <option value="ร้านค้า">เฉพาะ: ร้านค้า</option>
-              <option value="ปั๊มน้ำมัน">เฉพาะ: ปั๊มน้ำมัน</option>
+            <!-- Registration / Category Filter -->
+            <select id="filter-master-reg" onchange="handleMasterCategoryDropdownChange(this.value)" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="ALL">ทุกหมวดหมู่ / ทะเบียน</option>
+              <option value="store_general">🏢 ร้านค้า (ทั่วไป)</option>
+              <option value="store_gov">🏛️ ร้านค้า (หน่วยงาน)</option>
+              <option value="fuel">⛽ ปั๊มน้ำมัน</option>
             </select>
 
             <!-- Status Filter -->
@@ -1228,7 +1256,7 @@
                 <tr>
                   <th class="py-3 px-3.5">รหัสบิล (Bill_ID)</th>
                   <th class="py-3 px-3">วันที่</th>
-                  <th class="py-3 px-3 text-center">ทะเบียนพาณิชย์</th>
+                  <th class="py-3 px-3 text-center">หมวดหมู่ / ทะเบียน</th>
                   <th class="py-3 px-3">เลขที่บิลกระดาษ</th>
                   <th class="py-3 px-4">ลูกค้า</th>
                   <th class="py-3 px-4 text-right">จำนวนเงิน</th>
@@ -2249,17 +2277,21 @@
 
       <form id="form-manual-master" onsubmit="handleSaveManualMaster(event)" class="space-y-4 text-xs">
         
-        <!-- Registration selector -->
+        <!-- Registration / Category selector -->
         <div>
-          <label class="block font-medium text-slate-300 mb-1.5">ทะเบียนพาณิชย์ *</label>
-          <div class="grid grid-cols-2 gap-3">
+          <label class="block font-medium text-slate-300 mb-1.5">หมวดหมู่ / ทะเบียนพาณิชย์ *</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-900">
-              <input type="radio" name="manualReg" value="ปั๊มน้ำมัน" checked class="w-4 h-4 text-emerald-500 bg-slate-800 border-slate-600">
-              <span class="font-semibold text-white">ปั๊มน้ำมัน (บิลน้ำมัน)</span>
+              <input type="radio" name="manualCategory" value="fuel" checked class="w-4 h-4 text-emerald-500 bg-slate-800 border-slate-600">
+              <span class="font-semibold text-white text-xs">⛽ ปั๊มน้ำมัน</span>
             </label>
             <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-900">
-              <input type="radio" name="manualReg" value="ร้านค้า" class="w-4 h-4 text-emerald-500 bg-slate-800 border-slate-600">
-              <span class="font-semibold text-white">ร้านค้า (หน้าร้าน)</span>
+              <input type="radio" name="manualCategory" value="store_general" class="w-4 h-4 text-blue-500 bg-slate-800 border-slate-600">
+              <span class="font-semibold text-white text-xs">🏢 ร้านค้า (ทั่วไป)</span>
+            </label>
+            <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-900">
+              <input type="radio" name="manualCategory" value="store_gov" class="w-4 h-4 text-purple-500 bg-slate-800 border-slate-600">
+              <span class="font-semibold text-white text-xs">🏛️ ร้านค้า (หน่วยงาน)</span>
             </label>
           </div>
         </div>
