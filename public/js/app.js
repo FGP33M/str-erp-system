@@ -52,6 +52,16 @@ function refreshIcons() {
   }
 }
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Sidebar State & Navigation (Cobalt Enterprise Portal)
 let isSidebarOpenMobile = false;
 
@@ -4555,82 +4565,93 @@ function renderCustomersTable() {
 
   if (!tableBody) return;
 
-  if (filteredCustomersList.length === 0) {
+  try {
+    if (filteredCustomersList.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="p-12 text-center text-slate-500">
+            <div class="flex flex-col items-center justify-center gap-2">
+              <i data-lucide="users" class="w-10 h-10 text-slate-600"></i>
+              <span class="text-sm font-medium text-slate-400">ไม่พบข้อมูลลูกค้าที่ตรงกับเงื่อนไขการค้นหา</span>
+            </div>
+          </td>
+        </tr>
+      `;
+      if (paginationInfo) paginationInfo.innerText = 'แสดง 0 ถึง 0 จาก 0 รายการ';
+      if (pageIndicator) pageIndicator.innerText = '1';
+      if (btnPrev) btnPrev.disabled = true;
+      if (btnNext) btnNext.disabled = true;
+      refreshIcons();
+      return;
+    }
+
+    const total = filteredCustomersList.length;
+    const totalPages = Math.ceil(total / CUSTOMERS_PER_PAGE) || 1;
+    if (customerCurrentPage > totalPages) customerCurrentPage = totalPages;
+    if (customerCurrentPage < 1) customerCurrentPage = 1;
+
+    const startIdx = (customerCurrentPage - 1) * CUSTOMERS_PER_PAGE;
+    const endIdx = Math.min(startIdx + CUSTOMERS_PER_PAGE, total);
+    const pageItems = filteredCustomersList.slice(startIdx, endIdx);
+
+    if (paginationInfo) paginationInfo.innerText = `แสดง ${startIdx + 1} ถึง ${endIdx} จาก ${total} รายการ`;
+    if (pageIndicator) pageIndicator.innerText = `${customerCurrentPage} / ${totalPages}`;
+    if (btnPrev) btnPrev.disabled = customerCurrentPage <= 1;
+    if (btnNext) btnNext.disabled = customerCurrentPage >= totalPages;
+
+    tableBody.innerHTML = pageItems.map(c => {
+      const hasTax = c.taxId && c.taxId.trim();
+      const taxBadge = hasTax 
+        ? `<span class="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono text-[11px] font-bold">${escapeHtml(c.taxId)}</span>`
+        : `<span class="text-slate-500 font-mono">-</span>`;
+
+      const phones = [c.phone, c.contactPhone].filter(Boolean);
+      const phoneHtml = phones.length > 0
+        ? `<div class="flex flex-col gap-0.5"><span class="font-mono text-slate-200">${escapeHtml(phones[0])}</span>${c.contactLine ? `<span class="text-[10px] text-emerald-400 flex items-center gap-1">Line: ${escapeHtml(c.contactLine)}</span>` : ''}</div>`
+        : `<span class="text-slate-500">-</span>`;
+
+      const contactHtml = c.contact 
+        ? `<div class="font-medium text-slate-300">${escapeHtml(c.contact)}</div>`
+        : `<span class="text-slate-500">-</span>`;
+
+      const addressDisplay = c.address 
+        ? `<div class="text-slate-300 text-[11px] leading-relaxed line-clamp-2" title="${escapeHtml(c.address)}">${escapeHtml(c.address)}</div>`
+        : `<span class="text-slate-500">-</span>`;
+
+      return `
+        <tr class="hover:bg-slate-700/40 transition">
+          <td class="p-3">
+            <span class="px-2 py-1 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono font-bold text-xs">${escapeHtml(c.id)}</span>
+          </td>
+          <td class="p-3">
+            <div class="font-bold text-white text-xs">${escapeHtml(c.name)}</div>
+            ${c.fullName && c.fullName !== c.name ? `<div class="text-[11px] text-slate-400 font-medium truncate max-w-xs mt-0.5">${escapeHtml(c.fullName)}</div>` : ''}
+          </td>
+          <td class="p-3">${taxBadge}</td>
+          <td class="p-3">${phoneHtml}</td>
+          <td class="p-3">${addressDisplay}</td>
+          <td class="p-3">${contactHtml}</td>
+          <td class="p-3 text-center">
+            <button onclick="openEditCustomerModal('${escapeHtml(c.id)}')" title="แก้ไขข้อมูลลูกค้า"
+              class="p-2 rounded-xl bg-slate-800 hover:bg-blue-600/20 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/40 transition">
+              <i data-lucide="edit-3" class="w-4 h-4"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    refreshIcons();
+  } catch (renderErr) {
+    console.error("renderCustomersTable error:", renderErr);
     tableBody.innerHTML = `
       <tr>
-        <td colspan="7" class="p-12 text-center text-slate-500">
-          <div class="flex flex-col items-center justify-center gap-2">
-            <i data-lucide="users" class="w-10 h-10 text-slate-600"></i>
-            <span class="text-sm font-medium text-slate-400">ไม่พบข้อมูลลูกค้าที่ตรงกับเงื่อนไขการค้นหา</span>
-          </div>
+        <td colspan="7" class="p-6 text-center text-red-400">
+          เกิดข้อผิดพลาดในการแสดงตาราง: ${escapeHtml(renderErr.message)}
         </td>
       </tr>
     `;
-    if (paginationInfo) paginationInfo.innerText = 'แสดง 0 ถึง 0 จาก 0 รายการ';
-    if (pageIndicator) pageIndicator.innerText = '1';
-    if (btnPrev) btnPrev.disabled = true;
-    if (btnNext) btnNext.disabled = true;
-    refreshIcons();
-    return;
   }
-
-  const total = filteredCustomersList.length;
-  const totalPages = Math.ceil(total / CUSTOMERS_PER_PAGE) || 1;
-  if (customerCurrentPage > totalPages) customerCurrentPage = totalPages;
-  if (customerCurrentPage < 1) customerCurrentPage = 1;
-
-  const startIdx = (customerCurrentPage - 1) * CUSTOMERS_PER_PAGE;
-  const endIdx = Math.min(startIdx + CUSTOMERS_PER_PAGE, total);
-  const pageItems = filteredCustomersList.slice(startIdx, endIdx);
-
-  if (paginationInfo) paginationInfo.innerText = `แสดง ${startIdx + 1} ถึง ${endIdx} จาก ${total} รายการ`;
-  if (pageIndicator) pageIndicator.innerText = `${customerCurrentPage} / ${totalPages}`;
-  if (btnPrev) btnPrev.disabled = customerCurrentPage <= 1;
-  if (btnNext) btnNext.disabled = customerCurrentPage >= totalPages;
-
-  tableBody.innerHTML = pageItems.map(c => {
-    const hasTax = c.taxId && c.taxId.trim();
-    const taxBadge = hasTax 
-      ? `<span class="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono text-[11px] font-bold">${escapeHtml(c.taxId)}</span>`
-      : `<span class="text-slate-500 font-mono">-</span>`;
-
-    const phones = [c.phone, c.contactPhone].filter(Boolean);
-    const phoneHtml = phones.length > 0
-      ? `<div class="flex flex-col gap-0.5"><span class="font-mono text-slate-200">${escapeHtml(phones[0])}</span>${c.contactLine ? `<span class="text-[10px] text-emerald-400 flex items-center gap-1">Line: ${escapeHtml(c.contactLine)}</span>` : ''}</div>`
-      : `<span class="text-slate-500">-</span>`;
-
-    const contactHtml = c.contact 
-      ? `<div class="font-medium text-slate-300">${escapeHtml(c.contact)}</div>`
-      : `<span class="text-slate-500">-</span>`;
-
-    const addressDisplay = c.address 
-      ? `<div class="text-slate-300 text-[11px] leading-relaxed line-clamp-2" title="${escapeHtml(c.address)}">${escapeHtml(c.address)}</div>`
-      : `<span class="text-slate-500">-</span>`;
-
-    return `
-      <tr class="hover:bg-slate-700/40 transition">
-        <td class="p-3">
-          <span class="px-2 py-1 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono font-bold text-xs">${escapeHtml(c.id)}</span>
-        </td>
-        <td class="p-3">
-          <div class="font-bold text-white text-xs">${escapeHtml(c.name)}</div>
-          ${c.fullName && c.fullName !== c.name ? `<div class="text-[11px] text-slate-400 font-medium truncate max-w-xs mt-0.5">${escapeHtml(c.fullName)}</div>` : ''}
-        </td>
-        <td class="p-3">${taxBadge}</td>
-        <td class="p-3">${phoneHtml}</td>
-        <td class="p-3">${addressDisplay}</td>
-        <td class="p-3">${contactHtml}</td>
-        <td class="p-3 text-center">
-          <button onclick="openEditCustomerModal('${escapeHtml(c.id)}')" title="แก้ไขข้อมูลลูกค้า"
-            class="p-2 rounded-xl bg-slate-800 hover:bg-blue-600/20 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/40 transition">
-            <i data-lucide="edit-3" class="w-4 h-4"></i>
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  refreshIcons();
 }
 
 function changeCustomerPage(delta) {
