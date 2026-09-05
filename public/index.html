@@ -1509,11 +1509,19 @@
             </div>
           </div>
 
-          <!-- Add Manual Bill Button -->
-          <button onclick="openManualBillModal()" class="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-semibold rounded-xl text-xs shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-1.5 transition">
-            <i data-lucide="plus" class="w-4 h-4"></i>
-            <span>+ บันทึกบิลน้ำมัน / บิลแมนนวล</span>
-          </button>
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <!-- Sync Fuel Bills Button (AppSheet STRMRec) -->
+            <button id="btn-sync-fuel-trigger" onclick="openSyncFuelModal()" class="flex-1 sm:flex-initial px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-semibold rounded-xl text-xs shadow-lg shadow-amber-950/40 flex items-center justify-center gap-1.5 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>🔄 ซิงค์บิลน้ำมัน (AppSheet)</span>
+            </button>
+
+            <!-- Add Manual Bill Button -->
+            <button onclick="openManualBillModal()" class="flex-1 sm:flex-initial px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-semibold rounded-xl text-xs shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-1.5 transition">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>+ บันทึกบิลน้ำมัน / บิลแมนนวล</span>
+            </button>
+          </div>
         </div>
 
         <!-- Master Bills Table -->
@@ -2715,6 +2723,56 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: SYNC FUEL BILLS FROM APPSHEET (STRMRec) -->
+  <!-- ======================================================== -->
+  <div id="modal-sync-fuel" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </div>
+          <span>ซิงค์บิลน้ำมันจาก AppSheet</span>
+        </h3>
+        <button onclick="closeSyncFuelModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div class="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-200 leading-relaxed">
+          <p class="font-semibold flex items-center gap-1.5 mb-1">
+            <span>⛽ เชื่อมโยงชีต STRMRec (credit)</span>
+          </p>
+          <p class="text-slate-300">
+            ระบบจะดึงรายการบิลน้ำมันที่พนักงานคีย์เข้ามา จับคู่รหัสลูกค้า ทะเบียนรถ และยอดเงิน เข้าสู่คลังบิลหลักอัตโนมัติ พร้อมระบบป้องกันบิลซ้ำซ้อน 100%
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">ดึงบิลตั้งแต่วันที่ (ค่าเริ่มต้น: เดือนนี้เป็นต้นไป) *</label>
+          <input type="date" id="sync-fuel-start-date" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-sm focus:outline-none focus:ring-1 focus:ring-amber-500">
+          <p class="text-[11px] text-slate-400 mt-1">
+            * ระบบจะไม่ดึงบิลเก่าที่เคยเคลียร์ไปแล้ว เพื่อป้องกันบิลตกค้าง
+          </p>
+        </div>
+
+        <div id="sync-fuel-status-area" class="hidden p-3 rounded-xl bg-slate-900/80 border border-slate-700 text-slate-300 text-xs font-mono">
+          <!-- Live sync progress/result -->
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-700">
+          <button type="button" onclick="closeSyncFuelModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-semibold transition">ยกเลิก</button>
+          <button type="button" id="btn-confirm-sync-fuel" onclick="executeSyncFuel()" class="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-950/40 flex items-center gap-2 transition">
+            <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+            <span>เริ่มซิงค์ข้อมูล</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
