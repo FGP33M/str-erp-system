@@ -842,11 +842,25 @@ let capturedPhotoBase64 = null;
 let customerSearchDebounce = null;
 
 async function initDeliveryBillPage() {
-  // 1. Set current date display
+  // 1. Set current date display (locked today date)
   const now = new Date();
   const thDate = now.toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
   const displayEl = document.getElementById('bill-today-display');
   if (displayEl) displayEl.innerText = thDate;
+
+  // Set default bill date picker to today (YYYY-MM-DD), allow backdated, max = today
+  const picker = document.getElementById('bill-date-picker');
+  if (picker) {
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const isoToday = `${yyyy}-${mm}-${dd}`;
+    picker.max = isoToday;
+    if (!picker.value) {
+      picker.value = isoToday;
+    }
+    handleBillDateChange(picker.value);
+  }
 
   // 2. Fetch customers if not already loaded
   if (currentCustomersList.length === 0) {
@@ -855,6 +869,32 @@ async function initDeliveryBillPage() {
 
   // 3. Fetch today's bills
   fetchTodayBills();
+}
+
+function handleBillDateChange(isoVal) {
+  if (!isoVal) return;
+  const parts = isoVal.split('-');
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parts[1];
+    const d = parts[2];
+    const thaiYear = y + 543;
+    const thaiDateStr = `${d}/${m}/${thaiYear}`;
+    const hiddenEl = document.getElementById('bill-date-thai');
+    if (hiddenEl) hiddenEl.value = thaiDateStr;
+
+    const displayEl = document.getElementById('bill-date-thai-display');
+    if (displayEl) {
+      const now = new Date();
+      const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (isoVal !== todayIso) {
+        displayEl.innerHTML = `<span class="text-amber-400 font-semibold flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> บันทึกย้อนหลัง: ${thaiDateStr}</span>`;
+      } else {
+        displayEl.innerHTML = `<span class="text-slate-400 font-mono text-[10px] flex items-center gap-1"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i> วันที่บิล: ${thaiDateStr} (วันนี้)</span>`;
+      }
+      refreshIcons();
+    }
+  }
 }
 
 async function fetchCustomers() {
@@ -1076,6 +1116,7 @@ async function handleDeliveryBillSubmit(event) {
   const customerId = document.getElementById('bill-customer-id').value;
   const customerName = document.getElementById('bill-customer-name').value;
   const category = document.getElementById('bill-category') ? document.getElementById('bill-category').value : currentStoreCategory;
+  const billDate = document.getElementById('bill-date-thai') ? document.getElementById('bill-date-thai').value : '';
   const billRef = document.getElementById('bill-ref-no').value.trim();
   const poRef = document.getElementById('bill-po-no') ? document.getElementById('bill-po-no').value.trim() : '';
   const amount = document.getElementById('bill-amount').value;
@@ -1115,6 +1156,7 @@ async function handleDeliveryBillSubmit(event) {
         category,
         customerId,
         customerName,
+        date: billDate,
         billRef,
         poRef,
         amount: parseFloat(amount),
@@ -1135,6 +1177,15 @@ async function handleDeliveryBillSubmit(event) {
       document.getElementById('bill-notes').value = '';
       resetBillPhoto();
       clearCustomerSelection();
+
+      // Reset date picker to today
+      const now = new Date();
+      const isoToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const picker = document.getElementById('bill-date-picker');
+      if (picker) {
+        picker.value = isoToday;
+        handleBillDateChange(isoToday);
+      }
 
       // Refresh today's list
       await fetchTodayBills();
@@ -1257,6 +1308,15 @@ function renderTodayBills(bills) {
            <span>ขอยกเลิกบิล</span>
          </button>`;
 
+    // Check if backdated
+    let dateBadge = `<span class="text-[10px] text-slate-400 font-mono">บิล: ${b.date || '-'}</span>`;
+    if (b.date && b.createdAt) {
+      const createdDatePart = b.createdAt.split(' ')[0].trim();
+      if (b.date !== createdDatePart) {
+        dateBadge = `<span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">📅 ย้อนหลัง: ${b.date}</span>`;
+      }
+    }
+
     return `
       <div class="p-3.5 ${isCancelled ? 'bg-slate-900/40 border-slate-800 opacity-75' : 'bg-slate-900/70 border-slate-700/60'} border rounded-xl flex flex-col gap-2 transition hover:border-slate-600">
         <div class="flex items-start justify-between gap-2">
@@ -1275,7 +1335,7 @@ function renderTodayBills(bills) {
           </div>
           <div class="text-right">
             <div>${amountDisplay}</div>
-            <div class="text-[10px] text-slate-500 mt-0.5 font-mono">${b.date || ''}</div>
+            <div class="mt-1">${dateBadge}</div>
           </div>
         </div>
 
@@ -1283,6 +1343,7 @@ function renderTodayBills(bills) {
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-[10px] text-slate-500">
           <div class="flex items-center gap-3">
+            <div>เวลา: <strong class="text-slate-300 font-mono">${b.createdAt ? (b.createdAt.split(' ')[1] || b.createdAt) : '-'}</strong></div>
             <div>ผู้บันทึก: <strong class="text-slate-400">${b.createdBy}</strong></div>
             ${b.photoUrl ? `
               <button onclick="openImageViewer('${b.photoUrl}', '${b.billRef}')" class="text-amber-400 hover:text-amber-300 flex items-center gap-1 underline">
