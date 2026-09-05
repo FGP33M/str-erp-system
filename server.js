@@ -705,7 +705,8 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, {
           success: true,
           message: 'บันทึกรับชำระเงินและตัดยอดบัญชีเรียบร้อย',
-          payment: paymentResult
+          payment: paymentResult,
+          receiptNo: paymentResult.receiptNo
         });
       } catch (err) {
         return sendJson(res, 400, { success: false, message: err.message });
@@ -724,6 +725,55 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, payments });
       } catch (err) {
         return sendJson(res, 500, { success: false, message: err.message });
+      }
+    }
+
+    // GET /api/billing/receipts (Receipts History)
+    if (pathname === '/api/billing/receipts' && method === 'GET') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      try {
+        const urlObj = new URL(req.url, `http://${req.headers.host}`);
+        const q = urlObj.searchParams.get('q') || '';
+        const receipts = await googleSheets.getReceipts({ q });
+        return sendJson(res, 200, { success: true, receipts });
+      } catch (err) {
+        return sendJson(res, 500, { success: false, message: err.message });
+      }
+    }
+
+    // GET /api/billing/receipts/:no (Receipt Detail for Printing)
+    if (pathname.startsWith('/api/billing/receipts/') && method === 'GET') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser) {
+        return sendJson(res, 401, { success: false, message: 'กรุณาเข้าสู่ระบบ' });
+      }
+
+      const receiptNo = decodeURIComponent(pathname.replace('/api/billing/receipts/', '')).trim();
+      try {
+        const detail = await googleSheets.getReceiptDetail(receiptNo);
+        return sendJson(res, 200, { success: true, ...detail });
+      } catch (err) {
+        return sendJson(res, 404, { success: false, message: err.message });
+      }
+    }
+
+    // POST /api/billing/receipts/cash (Create direct Cash Receipt)
+    if (pathname === '/api/billing/receipts/cash' && method === 'POST') {
+      const currentUser = getSessionUser(req);
+      if (!currentUser || (currentUser.role !== 'manager' && currentUser.role !== 'admin')) {
+        return sendJson(res, 403, { success: false, message: 'เฉพาะผู้จัดการหรือผู้ดูแลระบบเท่านั้น' });
+      }
+
+      try {
+        const body = await parseBody(req);
+        const receipt = await googleSheets.createCashReceipt(body, currentUser);
+        return sendJson(res, 201, { success: true, message: 'ออกใบเสร็จรับเงินสดสำเร็จ', receipt });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, message: err.message });
       }
     }
 
