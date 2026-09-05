@@ -58,6 +58,28 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printable-voucher-area, #printable-voucher-area * {
+        visibility: visible !important;
+      }
+      #printable-voucher-area {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 20px !important;
+        background: white !important;
+        color: #0f172a !important;
+        z-index: 999999 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
@@ -208,56 +230,76 @@
         </div>
 
         <!-- CARD 2: DELIVERY BILL ENTRY (บันทึกใบส่งของ - Everyone sees this) -->
-        <div id="card-menu-delivery-bill" class="bg-slate-800/40 border border-slate-800 rounded-2xl p-6 relative flex flex-col justify-between opacity-80 hover:opacity-100 transition">
+        <div id="card-menu-delivery-bill" onclick="navigateTo('delivery-bill')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-950/40 relative flex flex-col justify-between">
           <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-700/80 text-slate-300 border border-slate-600">เร็วๆ นี้</span>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">พร้อมใช้งาน</span>
           </div>
           <div>
-            <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mb-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
               <i data-lucide="clipboard-list" class="w-6 h-6"></i>
             </div>
-            <h4 class="text-base font-bold text-slate-200">บันทึกใบส่งของ</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">บันทึกใบส่งของเขียนมือ เพิ่มรายการสินค้า ยอดรวม และแนบรูปภาพบิล</p>
+            <h4 class="text-base font-bold text-white group-hover:text-amber-400 transition">บันทึกใบส่งของ</h4>
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">บันทึกบิลกระดาษ แยกส่วนทั่วไปและราชการ บันทึกตรงเข้าสถานะรอวางบิล</p>
           </div>
-          <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-            <span class="text-xs text-slate-500">บันทึกบิล & รายการส่งของ</span>
-            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-          </div>
-        </div>
-
-        <!-- CARD 3: INCOME RECORDS (Manager & Admin only) -->
-        <div id="card-menu-income" class="bg-slate-800/40 border border-slate-800 rounded-2xl p-6 relative flex flex-col justify-between opacity-80 hover:opacity-100 transition">
-          <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-700/80 text-slate-300 border border-slate-600">เร็วๆ นี้</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center mb-4">
-              <i data-lucide="wallet" class="w-6 h-6"></i>
-            </div>
-            <h4 class="text-base font-bold text-slate-200">ระบบบันทึกรายรับ</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">บันทึกเงินสด โอนเข้าบัญชี แยกตามเลขบิลและยอดเงิน</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-            <span class="text-xs text-slate-500">บันทึกรายรับ & บัญชี</span>
-            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-amber-300">
+            <span class="text-xs text-amber-400 font-medium">เข้าสู่ระบบบันทึกบิล</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </div>
         </div>
 
-        <!-- CARD 4: PURCHASE RECORDS (Manager & Admin only) -->
-        <div id="card-menu-purchase" class="bg-slate-800/40 border border-slate-800 rounded-2xl p-6 relative flex flex-col justify-between opacity-80 hover:opacity-100 transition">
-          <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-700/80 text-slate-300 border border-slate-600">เร็วๆ นี้</span>
+        <!-- CARD 3: EXECUTIVE DASHBOARD (Manager & Admin only) -->
+        <div id="card-menu-executive" onclick="navigateTo('executive-dashboard')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-950/40 relative flex flex-col justify-between">
+          <div class="absolute top-4 right-4 flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ภาพรวมธุรกิจ</span>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">ผู้บริหาร</span>
           </div>
           <div>
-            <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center mb-4">
-              <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
+              <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
             </div>
-            <h4 class="text-base font-bold text-slate-200">ระบบบันทึกการซื้อ</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">บันทึกรายการสั่งซื้อจากร้านค้าผู้จำหน่าย และต้นทุนที่ชำระ</p>
+            <h4 class="text-base font-bold text-white group-hover:text-indigo-400 transition">แดชบอร์ดผู้บริหาร</h4>
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">ดูสถิติภาพรวมรายได้ ยอดขายแยก 3 หมวด (ทั่วไป/หน่วยงาน/น้ำมัน) และลูกหนี้ค้างชำระ</p>
           </div>
-          <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-            <span class="text-xs text-slate-500">บันทึกรายการจัดซื้อ</span>
-            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-indigo-300">
+            <span class="text-xs text-indigo-400 font-medium">เปิดแดชบอร์ด</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </div>
+        </div>
+
+        <!-- CARD 4: MASTER BILLS & FUEL (Manager & Admin only) -->
+        <div id="card-menu-master" onclick="navigateTo('manager-audit')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/40 relative flex flex-col justify-between">
+          <div class="absolute top-4 right-4">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">คลังหลัก</span>
+          </div>
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
+              <i data-lucide="database" class="w-6 h-6"></i>
+            </div>
+            <h4 class="text-base font-bold text-white group-hover:text-emerald-400 transition">คลังบิล & บิลน้ำมัน</h4>
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">สืบค้นคลังบิลหลักทั้งหมด แยกตามทะเบียนพาณิชย์ และบันทึกบิลน้ำมันแมนนวล</p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
+            <span class="text-xs text-emerald-400 font-medium">เปิดคลังบิล</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </div>
+        </div>
+
+        <!-- CARD: BILLING NOTES & PAYMENTS (ACTIVE NOW!) -->
+        <div id="card-menu-billing" onclick="navigateTo('billing-notes')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-violet-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-950/40 relative flex flex-col justify-between">
+          <div class="absolute top-4 right-4 flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">การเงิน & บัญชี</span>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">พร้อมใช้งาน</span>
+          </div>
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
+              <i data-lucide="receipt" class="w-6 h-6"></i>
+            </div>
+            <h4 class="text-base font-bold text-white group-hover:text-violet-400 transition">ออกใบวางบิล & รับชำระ</h4>
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">รวมบิลหน้าร้านและบิลน้ำมันออกใบวางบิล พิมพ์เอกสาร A4 และบันทึกรับเงินตัดยอดบัญชี</p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-violet-300">
+            <span class="text-xs text-violet-400 font-medium">จัดการใบวางบิล</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </div>
         </div>
 
@@ -484,7 +526,973 @@
       </div>
     </section>
 
+    <!-- ======================================================== -->
+    <!-- 7. DELIVERY BILL ENTRY VIEW -->
+    <!-- ======================================================== -->
+    <section id="view-delivery-bill" class="hidden flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+      
+      <!-- Top Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div class="flex items-center gap-3">
+          <button onclick="navigateTo('dashboard')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          </button>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl font-bold text-white tracking-wide">บันทึกใบส่งของหน้าร้าน</h2>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">งานขายหน้าร้าน</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">บันทึกข้อมูลใบส่งของ ถ่ายรูปบิลจริง และบันทึกตรงเข้าคลังบิล (สถานะ: รอวางบิล)</p>
+          </div>
+        </div>
+
+        <!-- Today Lock Badge -->
+        <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
+          <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i>
+          <span>รอบวันที่: <strong id="bill-today-display" class="text-white font-mono">-</strong></span>
+          <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400 font-medium">ล็อกรอบวัน</span>
+        </div>
+      </div>
+
+      <!-- Main Grid: Form Left, Today's Summary Right -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- FORM CARD (7 cols) -->
+        <div class="lg:col-span-7 bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-xl">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-700/70 mb-5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i>
+              <span>ฟอร์มบันทึกบิล</span>
+            </h3>
+            <span class="text-[11px] text-slate-400">* บันทึกแล้วแก้ไข/ลบไม่ได้</span>
+          </div>
+
+            <!-- Store Category Segmented Switcher -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-2">เลือกส่วนงานร้านค้า *</label>
+              <div class="grid grid-cols-2 p-1 bg-slate-900/90 rounded-2xl border border-slate-700">
+                <button type="button" id="btn-cat-general" onclick="selectStoreCategory('store_general')"
+                  class="py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md">
+                  <i data-lucide="store" class="w-4 h-4"></i>
+                  <span>🏢 ร้านค้า (ทั่วไป)</span>
+                </button>
+                <button type="button" id="btn-cat-gov" onclick="selectStoreCategory('store_gov')"
+                  class="py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-white">
+                  <i data-lucide="landmark" class="w-4 h-4"></i>
+                  <span>🏛️ ร้านค้า (หน่วยงาน)</span>
+                </button>
+              </div>
+              <input type="hidden" id="bill-category" value="store_general">
+              <div id="cat-description" class="mt-2 text-[11px] text-amber-300/80 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
+                สำหรับลูกค้าเงินสด, บิลเครดิตบุคคลทั่วไป, ผู้รับเหมา หรือร้านค้าช่วง
+              </div>
+            </div>
+
+            <!-- Customer Search / Select -->
+            <div class="relative">
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">เลือกลูกค้า (ค้นหาจาก 294 รายชื่อ) *</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" id="bill-customer-search" autocomplete="off" oninput="handleCustomerSearchInput(event)" placeholder="พิมพ์รหัส (เช่น C0010) หรือชื่อลูกค้า..."
+                  class="w-full pl-9 pr-8 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition">
+                <button type="button" id="btn-clear-customer" onclick="clearCustomerSelection()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- Customer Dropdown Suggestions -->
+              <div id="customer-dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 max-h-56 overflow-y-auto bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 divide-y divide-slate-800">
+                <!-- Dynamic suggestions -->
+              </div>
+
+              <!-- Selected Customer Pill -->
+              <div id="selected-customer-pill" class="hidden mt-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                  <span id="pill-cust-id" class="px-1.5 py-0.5 rounded font-mono text-[10px] bg-amber-500/20 text-amber-300 font-bold">C0000</span>
+                  <span id="pill-cust-name" class="font-medium text-white">ชื่อลูกค้า</span>
+                </div>
+                <button type="button" onclick="clearCustomerSelection()" class="text-xs text-amber-400 hover:text-amber-300 underline">เปลี่ยน</button>
+              </div>
+              <input type="hidden" id="bill-customer-id" required>
+              <input type="hidden" id="bill-customer-name" required>
+            </div>
+
+            <!-- Bill Ref & Amount Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label id="label-bill-ref" class="block text-xs font-medium text-slate-300 mb-1.5">เลขที่บิลส่งของ (บิลกระดาษ) *</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="hash" class="w-4 h-4"></i>
+                  </span>
+                  <input type="text" id="bill-ref-no" required placeholder="เช่น BIL-0012, 67-009"
+                    class="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                </div>
+              </div>
+
+              <!-- PO Ref (Visible when Gov selected) -->
+              <div id="container-po-ref" class="hidden">
+                <label class="block text-xs font-medium text-purple-300 mb-1.5">เลขที่สั่งจ้าง / สั่งซื้อ (PO)</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-purple-400">
+                    <i data-lucide="file-check" class="w-4 h-4"></i>
+                  </span>
+                  <input type="text" id="bill-po-no" placeholder="เช่น PO-67/012, สั่งจ้าง 15/67"
+                    class="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-purple-500/40 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1.5">จำนวนเงิน (บาท) *</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="circle-dollar-sign" class="w-4 h-4"></i>
+                  </span>
+                  <input type="number" step="0.01" min="0" id="bill-amount" required placeholder="0.00"
+                    class="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                </div>
+              </div>
+            </div>
+
+            <!-- Camera / Photo Upload -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">รูปถ่ายบิลจริง (แนะนำให้ถ่ายชัดเจน)</label>
+              
+              <div id="photo-upload-container" class="border-2 border-dashed border-slate-700 hover:border-amber-500/60 rounded-2xl p-4 text-center cursor-pointer transition bg-slate-900/40 relative">
+                <input type="file" id="bill-photo-input" accept="image/*" capture="environment" onchange="handleBillPhotoSelect(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                
+                <div id="photo-prompt" class="flex flex-col items-center justify-center py-3">
+                  <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mb-2">
+                    <i data-lucide="camera" class="w-6 h-6"></i>
+                  </div>
+                  <div class="text-xs font-semibold text-white">กดตรงนี้เพื่อถ่ายรูปบิล หรือเลือกรูป</div>
+                  <p class="text-[10px] text-slate-400 mt-1">รองรับกล้องมือถือ แท็บเล็ต หรือไฟล์ภาพ JPG / PNG</p>
+                </div>
+
+                <!-- Preview thumbnail -->
+                <div id="photo-preview-container" class="hidden flex flex-col items-center">
+                  <img id="photo-preview-img" src="" alt="พรีวิวบิล" class="max-h-48 rounded-xl object-contain border border-slate-700 shadow-md">
+                  <button type="button" onclick="resetBillPhoto(event)" class="mt-2 text-xs text-red-400 hover:text-red-300 flex items-center gap-1 z-20">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>ลบ / ถ่ายใหม่</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">หมายเหตุเพิ่มเติม</label>
+              <textarea id="bill-notes" rows="2" placeholder="เช่น ผู้สั่งของ, โครงการ หรือรายละเอียดของบิล..."
+                class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50"></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="btn-submit-bill"
+              class="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-semibold rounded-xl shadow-lg shadow-amber-950/50 transition duration-150 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span>ยืนยันบันทึกใบส่งของ</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- RIGHT PANEL: TODAY STATS & RECENT BILLS (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-5">
+          
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-4">
+              <div class="text-[11px] text-slate-400">จำนวนบิลวันนี้</div>
+              <div id="stat-today-count" class="text-2xl font-bold text-white font-mono mt-1">0</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">ใบส่งของในระบบ</div>
+            </div>
+
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-4">
+              <div class="text-[11px] text-slate-400">ยอดเงินรวมวันนี้</div>
+              <div id="stat-today-sum" class="text-2xl font-bold text-amber-400 font-mono mt-1">฿0</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">บาท</div>
+            </div>
+          </div>
+
+          <!-- Bills List Card -->
+          <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+            <div class="pb-3 border-b border-slate-700 mb-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+                  <span>รายการบิลที่บันทึกวันนี้</span>
+                </h4>
+                <button onclick="fetchTodayBills()" class="text-[11px] text-slate-400 hover:text-white flex items-center gap-1">
+                  <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                  <span>รีเฟรช</span>
+                </button>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">สถานะ 'รอวางบิล' เข้าระบบทันที หากผิดให้กด 'ขอยกเลิก' แล้วบันทึกบิลใหม่</p>
+
+              <!-- Category filter for today bills -->
+              <div class="flex items-center gap-1.5 mt-2 text-[10px]">
+                <button type="button" onclick="filterTodayBills('ALL')" id="filter-today-all" class="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition">ทั้งหมด</button>
+                <button type="button" onclick="filterTodayBills('store_general')" id="filter-today-gen" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition">🏢 เฉพาะทั่วไป</button>
+                <button type="button" onclick="filterTodayBills('store_gov')" id="filter-today-gov" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition">🏛️ เฉพาะหน่วยงาน</button>
+              </div>
+            </div>
+
+            <div id="today-bills-list" class="space-y-2.5 overflow-y-auto max-h-[460px] flex-1 pr-1">
+              <!-- Rendered items -->
+              <div class="text-center py-10 text-slate-500 text-xs">กำลังโหลดข้อมูล...</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 8. EXECUTIVE DASHBOARD VIEW -->
+    <!-- ======================================================== -->
+    <section id="view-executive-dashboard" class="hidden flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+      
+      <!-- Top Bar with Period Filter -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div class="flex items-center gap-3">
+          <button onclick="navigateTo('dashboard')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          </button>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl font-bold text-white tracking-wide">แดชบอร์ดผู้บริหาร (Executive Dashboard)</h2>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ภาพรวมธุรกิจ</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">ภาพรวมรายได้ ยอดขายแยก 3 หมวด ลูกหนี้ค้างชำระ และประวัติการยกเลิกบิล</p>
+          </div>
+        </div>
+
+        <!-- Period Filter Selector -->
+        <div class="flex items-center gap-2">
+          <div class="flex items-center p-1 rounded-xl bg-slate-800/90 border border-slate-700 text-xs">
+            <button id="btn-period-all" onclick="changeDashboardPeriod('ALL')" class="px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition">ทั้งหมด</button>
+            <button id="btn-period-today" onclick="changeDashboardPeriod('TODAY')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">วันนี้</button>
+            <button id="btn-period-month" onclick="changeDashboardPeriod('MONTH')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">เดือนนี้</button>
+            <button id="btn-period-year" onclick="changeDashboardPeriod('YEAR')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">ปีนี้</button>
+          </div>
+          <button onclick="loadExecutiveDashboard()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" title="รีเฟรชข้อมูล">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-indigo-400"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ROW 1: 4 KEY METRIC CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        
+        <!-- Total Active Revenue -->
+        <div class="bg-gradient-to-br from-slate-800 to-indigo-950/40 border border-indigo-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-indigo-300 font-medium mb-2">
+            <span>ยอดขายรวมทั้งหมด (ปกติ)</span>
+            <i data-lucide="trending-up" class="w-4 h-4 text-indigo-400"></i>
+          </div>
+          <div class="text-2xl font-bold text-white font-mono" id="dash-stat-total-amount">฿0.00</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+            <span class="text-indigo-400 font-semibold" id="dash-stat-total-count">0</span> บิลที่ใช้งานอยู่
+          </div>
+        </div>
+
+        <!-- Store General -->
+        <div class="bg-gradient-to-br from-slate-800 to-amber-950/30 border border-amber-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-amber-300 font-medium mb-2">
+            <span>🏢 ร้านค้า - ทั่วไป</span>
+            <i data-lucide="store" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="text-2xl font-bold text-amber-300 font-mono" id="dash-stat-gen-amount">฿0.00</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+            <span class="text-amber-400 font-semibold" id="dash-stat-gen-count">0</span> บิล (เงินสด/เครดิตทั่วไป)
+          </div>
+        </div>
+
+        <!-- Store Government -->
+        <div class="bg-gradient-to-br from-slate-800 to-purple-950/30 border border-purple-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-purple-300 font-medium mb-2">
+            <span>🏛️ ร้านค้า - หน่วยงาน</span>
+            <i data-lucide="landmark" class="w-4 h-4 text-purple-400"></i>
+          </div>
+          <div class="text-2xl font-bold text-purple-300 font-mono" id="dash-stat-gov-amount">฿0.00</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+            <span class="text-purple-400 font-semibold" id="dash-stat-gov-count">0</span> บิล (ราชการ/มี PO)
+          </div>
+        </div>
+
+        <!-- Gas Station / Fuel -->
+        <div class="bg-gradient-to-br from-slate-800 to-teal-950/30 border border-teal-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-teal-300 font-medium mb-2">
+            <span>⛽ ปั๊มน้ำมัน</span>
+            <i data-lucide="fuel" class="w-4 h-4 text-teal-400"></i>
+          </div>
+          <div class="text-2xl font-bold text-teal-300 font-mono" id="dash-stat-fuel-amount">฿0.00</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+            <span class="text-teal-400 font-semibold" id="dash-stat-fuel-count">0</span> บิลน้ำมัน
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 2: STATUS SPLIT & REVENUE MIX -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+        
+        <!-- Status Breakdown (7 cols) -->
+        <div class="lg:col-span-7 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i>
+            <span>สถานะบิลในระบบ</span>
+          </h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <div class="text-[11px] text-amber-400 font-medium">รอวางบิล</div>
+              <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-pending-amt">฿0.00</div>
+              <div class="text-[10px] text-slate-400 mt-0.5"><span id="dash-stat-pending-cnt">0</span> บิล</div>
+            </div>
+            <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <div class="text-[11px] text-blue-400 font-medium">วางบิลแล้ว</div>
+              <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-billed-amt">฿0.00</div>
+              <div class="text-[10px] text-slate-400 mt-0.5"><span id="dash-stat-billed-cnt">0</span> บิล</div>
+            </div>
+            <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <div class="text-[11px] text-emerald-400 font-medium">ชำระแล้ว</div>
+              <div class="text-lg font-bold text-white font-mono mt-1" id="dash-stat-paid-amt">฿0.00</div>
+              <div class="text-[10px] text-slate-400 mt-0.5"><span id="dash-stat-paid-cnt">0</span> บิล</div>
+            </div>
+            <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <div class="text-[11px] text-red-400 font-medium">ขอยกเลิก/ยกเลิก</div>
+              <div class="text-lg font-bold text-red-300 font-mono mt-1" id="dash-stat-cancel-amt">฿0.00</div>
+              <div class="text-[10px] text-slate-400 mt-0.5"><span id="dash-stat-cancel-cnt">0</span> บิล</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Revenue Mix Progress (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <div>
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-400"></i>
+              <span>สัดส่วนรายได้แยก 3 หมวด (Revenue Mix)</span>
+            </h3>
+            
+            <!-- Stacked bar -->
+            <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden flex mb-4 border border-slate-700">
+              <div id="bar-mix-gen" class="bg-amber-500 h-full transition-all duration-500" style="width: 33%"></div>
+              <div id="bar-mix-gov" class="bg-purple-500 h-full transition-all duration-500" style="width: 33%"></div>
+              <div id="bar-mix-fuel" class="bg-teal-500 h-full transition-all duration-500" style="width: 34%"></div>
+            </div>
+
+            <!-- Legend -->
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                  <span class="text-slate-300">ร้านค้า (ทั่วไป)</span>
+                </div>
+                <span id="pct-mix-gen" class="font-mono text-white font-semibold">0%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-purple-500"></span>
+                  <span class="text-slate-300">ร้านค้า (หน่วยงาน)</span>
+                </div>
+                <span id="pct-mix-gov" class="font-mono text-white font-semibold">0%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-teal-500"></span>
+                  <span class="text-slate-300">ปั๊มน้ำมัน</span>
+                </div>
+                <span id="pct-mix-fuel" class="font-mono text-white font-semibold">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 3: TOP DEBTORS & CANCELLATION AUDIT LOG -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+        
+        <!-- Top Debtors (7 cols) -->
+        <div class="lg:col-span-7 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+            <h3 class="text-xs font-bold text-white flex items-center gap-2">
+              <i data-lucide="users" class="w-4 h-4 text-amber-400"></i>
+              <span>10 อันดับลูกหนี้ค้างวางบิลสูงสุด (Accounts Receivable)</span>
+            </h3>
+            <span class="text-[10px] text-slate-400">แยกยอดร้านค้า & น้ำมัน</span>
+          </div>
+
+          <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-400 border-b border-slate-700/80 pb-2">
+                <tr>
+                  <th class="py-2 px-2">ลูกค้า</th>
+                  <th class="py-2 px-2 text-right">ยอดร้านค้า</th>
+                  <th class="py-2 px-2 text-right">ยอดน้ำมัน</th>
+                  <th class="py-2 px-2 text-right font-bold text-white">ยอดค้างรวม</th>
+                </tr>
+              </thead>
+              <tbody id="dash-debtors-tbody" class="divide-y divide-slate-700/50">
+                <tr><td colspan="4" class="text-center py-8 text-slate-500">กำลังประมวลผล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Cancellation Audit Log (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+            <h3 class="text-xs font-bold text-white flex items-center gap-2">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400"></i>
+              <span>ประวัติบิลที่ขอยกเลิก (Void Audit Log)</span>
+            </h3>
+            <span id="dash-cancel-count-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-red-500/20 text-red-300 font-mono">0 บิล</span>
+          </div>
+
+          <div id="dash-cancel-list" class="space-y-2.5 overflow-y-auto max-h-[380px] flex-1 pr-1 text-xs">
+            <div class="text-center py-8 text-slate-500">ไม่มีประวัติบิลยกเลิก</div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 9. MASTER BILLS & FUEL VIEW (คลังบิลหลัก & บิลน้ำมัน) -->
+    <!-- ======================================================== -->
+    <section id="view-manager-audit" class="hidden flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+      
+      <!-- Top Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div class="flex items-center gap-3">
+          <button onclick="navigateTo('dashboard')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          </button>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl font-bold text-white tracking-wide">คลังบิลหลัก & บิลน้ำมัน</h2>
+              <span id="master-bills-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">0 บิล</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">สืบค้นบิลหลักทั้งหมด แยกตามทะเบียนพาณิชย์ และบันทึกบิลน้ำมันแมนนวล</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2">
+          <button onclick="fetchMasterBillsList()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>รีเฟรชข้อมูล</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- MASTER BILLS EXPLORER -->
+      <!-- ============================================== -->
+      <div id="panel-audit-master" class="space-y-4">
+        
+        <!-- Controls Bar -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/60 p-4 rounded-2xl border border-slate-700">
+          
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <!-- Registration Filter -->
+            <select id="filter-master-reg" onchange="fetchMasterBillsList()" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="ALL">ทุกทะเบียนพาณิชย์</option>
+              <option value="ร้านค้า">เฉพาะ: ร้านค้า</option>
+              <option value="ปั๊มน้ำมัน">เฉพาะ: ปั๊มน้ำมัน</option>
+            </select>
+
+            <!-- Status Filter -->
+            <select id="filter-master-status" onchange="fetchMasterBillsList()" class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="ALL">ทุกสถานะ</option>
+              <option value="รอวางบิล">รอวางบิล</option>
+              <option value="วางบิลแล้ว">วางบิลแล้ว</option>
+              <option value="ชำระแล้ว">ชำระแล้ว</option>
+              <option value="ยกเลิก">บิลยกเลิก</option>
+            </select>
+
+            <!-- Search -->
+            <div class="relative">
+              <input type="text" id="search-master-input" oninput="debounceMasterSearch()" placeholder="ค้นหาเลขบิล / ชื่อลูกค้า..."
+                class="pl-8 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 w-48 sm:w-64">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+            </div>
+          </div>
+
+          <!-- Add Manual Bill Button -->
+          <button onclick="openManualBillModal()" class="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-semibold rounded-xl text-xs shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>+ บันทึกบิลน้ำมัน / บิลแมนนวล</span>
+          </button>
+        </div>
+
+        <!-- Master Bills Table -->
+        <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-900/90 text-slate-400 uppercase tracking-wider border-b border-slate-700">
+                <tr>
+                  <th class="py-3 px-3.5">รหัสบิล (Bill_ID)</th>
+                  <th class="py-3 px-3">วันที่</th>
+                  <th class="py-3 px-3 text-center">ทะเบียนพาณิชย์</th>
+                  <th class="py-3 px-3">เลขที่บิลกระดาษ</th>
+                  <th class="py-3 px-4">ลูกค้า</th>
+                  <th class="py-3 px-4 text-right">จำนวนเงิน</th>
+                  <th class="py-3 px-3 text-center">รูปถ่าย</th>
+                  <th class="py-3 px-3 text-center">สถานะ</th>
+                  <th class="py-3 px-3">ผู้บันทึก</th>
+                </tr>
+              </thead>
+              <tbody id="master-bills-table-body" class="divide-y divide-slate-700/60">
+                <!-- Rendered Dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 6. BILLING NOTES & PAYMENT COLLECTION VIEW -->
+    <!-- ======================================================== -->
+    <section id="view-billing-notes" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Top Navigation & Title -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <button onclick="navigateTo('dashboard')" class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition mb-2">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>กลับสู่หน้าหลัก</span>
+          </button>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-600/20 text-violet-400 border border-violet-500/30 flex items-center justify-center">
+              <i data-lucide="receipt" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <span>ระบบออกใบวางบิล & รับชำระหนี้</span>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">การเงิน & วางบิล</span>
+              </h2>
+              <p class="text-xs text-slate-400">รวมบิลหน้าร้านและน้ำมันตามลูกหนี้ ออกใบวางบิลมาตรฐาน พิมพ์ A4 และตัดยอดบัญชีแยกฝั่งเมื่อรับเงิน</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Switcher -->
+        <div class="flex items-center p-1 rounded-xl bg-slate-800/90 border border-slate-700 text-xs">
+          <button id="btn-tab-bn-list" onclick="switchBillingTab('list')" class="px-3.5 py-2 rounded-lg font-bold bg-violet-600 text-white shadow transition flex items-center gap-1.5">
+            <i data-lucide="list" class="w-3.5 h-3.5"></i>
+            <span>รายการใบวางบิล</span>
+          </button>
+          <button id="btn-tab-bn-create" onclick="switchBillingTab('create')" class="px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-violet-400"></i>
+            <span>ออกใบวางบิลใหม่</span>
+          </button>
+          <button id="btn-tab-bn-payments" onclick="switchBillingTab('payments')" class="px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
+            <i data-lucide="credit-card" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>ประวัติรับเงิน</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 1: BILLING NOTES LIST HUB -->
+      <!-- ============================================== -->
+      <div id="panel-bn-list" class="space-y-4">
+        
+        <!-- Controls Bar -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/70 p-4 rounded-2xl border border-slate-700">
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <!-- Status Filter -->
+            <div class="flex items-center p-1 bg-slate-900 border border-slate-700 rounded-xl">
+              <button id="bn-filter-all" onclick="filterBillingNotes('ALL')" class="px-3 py-1.5 rounded-lg font-bold bg-violet-600 text-white transition">ทั้งหมด</button>
+              <button id="bn-filter-pending" onclick="filterBillingNotes('รอชำระ')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">รอชำระ</button>
+              <button id="bn-filter-paid" onclick="filterBillingNotes('ชำระแล้ว')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">ชำระแล้ว</button>
+            </div>
+
+            <!-- Search -->
+            <div class="relative">
+              <input type="text" id="search-bn-input" oninput="debounceSearchBillingNotes()" placeholder="ค้นหาเลขที่ใบวางบิล / ชื่อลูกค้า..."
+                class="pl-8 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500 w-52 sm:w-64">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="fetchBillingNotesList()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" title="รีเฟรช">
+              <i data-lucide="refresh-cw" class="w-4 h-4 text-violet-400"></i>
+            </button>
+            <button onclick="switchBillingTab('create')" class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold rounded-xl text-xs shadow-lg shadow-violet-950/40 flex items-center gap-1.5 transition">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>+ ออกใบวางบิลใหม่</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Billing Notes Table -->
+        <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-900/90 text-slate-400 uppercase tracking-wider border-b border-slate-700">
+                <tr>
+                  <th class="py-3 px-3.5 font-mono">เลขที่ใบวางบิล</th>
+                  <th class="py-3 px-3">วันที่วางบิล</th>
+                  <th class="py-3 px-3">ครบกำหนด</th>
+                  <th class="py-3 px-4">ลูกค้า</th>
+                  <th class="py-3 px-3 text-center">จำนวนบิล</th>
+                  <th class="py-3 px-3 text-right">ยอดหน้าร้าน</th>
+                  <th class="py-3 px-3 text-right">ยอดน้ำมัน</th>
+                  <th class="py-3 px-4 text-right">ยอดรวมสุทธิ</th>
+                  <th class="py-3 px-3 text-center">สถานะ</th>
+                  <th class="py-3 px-3 text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="billing-notes-table-body" class="divide-y divide-slate-700/60">
+                <tr><td colspan="10" class="py-12 text-center text-slate-500">กำลังโหลดรายการใบวางบิล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: CREATE NEW BILLING NOTE WIZARD -->
+      <!-- ============================================== -->
+      <div id="panel-bn-create" class="hidden space-y-6">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- LEFT 8 COLS: CUSTOMER SELECTOR & PENDING BILLS LIST -->
+          <div class="lg:col-span-8 space-y-4">
+            
+            <!-- Step 1: Select Customer -->
+            <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5 shadow-xl">
+              <div class="flex items-center justify-between mb-3">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded-full bg-violet-600 text-white flex items-center justify-center text-[10px]">1</span>
+                  <span>เลือกลูกค้าสำหรับออกใบวางบิล *</span>
+                </label>
+                <span class="text-[11px] text-slate-400">ค้นหาจาก 294 รายชื่อลูกค้า</span>
+              </div>
+
+              <div class="relative">
+                <input type="text" id="bn-cust-search" autocomplete="off" oninput="handleBNCustSearch(event)"
+                  placeholder="พิมพ์รหัส (C0010) หรือชื่อลูกค้า / หน่วยงาน / เสี่ย..."
+                  class="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/50">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+
+                <!-- Dropdown results -->
+                <div id="bn-cust-dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 max-h-56 overflow-y-auto bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 divide-y divide-slate-800"></div>
+
+                <!-- Selected Customer Pill -->
+                <div id="bn-selected-cust-pill" class="hidden mt-2 p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span id="bn-pill-id" class="px-2 py-0.5 rounded font-mono text-xs bg-violet-500/20 text-violet-300 font-bold"></span>
+                    <span id="bn-pill-name" class="text-sm font-semibold text-white"></span>
+                  </div>
+                  <button type="button" onclick="clearBNCustSelection()" class="text-xs text-violet-400 hover:text-violet-300 underline font-medium">เปลี่ยนลูกค้า</button>
+                </div>
+
+                <input type="hidden" id="bn-selected-cust-id">
+                <input type="hidden" id="bn-selected-cust-name">
+              </div>
+            </div>
+
+            <!-- Step 2: Bills Pending Billing -->
+            <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5 shadow-xl">
+              <div class="flex items-center justify-between mb-3">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded-full bg-violet-600 text-white flex items-center justify-center text-[10px]">2</span>
+                  <span>เลือกบิลที่ต้องการรวมในใบวางบิล (สถานะ: รอวางบิล)</span>
+                </label>
+                <div class="flex items-center gap-2">
+                  <label class="cursor-pointer text-xs text-slate-300 hover:text-white flex items-center gap-1.5 select-none">
+                    <input type="checkbox" id="bn-check-all" onchange="toggleSelectAllBNBills(this)" class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 text-violet-600 focus:ring-0">
+                    <span>เลือกทั้งหมด</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Pending Bills Table -->
+              <div class="overflow-x-auto border border-slate-700/60 rounded-xl">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-900/90 text-slate-400 border-b border-slate-700">
+                    <tr>
+                      <th class="py-2.5 px-3 w-8 text-center">เลือก</th>
+                      <th class="py-2.5 px-3 font-mono">รหัสบิล</th>
+                      <th class="py-2.5 px-3">วันที่</th>
+                      <th class="py-2.5 px-3 text-center">ประเภท</th>
+                      <th class="py-2.5 px-3">เลขที่บิล / PO</th>
+                      <th class="py-2.5 px-3 text-right">จำนวนเงิน</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bn-pending-bills-table-body" class="divide-y divide-slate-700/60">
+                    <tr>
+                      <td colspan="6" class="py-10 text-center text-slate-500">
+                        <i data-lucide="user-check" class="w-6 h-6 mx-auto mb-1 opacity-40"></i>
+                        <span>กรุณาเลือกลูกค้าในขั้นตอนที่ 1 เพื่อดึงรายการบิลที่รอวางบิล</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT 4 COLS: LIVE CALCULATION & SUBMIT FORM -->
+          <div class="lg:col-span-4 space-y-4">
+            
+            <div class="bg-gradient-to-br from-slate-800 to-violet-950/40 border border-violet-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-violet-300 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-full bg-violet-600 text-white flex items-center justify-center text-[10px]">3</span>
+                <span>สรุปยอดเงินและข้อมูลวางบิล</span>
+              </h3>
+
+              <!-- Live split boxes -->
+              <div class="space-y-2 pt-1">
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/60 text-xs">
+                  <span class="text-slate-400">จำนวนบิลที่เลือก</span>
+                  <span class="font-bold text-white font-mono text-sm" id="bn-calc-count">0 บิล</span>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                  <span class="text-amber-300">🏢 ยอดฝั่งร้านค้า (ทั่วไป/หน่วยงาน)</span>
+                  <span class="font-bold text-amber-300 font-mono text-sm" id="bn-calc-store">฿0.00</span>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs">
+                  <span class="text-teal-300">⛽ ยอดฝั่งปั๊มน้ำมัน</span>
+                  <span class="font-bold text-teal-300 font-mono text-sm" id="bn-calc-fuel">฿0.00</span>
+                </div>
+                <div class="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-violet-500/40">
+                  <span class="text-xs font-bold text-violet-200">ยอดรวมสุทธิทั้งสิ้น</span>
+                  <span class="text-lg font-bold text-white font-mono" id="bn-calc-total">฿0.00</span>
+                </div>
+              </div>
+
+              <!-- Form Inputs -->
+              <form id="form-create-billing-note" onsubmit="handleCreateBillingNoteSubmit(event)" class="space-y-3 pt-2 text-xs">
+                <div>
+                  <label class="block font-medium text-slate-300 mb-1">วันที่วางบิล *</label>
+                  <input type="text" id="bn-input-date" required placeholder="วว/ดด/ปปปป"
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:ring-1 focus:ring-violet-500">
+                </div>
+
+                <div>
+                  <label class="block font-medium text-slate-300 mb-1">วันครบกำหนดชำระ (Due Date) *</label>
+                  <input type="text" id="bn-input-due-date" required placeholder="วว/ดด/ปปปป"
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:ring-1 focus:ring-violet-500">
+                </div>
+
+                <div>
+                  <label class="block font-medium text-slate-300 mb-1">หมายเหตุในใบวางบิล</label>
+                  <textarea id="bn-input-notes" rows="2" placeholder="เช่น เครดิต 15 วัน, ส่งเอกสารพร้อมใบกำกับ..."
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500"></textarea>
+                </div>
+
+                <button type="submit" id="btn-submit-create-bn" class="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-violet-950/50 flex items-center justify-center gap-2 transition">
+                  <i data-lucide="file-check" class="w-4 h-4"></i>
+                  <span>ยืนยันสร้างใบวางบิล</span>
+                </button>
+              </form>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 3: PAYMENTS HISTORY HUB -->
+      <!-- ============================================== -->
+      <div id="panel-bn-payments" class="hidden space-y-4">
+        <div class="flex items-center justify-between bg-slate-800/70 p-4 rounded-2xl border border-slate-700">
+          <div>
+            <h3 class="text-sm font-bold text-white">ประวัติการรับชำระเงินและการตัดยอดบัญชี</h3>
+            <p class="text-xs text-slate-400">บันทึกการโอนเงินชำระหนี้จากชีต PAYMENTS พร้อมแยกยอดตัดบัญชีร้านค้าและปั๊มน้ำมัน</p>
+          </div>
+          <button onclick="fetchPaymentsList()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>รีเฟรช</span>
+          </button>
+        </div>
+
+        <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-900/90 text-slate-400 uppercase tracking-wider border-b border-slate-700">
+                <tr>
+                  <th class="py-3 px-3.5 font-mono">เลขที่รับเงิน</th>
+                  <th class="py-3 px-3">วันที่รับเงิน</th>
+                  <th class="py-3 px-3 font-mono">เลขที่ใบวางบิล</th>
+                  <th class="py-3 px-4">ลูกค้า</th>
+                  <th class="py-3 px-3 text-right">ยอดรับชำระ</th>
+                  <th class="py-3 px-3 text-right text-amber-300">ตัดบัญชีร้านค้า</th>
+                  <th class="py-3 px-3 text-right text-teal-300">ตัดบัญชีน้ำมัน</th>
+                  <th class="py-3 px-3">ธนาคาร</th>
+                  <th class="py-3 px-3 text-center">สลิป</th>
+                  <th class="py-3 px-3">ผู้บันทึก</th>
+                </tr>
+              </thead>
+              <tbody id="payments-table-body" class="divide-y divide-slate-700/60">
+                <tr><td colspan="10" class="py-10 text-center text-slate-500">กำลังโหลดประวัติการรับเงิน...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
   </main>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PRINTABLE BILLING NOTE VOUCHER (A4) -->
+  <!-- ======================================================== -->
+  <div id="modal-billing-voucher" class="hidden fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto">
+    <div class="relative w-full max-w-4xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[96vh] my-auto overflow-hidden">
+      
+      <!-- Modal Toolbar (No Print) -->
+      <div class="no-print flex items-center justify-between p-4 bg-slate-800 border-b border-slate-700">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-600/20 text-violet-300 border border-violet-500/30">ใบวางบิลทางการ</span>
+          <span id="voucher-header-title" class="text-xs text-slate-300 font-mono">BN-XXXX</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="window.print()" class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-violet-950/50 flex items-center gap-1.5 transition">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>พิมพ์เอกสาร (A4 / PDF)</span>
+          </button>
+          <button onclick="closeBillingVoucherModal()" class="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Area (White A4 Canvas) -->
+      <div class="overflow-y-auto p-4 sm:p-8 bg-slate-950/40 flex justify-center">
+        <div id="printable-voucher-area" class="w-full max-w-3xl bg-white text-slate-900 rounded-xl p-8 shadow-2xl border border-slate-200 text-xs leading-relaxed font-sans">
+          <!-- Dynamic Content rendered by app.js -->
+          <div id="voucher-render-target">กำลังเตรียมเอกสาร...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: RECORD PAYMENT & ACCOUNT SETTLEMENT -->
+  <!-- ======================================================== -->
+  <div id="modal-record-payment" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm overflow-y-auto">
+    <div class="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl relative my-auto">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="credit-card" class="w-5 h-5 text-emerald-400"></i>
+          <span>บันทึกรับชำระเงิน & ตัดยอดบัญชี</span>
+        </h3>
+        <button onclick="closePaymentModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Billing Note Quick Summary -->
+      <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-700 mb-4 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">เลขที่ใบวางบิล:</span>
+          <span id="pay-modal-bn-no" class="font-mono font-bold text-white text-sm">BN-XXXX</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">ลูกค้า:</span>
+          <span id="pay-modal-customer" class="font-semibold text-white">...</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">ยอดที่ต้องชำระ:</span>
+          <span id="pay-modal-grand-total" class="font-bold text-amber-400 font-mono text-base">฿0.00</span>
+        </div>
+        <!-- Auto Split Preview -->
+        <div class="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-[11px]">
+          <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
+            <div>ตัดยอดบัญชีร้านค้า:</div>
+            <strong id="pay-modal-split-store" class="font-mono text-xs">฿0.00</strong>
+          </div>
+          <div class="p-2 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-300">
+            <div>ตัดยอดบัญชีน้ำมัน:</div>
+            <strong id="pay-modal-split-fuel" class="font-mono text-xs">฿0.00</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Form -->
+      <form id="form-record-payment" onsubmit="handlePaymentSubmit(event)" class="space-y-4 text-xs">
+        <input type="hidden" id="pay-hidden-bn-no">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">วันที่รับเงิน *</label>
+            <input type="text" id="pay-date" required placeholder="วว/ดด/ปปปป"
+              class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">ยอดเงินที่รับชำระ (บาท) *</label>
+            <input type="number" step="0.01" min="0" id="pay-amount" required
+              class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-emerald-400 font-bold font-mono text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">ช่องทาง / ธนาคารที่รับโอน *</label>
+          <select id="pay-bank" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            <option value="ธนาคารกสิกรไทย">ธนาคารกสิกรไทย</option>
+            <option value="ธนาคารกรุงไทย">ธนาคารกรุงไทย</option>
+            <option value="ธนาคารไทยพาณิชย์">ธนาคารไทยพาณิชย์</option>
+            <option value="ธนาคารกรุงเทพ">ธนาคารกรุงเทพ</option>
+            <option value="เงินสด">เงินสดหน้าร้าน</option>
+          </select>
+        </div>
+
+        <!-- Slip image upload -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">แนบสลิปโอนเงิน (ถ้ามี)</label>
+          <input type="file" id="pay-slip-input" accept="image/*" onchange="handleSlipFileChange(event)"
+            class="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer">
+          <div id="pay-slip-preview-box" class="hidden mt-2 p-2 bg-slate-900 rounded-xl border border-slate-700 flex items-center justify-between">
+            <span class="text-emerald-400 text-xs flex items-center gap-1">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+              <span>แนบรูปสลิปแล้ว</span>
+            </span>
+            <button type="button" onclick="clearSlipPreview()" class="text-red-400 hover:underline">ลบรูป</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">หมายเหตุการรับเงิน</label>
+          <textarea id="pay-notes" rows="2" placeholder="เช่น โอนครบถ้วน, หักภาษี ณ ที่จ่าย 1%..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-700">
+          <button type="button" onclick="closePaymentModal()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300">ยกเลิก</button>
+          <button type="submit" id="btn-confirm-payment" class="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-950/40 flex items-center gap-1.5 transition">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            <span>ยืนยันรับชำระ & ตัดยอดบัญชี</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
 
   <!-- ======================================================== -->
   <!-- MODAL: ADD / EDIT USER -->
@@ -548,6 +1556,152 @@
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- MODAL: CANCEL / VOID BILL (ขอยกเลิกบิล) -->
+  <!-- ======================================================== -->
+  <div id="modal-cancel-bill" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-md bg-slate-800 border border-red-500/40 rounded-2xl p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          </div>
+          <span>ยืนยันการขอยกเลิกบิล</span>
+        </h3>
+        <button onclick="closeCancelModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-300 space-y-3 mb-5">
+        <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300">
+          <div class="font-semibold mb-0.5">คุณกำลังจะยกเลิกบิลรหัส: <span id="cancel-bill-id-display" class="font-mono text-white font-bold">-</span></div>
+          <div class="text-[11px] text-slate-300 mt-1">เมื่อยกเลิกแล้ว บิลนี้จะไม่ถูกนำไปคิดยอดในใบวางบิล หากข้อมูลผิดพลาด กรุณาระบุเหตุผลแล้วบันทึกบิลใบใหม่ที่ถูกต้อง</div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">เหตุผลในการขอยกเลิก *</label>
+          <textarea id="cancel-bill-reason" rows="3" required placeholder="เช่น บันทึกยอดเงินผิด, เลือกลูกค้าผิดคน, ขอยกเลิกเพื่อบันทึกใหม่..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-red-500/50"></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-700">
+        <button type="button" onclick="closeCancelModal()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs text-slate-300 transition">
+          ยกเลิก (ไม่ทำรายการ)
+        </button>
+        <button type="button" id="btn-confirm-cancel-bill" onclick="submitCancelBill()" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-semibold text-white shadow-lg shadow-red-950/50 transition flex items-center gap-1.5">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          <span>ยืนยันยกเลิกบิลนี้</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: ADD MANUAL MASTER BILL (Manager: Fuel / Backdated) -->
+  <!-- ======================================================== -->
+  <div id="modal-manual-master" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
+          <span>บันทึกบิลเข้าคลังหลัก (Master Bills)</span>
+        </h3>
+        <button onclick="closeManualBillModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-manual-master" onsubmit="handleSaveManualMaster(event)" class="space-y-4 text-xs">
+        
+        <!-- Registration selector -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">ทะเบียนพาณิชย์ *</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-900">
+              <input type="radio" name="manualReg" value="ปั๊มน้ำมัน" checked class="w-4 h-4 text-emerald-500 bg-slate-800 border-slate-600">
+              <span class="font-semibold text-white">ปั๊มน้ำมัน (บิลน้ำมัน)</span>
+            </label>
+            <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-900">
+              <input type="radio" name="manualReg" value="ร้านค้า" class="w-4 h-4 text-emerald-500 bg-slate-800 border-slate-600">
+              <span class="font-semibold text-white">ร้านค้า (หน้าร้าน)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">วันที่บิล *</label>
+            <input type="text" id="manual-date" required placeholder="วว/ดด/ปปปป" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">เลขที่บิลกระดาษ / Ref *</label>
+            <input type="text" id="manual-bill-ref" required placeholder="เช่น WD5-22, BIL-99" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono">
+          </div>
+        </div>
+
+        <!-- Customer selector -->
+        <div class="relative">
+          <label class="block font-medium text-slate-300 mb-1">เลือกลูกค้า (294 รายชื่อ) *</label>
+          <input type="text" id="manual-cust-search" autocomplete="off" oninput="handleManualCustSearch(event)" placeholder="พิมพ์รหัส (C0010) หรือชื่อลูกค้า..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
+          
+          <div id="manual-cust-dropdown" class="hidden absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 divide-y divide-slate-800">
+            <!-- suggestions -->
+          </div>
+
+          <div id="manual-selected-cust-pill" class="hidden mt-1.5 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+            <span id="manual-pill-text" class="text-white font-medium"></span>
+            <button type="button" onclick="clearManualCustSelection()" class="text-emerald-400 hover:underline">เปลี่ยน</button>
+          </div>
+
+          <input type="hidden" id="manual-cust-id" required>
+          <input type="hidden" id="manual-cust-name" required>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">จำนวนเงิน (บาท) *</label>
+          <input type="number" step="0.01" min="0" id="manual-amount" required placeholder="0.00" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-amber-400 font-bold font-mono text-sm">
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">หมายเหตุ</label>
+          <textarea id="manual-notes" rows="2" placeholder="เช่น รายการน้ำมันดีเซล, ทะเบียนรถ, หมายเหตุ..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-700">
+          <button type="button" onclick="closeManualBillModal()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium">ยกเลิก</button>
+          <button type="submit" id="btn-save-manual-bill" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>บันทึกเข้า Master</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: IMAGE VIEWER / LIGHTBOX -->
+  <!-- ======================================================== -->
+  <div id="modal-image-viewer" onclick="closeImageViewer()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md cursor-zoom-out">
+    <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between w-full mb-2 px-2">
+        <span id="viewer-title" class="text-xs font-mono text-slate-300">รูปภาพบิล</span>
+        <div class="flex items-center gap-2">
+          <a id="viewer-open-link" href="#" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-white flex items-center gap-1">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span>เปิดเต็มจอ</span>
+          </a>
+          <button onclick="closeImageViewer()" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+      <img id="viewer-img" src="" alt="บิล" class="max-h-[80vh] w-auto rounded-xl shadow-2xl border border-slate-700 object-contain">
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer class="mt-auto border-t border-slate-800/80 bg-slate-950/60 py-4 text-center text-xs text-slate-500">
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -565,6 +1719,6 @@
     <span id="toast-msg">ข้อความแจ้งเตือน</span>
   </div>
 
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js?v=2.0.1"></script>
 </body>
 </html>
