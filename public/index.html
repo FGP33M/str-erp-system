@@ -136,42 +136,178 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
 
-  <!-- TOP NAVIGATION BAR -->
-  <header id="app-header" class="hidden sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <!-- Logo & Brand -->
-      <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('dashboard')">
-        <div id="brand-logo-text" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-600 to-rose-500 flex items-center justify-center shadow-lg shadow-pink-950/60 text-white font-bold text-sm tracking-wider">
-          สหธรรม
-        </div>
-        <div>
-          <div class="font-bold text-base tracking-wide">
-            <span id="brand-title">สหธรรม ERP</span>
+  <!-- TOP NAVIGATION BAR (Cobalt Blue CI) -->
+  <header id="app-header" class="hidden sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-md">
+    <div class="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Left: Hamburger + Logo & Brand -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button id="btn-sidebar-toggle" onclick="toggleSidebar()" class="p-2 -ml-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center justify-center" title="สลับแถบเมนูข้าง (Sidebar)">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-center gap-2.5 cursor-pointer" onclick="navigateTo('dashboard')">
+          <div id="brand-logo-text" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-950/60 text-white font-bold text-sm tracking-wider border border-blue-400/30">
+            สหธรรม
           </div>
-          <p id="brand-subtitle" class="text-xs text-slate-400">ระบบบริหารจัดการร้านค้า & บัญชีใบส่งของ</p>
+          <div>
+            <div class="font-bold text-base tracking-wide flex items-center gap-2">
+              <span id="brand-title" class="text-white">สหธรรม ERP</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600/20 text-blue-300 border border-blue-500/30 font-mono hidden sm:inline-block">COBALT CI</span>
+            </div>
+            <p id="brand-subtitle" class="text-[11px] text-slate-400 hidden sm:block">ระบบบริหารจัดการร้านค้า & บัญชีใบส่งของ</p>
+          </div>
         </div>
       </div>
 
       <!-- User Info & Action -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Date display -->
+        <div class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 font-mono">
+          <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-400"></i>
+          <span id="nav-live-date">วันนี้</span>
+        </div>
+
         <!-- Role Badge -->
-        <div id="nav-user-badge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-medium">
+        <div id="nav-user-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-medium">
           <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
           <span id="nav-user-name" class="text-slate-200">User</span>
           <span id="nav-user-role" class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-slate-700 text-slate-300">Role</span>
         </div>
 
         <!-- Logout Button -->
-        <button onclick="handleLogout()" title="ออกจากระบบ" class="p-2 rounded-lg bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/30 transition duration-150 flex items-center gap-1.5 text-xs font-medium">
+        <button onclick="handleLogout()" title="ออกจากระบบ" class="p-2 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/30 transition duration-150 flex items-center gap-1.5 text-xs font-medium">
           <i data-lucide="log-out" class="w-4 h-4"></i>
-          <span class="hidden md:inline">ออกจากระบบ</span>
+          <span class="hidden lg:inline">ออกจากระบบ</span>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- MAIN APP CONTAINER -->
-  <main class="flex-1 flex flex-col">
+  <!-- APP BODY WRAPPER (SIDEBAR + MAIN CONTENT) -->
+  <div id="app-body-container" class="flex-1 flex overflow-hidden relative">
+
+    <!-- COLLAPSIBLE ENTERPRISE SIDEBAR (Cobalt Blue CI) -->
+    <aside id="app-sidebar" class="hidden fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex-col transition-all duration-300 transform -translate-x-full lg:translate-x-0 lg:flex lg:static lg:z-30 shadow-2xl lg:shadow-none flex-shrink-0 select-none">
+      
+      <!-- Mobile Drawer Close Header -->
+      <div class="h-16 px-4 border-b border-slate-800 flex items-center justify-between lg:hidden">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-xs">STR</div>
+          <span class="font-bold text-sm text-white">เมนูระบบ ERP</span>
+        </div>
+        <button onclick="toggleSidebar(false)" class="p-2 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quick Home Dashboard Button -->
+      <div class="p-3 border-b border-slate-800/80">
+        <button onclick="navigateSidebar('dashboard')" id="side-item-dashboard"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600/20 border border-blue-500/30 transition group">
+          <div class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center transition shadow">
+            <i data-lucide="layout-grid" class="w-4 h-4"></i>
+          </div>
+          <span>หน้าหลักแดชบอร์ด</span>
+        </button>
+      </div>
+
+      <!-- Scrollable Navigation Items -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-5 text-xs">
+
+        <!-- 1. SALES & INVENTORY -->
+        <div id="side-group-sales" class="space-y-1">
+          <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">งานขาย & คลังสินค้า</div>
+          <button onclick="navigateSidebar('search')" id="side-item-search"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="search" class="w-4 h-4 text-blue-400 flex-shrink-0"></i>
+            <span>ค้นหาสินค้า & สต็อก</span>
+          </button>
+          <button onclick="navigateSidebar('delivery-bill')" id="side-item-delivery-bill"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="clipboard-list" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
+            <span>บันทึกใบส่งของ / เปิดบิล</span>
+          </button>
+          <button onclick="navigateSidebar('manager-audit')" id="side-item-manager-audit"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="database" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
+            <span>ทะเบียนบิลส่งของ</span>
+          </button>
+        </div>
+
+        <!-- 2. FINANCE & BILLING -->
+        <div id="side-group-finance" class="space-y-1">
+          <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">การเงิน & ลูกหนี้การค้า</div>
+          <button onclick="navigateSidebar('daily-revenue')" id="side-item-daily-revenue"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="wallet" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
+            <span>ปิดกะ & รายรับหน้าร้าน</span>
+          </button>
+          <button onclick="navigateSidebar('billing-notes')" id="side-item-billing-notes"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="receipt" class="w-4 h-4 text-violet-400 flex-shrink-0"></i>
+            <span>วางบิล & ลูกหนี้การค้า</span>
+          </button>
+          <button onclick="navigateSidebarReceipts()" id="side-item-receipts"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="receipt-text" class="w-4 h-4 text-sky-400 flex-shrink-0"></i>
+            <span>คลังใบเสร็จรับเงิน</span>
+          </button>
+        </div>
+
+        <!-- 3. EXECUTIVE & ANALYTICS -->
+        <div id="side-group-analytics" class="space-y-1">
+          <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">บริหาร & รายงาน</div>
+          <button onclick="navigateSidebar('executive-dashboard')" id="side-item-executive-dashboard"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="layout-dashboard" class="w-4 h-4 text-indigo-400 flex-shrink-0"></i>
+            <span>ศูนย์บริหารข้อมูลธุรกิจ</span>
+          </button>
+        </div>
+
+        <!-- 4. SYSTEM & SECURITY -->
+        <div id="side-group-system" class="space-y-1">
+          <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">ระบบ & ความปลอดภัย</div>
+          <button onclick="navigateSidebar('users')" id="side-item-users"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="users" class="w-4 h-4 text-cyan-400 flex-shrink-0"></i>
+            <span id="side-title-users">จัดการผู้ใช้งาน & สิทธิ์</span>
+          </button>
+          <button onclick="navigateSidebar('logs')" id="side-item-logs"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="shield-check" class="w-4 h-4 text-indigo-400 flex-shrink-0"></i>
+            <span>บันทึกความปลอดภัยระบบ</span>
+          </button>
+          <button onclick="navigateSidebar('settings')" id="side-item-settings"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition text-left">
+            <i data-lucide="store" class="w-4 h-4 text-pink-400 flex-shrink-0"></i>
+            <span>ข้อมูลกิจการ & เอกสาร</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Sidebar Footer User Profile Card -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <div class="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold flex-shrink-0">
+            <i data-lucide="user" class="w-4 h-4"></i>
+          </div>
+          <div class="truncate">
+            <div id="side-user-name" class="font-bold text-white truncate">User</div>
+            <div id="side-user-role" class="text-[10px] text-slate-400 font-mono">Role</div>
+          </div>
+        </div>
+        <button onclick="handleLogout()" title="ออกจากระบบ" class="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- SIDEBAR BACKDROP FOR MOBILE -->
+    <div id="sidebar-backdrop" onclick="toggleSidebar(false)" class="hidden fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm lg:hidden transition-opacity"></div>
+
+    <!-- MAIN SCROLLABLE WORKSPACE -->
+    <main id="app-main-workspace" class="flex-1 flex flex-col min-w-0 overflow-y-auto">
 
     <!-- ======================================================== -->
     <!-- 1. LOGIN VIEW -->
@@ -231,204 +367,330 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- 2. DASHBOARD / MAIN MENU VIEW -->
+    <!-- 2. DASHBOARD / MAIN MISSION CONTROL VIEW -->
     <!-- ======================================================== -->
-    <section id="view-dashboard" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-      <!-- Welcome Banner -->
-      <div class="bg-gradient-to-r from-slate-800 via-slate-800 to-blue-950/40 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl relative overflow-hidden">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <section id="view-dashboard" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+      
+      <!-- Executive Welcome & Quick Mission Banner -->
+      <div class="bg-gradient-to-r from-blue-950/70 via-slate-900 to-slate-900 border border-blue-600/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-semibold uppercase tracking-wider text-blue-400">ยินดีต้อนรับสู่ระบบ</span>
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                <span>สหธรรม ERP • ศูนย์บริหารจัดการ</span>
+              </span>
               <span id="dash-role-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/30">Role</span>
             </div>
-            <h2 id="dash-welcome-name" class="text-2xl font-bold text-white">คุณผู้ใช้งาน</h2>
+            <h2 id="dash-welcome-name" class="text-xl sm:text-2xl font-black text-white tracking-wide">คุณผู้ใช้งาน</h2>
             <p id="dash-role-desc" class="text-xs sm:text-sm text-slate-400 mt-1">สิทธิ์ปัจจุบัน: กำลังโหลด...</p>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="navigateTo('search')" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-blue-950/50 flex items-center gap-2">
+            <span id="menu-scope-badge" class="px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-300 font-medium">เมนูตามสิทธิ์</span>
+            <button onclick="navigateTo('search')" class="px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-lg shadow-blue-950/50 flex items-center gap-2">
               <i data-lucide="search" class="w-4 h-4"></i>
-              <span>ค้นหาข้อมูลสินค้า</span>
+              <span>ค้นหาสินค้าด่วน</span>
             </button>
           </div>
         </div>
+
+        <!-- Quick Access KPI Bar -->
+        <div id="dash-quick-kpi-bar" class="mt-5 pt-4 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div onclick="navigateTo('billing-notes')" class="p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/70 hover:border-violet-500/40 cursor-pointer transition flex items-center justify-between group">
+            <div class="flex items-center gap-2 truncate">
+              <div class="w-6 h-6 rounded-lg bg-violet-600/20 text-violet-400 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="receipt" class="w-3.5 h-3.5"></i>
+              </div>
+              <span class="text-slate-300 font-medium truncate">วางบิล & รับเงิน</span>
+            </div>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-violet-400 group-hover:translate-x-0.5 transition flex-shrink-0"></i>
+          </div>
+
+          <div onclick="navigateTo('daily-revenue')" class="p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/70 hover:border-emerald-500/40 cursor-pointer transition flex items-center justify-between group">
+            <div class="flex items-center gap-2 truncate">
+              <div class="w-6 h-6 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
+              </div>
+              <span class="text-slate-300 font-medium truncate">ปิดกะรายรับหน้าร้าน</span>
+            </div>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition flex-shrink-0"></i>
+          </div>
+
+          <div onclick="navigateSidebarReceipts()" class="p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/70 hover:border-sky-500/40 cursor-pointer transition flex items-center justify-between group">
+            <div class="flex items-center gap-2 truncate">
+              <div class="w-6 h-6 rounded-lg bg-sky-600/20 text-sky-400 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="receipt-text" class="w-3.5 h-3.5"></i>
+              </div>
+              <span class="text-slate-300 font-medium truncate">คลังใบเสร็จรับเงิน</span>
+            </div>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 group-hover:translate-x-0.5 transition flex-shrink-0"></i>
+          </div>
+
+          <div onclick="navigateTo('manager-audit')" class="p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/70 hover:border-blue-500/40 cursor-pointer transition flex items-center justify-between group">
+            <div class="flex items-center gap-2 truncate">
+              <div class="w-6 h-6 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="database" class="w-3.5 h-3.5"></i>
+              </div>
+              <span class="text-slate-300 font-medium truncate">ทะเบียนบิลส่งของ</span>
+            </div>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition flex-shrink-0"></i>
+          </div>
+        </div>
       </div>
 
-      <!-- Menu Grid Header -->
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-bold text-slate-200">เมนูการทำงาน</h3>
-        <span id="menu-scope-badge" class="text-xs text-slate-400">เมนูตามสิทธิ์การเข้าใช้งาน</span>
+      <!-- 4 STRUCTURED CATEGORIES -->
+
+      <!-- ============================================== -->
+      <!-- SECTION 1: SALES & INVENTORY -->
+      <!-- ============================================== -->
+      <div id="section-sales-inventory" class="space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+              <i data-lucide="package" class="w-3.5 h-3.5"></i>
+            </div>
+            <span>งานขายและคลังสินค้า (Sales & Inventory)</span>
+          </h3>
+          <span class="text-[11px] text-slate-400">ค้นหาสต็อกสินค้า, บันทึกใบส่งของ, และทะเบียนบิล</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- CARD 1: PRODUCT SEARCH -->
+          <div id="card-menu-search" onclick="navigateTo('search')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition duration-200">
+                  <i data-lucide="search" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/30">พร้อมใช้งาน</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-blue-400 transition">ค้นหาสินค้า & สต็อก</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">ตรวจสอบจำนวนคงเหลือ ตำแหน่งจัดเก็บ และราคาขาย 3,000+ รายการ</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-blue-300">
+              <span class="text-[11px] text-blue-400 font-medium">เข้าสู่ระบบค้นหาสินค้า</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- CARD 2: DELIVERY BILL ENTRY -->
+          <div id="card-menu-delivery-bill" onclick="navigateTo('delivery-bill')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-slate-950 transition duration-200">
+                  <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">พร้อมใช้งาน</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-amber-400 transition">บันทึกใบส่งของ / เปิดบิล</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">บันทึกรายการส่งสินค้าหน้าร้านและหน่วยงานราชการ พร้อมแนบรูปถ่ายบิล</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-amber-300">
+              <span class="text-[11px] text-amber-400 font-medium">เข้าสู่ระบบบันทึกบิล</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- CARD 3: MASTER BILLS REGISTRY -->
+          <div id="card-menu-master" onclick="navigateTo('manager-audit')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-slate-950 transition duration-200">
+                  <i data-lucide="database" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ทะเบียนหลัก</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-emerald-400 transition">ทะเบียนบิลส่งของ</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">สืบค้นประวัติใบส่งของทั้งหมด แยกตามทะเบียนพาณิชย์ และบันทึกบิลน้ำมัน</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
+              <span class="text-[11px] text-emerald-400 font-medium">เปิดทะเบียนบิล</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Grid Cards -->
-      <div id="dashboard-menu-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        
-        <!-- CARD 1: PRODUCT SEARCH (Everyone sees this) -->
-        <div id="card-menu-search" onclick="navigateTo('search')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-blue-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-950/50 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/30">พร้อมใช้งาน</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="search" class="w-6 h-6"></i>
+      <!-- ============================================== -->
+      <!-- SECTION 2: FINANCE & BILLING -->
+      <!-- ============================================== -->
+      <div id="section-finance-billing" class="space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+              <i data-lucide="banknote" class="w-3.5 h-3.5"></i>
             </div>
-            <h4 class="text-base font-bold text-white group-hover:text-blue-400 transition">ค้นหาข้อมูลสินค้า</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">ค้นหาอะไหล่ 3,000 รายการ ดูตำแหน่งชั้นวาง สต็อก และราคาขาย</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-blue-300">
-            <span class="text-xs text-blue-400 font-medium">เข้าสู่ระบบค้นหาสินค้า</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </div>
+            <span>การเงินและลูกหนี้การค้า (Finance & Accounts Receivable)</span>
+          </h3>
+          <span class="text-[11px] text-slate-400">ปิดกะเงินสด, วางบิลลูกหนี้, ตัดยอดบัญชี, และออกใบเสร็จรับเงิน</span>
         </div>
 
-        <!-- CARD 2: DELIVERY BILL ENTRY (บันทึกใบส่งของ - Everyone sees this) -->
-        <div id="card-menu-delivery-bill" onclick="navigateTo('delivery-bill')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-950/40 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">พร้อมใช้งาน</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- CARD 4: DAILY CASH SETTLEMENT -->
+          <div id="card-menu-revenue" onclick="navigateTo('daily-revenue')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-slate-950 transition duration-200">
+                  <i data-lucide="wallet" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ปิดกะประจำวัน</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-emerald-400 transition">ปิดกะ & รายรับหน้าร้าน</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">สรุปเงินสดเข้าเซฟ, เงินทอน 7,500, เงินโอน, หักค่าแรงช่าง และปิดยอดประจำวัน</p>
             </div>
-            <h4 class="text-base font-bold text-white group-hover:text-amber-400 transition">บันทึกใบส่งของ</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">บันทึกบิลกระดาษ แยกส่วนทั่วไปและราชการ บันทึกตรงเข้าสถานะรอวางบิล</p>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
+              <span class="text-[11px] text-emerald-400 font-medium">เปิดระบบบันทึกรายรับ</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
           </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-amber-300">
-            <span class="text-xs text-amber-400 font-medium">เข้าสู่ระบบบันทึกบิล</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+
+          <!-- CARD 5: BILLING & AR COLLECTION -->
+          <div id="card-menu-billing" onclick="navigateTo('billing-notes')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-violet-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-violet-600 group-hover:text-white transition duration-200">
+                  <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">วางบิล & บัญชี</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-violet-400 transition">วางบิล & ลูกหนี้การค้า</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">จัดชุดรวมบิลหน้าร้านและน้ำมัน ออกใบวางบิล A4 และตัดรับชำระแยกบัญชี</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-violet-300">
+              <span class="text-[11px] text-violet-400 font-medium">จัดการใบวางบิล</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- CARD 6: OFFICIAL RECEIPTS HUB (Phase 6) -->
+          <div id="card-menu-receipts" onclick="navigateSidebarReceipts()" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-sky-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-sky-500 group-hover:text-slate-950 transition duration-200">
+                  <i data-lucide="receipt-text" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">คลังใบเสร็จ</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-sky-400 transition">คลังใบเสร็จรับเงิน</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">สืบค้นใบเสร็จรับเงินทางการ พิมพ์ต้นฉบับ/สำเนา A4 และออกใบเสร็จเงินสด</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-sky-300">
+              <span class="text-[11px] text-sky-400 font-medium">เปิดคลังใบเสร็จ</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
           </div>
         </div>
-
-        <!-- CARD 3: EXECUTIVE DASHBOARD (Manager & Admin only) -->
-        <div id="card-menu-executive" onclick="navigateTo('executive-dashboard')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-950/40 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4 flex items-center gap-1.5">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ภาพรวมธุรกิจ</span>
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">ผู้บริหาร</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
-            </div>
-            <h4 class="text-base font-bold text-white group-hover:text-indigo-400 transition">แดชบอร์ดผู้บริหาร</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">ดูสถิติภาพรวมรายได้ ยอดขายแยก 3 หมวด (ทั่วไป/หน่วยงาน/น้ำมัน) และลูกหนี้ค้างชำระ</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-indigo-300">
-            <span class="text-xs text-indigo-400 font-medium">เปิดแดชบอร์ด</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </div>
-        </div>
-
-        <!-- CARD 4: MASTER BILLS & FUEL (Manager & Admin only) -->
-        <div id="card-menu-master" onclick="navigateTo('manager-audit')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/40 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">คลังหลัก</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="database" class="w-6 h-6"></i>
-            </div>
-            <h4 class="text-base font-bold text-white group-hover:text-emerald-400 transition">คลังบิล & บิลน้ำมัน</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">สืบค้นคลังบิลหลักทั้งหมด แยกตามทะเบียนพาณิชย์ และบันทึกบิลน้ำมันแมนนวล</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
-            <span class="text-xs text-emerald-400 font-medium">เปิดคลังบิล</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </div>
-        </div>
-
-        <!-- CARD: BILLING NOTES & PAYMENTS (ACTIVE NOW!) -->
-        <div id="card-menu-billing" onclick="navigateTo('billing-notes')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-violet-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-950/40 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4 flex items-center gap-1.5">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">การเงิน & บัญชี</span>
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">พร้อมใช้งาน</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="receipt" class="w-6 h-6"></i>
-            </div>
-            <h4 class="text-base font-bold text-white group-hover:text-violet-400 transition">ออกใบวางบิล & รับชำระ</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">รวมบิลหน้าร้านและบิลน้ำมันออกใบวางบิล พิมพ์เอกสาร A4 และบันทึกรับเงินตัดยอดบัญชี</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-violet-300">
-            <span class="text-xs text-violet-400 font-medium">จัดการใบวางบิล</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </div>
-        </div>
-
-        <!-- CARD: DAILY REVENUE & CASH SETTLEMENT (Phase 5 - Manager & Admin only) -->
-        <div id="card-menu-revenue" onclick="navigateTo('daily-revenue')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/40 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4 flex items-center gap-1.5">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">การเงินหน้าร้าน</span>
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">ผู้จัดการ</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="wallet" class="w-6 h-6"></i>
-            </div>
-            <h4 class="text-base font-bold text-white group-hover:text-emerald-400 transition">บันทึกรายรับหน้าร้าน</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">บันทึกเงินสดเข้าเซฟ, เงินทอน 7,500, เงินโอน, หักค่าแรงช่าง และปิดยอดขายสุทธิประจำวัน</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-emerald-300">
-            <span class="text-xs text-emerald-400 font-medium">เปิดระบบบันทึกรายรับ</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </div>
-        </div>
-
-        <!-- CARD 5: USER MANAGEMENT (Manager & Admin only - ACTIVE NOW!) -->
-        <div id="card-menu-users" onclick="navigateTo('users')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-950/40 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4">
-            <span id="badge-users-scope" class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">จัดการพนักงาน</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="users" class="w-6 h-6"></i>
-            </div>
-            <h4 id="title-menu-users" class="text-base font-bold text-white group-hover:text-cyan-400 transition">จัดการผู้เข้าใช้</h4>
-            <p id="desc-menu-users" class="text-xs text-slate-400 mt-1.5 leading-relaxed">เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านของพนักงาน</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-cyan-300">
-            <span class="text-xs text-cyan-400 font-medium">จัดการรายชื่อผู้ใช้</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </div>
-        </div>
-
-        <!-- CARD 6: LOGIN LOGS (Admin only) -->
-        <div id="card-menu-logs" onclick="navigateTo('logs')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-950/40 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">เฉพาะ Admin</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="history" class="w-6 h-6"></i>
-            </div>
-            <h4 class="text-base font-bold text-white group-hover:text-indigo-400 transition">ประวัติการเข้าใช้งาน</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">ตรวจสอบบันทึกการล็อกอิน วันที่ เวลา IP และสถานะในระบบ</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-indigo-300">
-            <span class="text-xs text-indigo-400 font-medium">ตรวจสอบประวัติระบบ</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </div>
-        </div>
-
-        <!-- CARD 7: STORE SETTINGS (Admin only) -->
-        <div id="card-menu-settings" onclick="navigateTo('settings')" class="group cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-pink-500/50 rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-pink-950/40 relative flex flex-col justify-between">
-          <div class="absolute top-4 right-4">
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-pink-500/20 text-pink-300 border border-pink-500/30">เฉพาะ Admin</span>
-          </div>
-          <div>
-            <div class="w-12 h-12 rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition duration-200">
-              <i data-lucide="store" class="w-6 h-6"></i>
-            </div>
-            <h4 class="text-base font-bold text-white group-hover:text-pink-400 transition">ตั้งค่าข้อมูลร้านค้า</h4>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">ตั้งค่าชื่อร้านค้า ("สหธรรม"), สโลแกน, เลขผู้เสียภาษี, เบอร์โทร และหัวเอกสาร</p>
-          </div>
-          <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-pink-300">
-            <span class="text-xs text-pink-400 font-medium">จัดการข้อมูลร้าน</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </div>
-        </div>
-
       </div>
+
+      <!-- ============================================== -->
+      <!-- SECTION 3: EXECUTIVE & ANALYTICS -->
+      <!-- ============================================== -->
+      <div id="section-executive-analytics" class="space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+              <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i>
+            </div>
+            <span>การบริหารและรายงาน (Executive Analytics)</span>
+          </h3>
+          <span class="text-[11px] text-slate-400">สถิติภาพรวมรายได้ ยอดขาย 3 กลุ่มธุรกิจ และลูกหนี้ค้างชำระ</span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4">
+          <!-- CARD 7: EXECUTIVE DASHBOARD -->
+          <div id="card-menu-executive" onclick="navigateTo('executive-dashboard')" class="group cursor-pointer bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-indigo-950/30 hover:to-indigo-950/50 border border-slate-700/80 hover:border-indigo-500/60 rounded-2xl p-5 sm:p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-950/40 relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition duration-200 flex-shrink-0">
+                <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <h4 class="text-base font-bold text-white group-hover:text-indigo-300 transition">ศูนย์บริหารข้อมูลธุรกิจ (Executive Dashboard)</h4>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ระดับผู้บริหาร</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed max-w-2xl">ดูสถิติภาพรวมรายได้รายวัน/รายเดือน, สรุปยอดขายแยก 3 หมวด (ทั่วไป/หน่วยงาน/น้ำมัน), ยอดขายช่าง และลูกหนี้ค้างชำระ</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400 group-hover:text-indigo-300 flex-shrink-0 self-end sm:self-center">
+              <span>เปิดแดชบอร์ดบริหาร</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SECTION 4: SYSTEM & SECURITY -->
+      <!-- ============================================== -->
+      <div id="section-system-security" class="space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-slate-700 text-slate-300 border border-slate-600 flex items-center justify-center">
+              <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+            </div>
+            <span>การดูแลระบบและความปลอดภัย (System & Administration)</span>
+          </h3>
+          <span class="text-[11px] text-slate-400">สิทธิ์ผู้ใช้งาน, ประวัติความปลอดภัย, และข้อมูลกิจการ</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- CARD 8: USER MANAGEMENT -->
+          <div id="card-menu-users" onclick="navigateTo('users')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-cyan-500 group-hover:text-slate-950 transition duration-200">
+                  <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+                <span id="badge-users-scope" class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">จัดการผู้ใช้</span>
+              </div>
+              <h4 id="title-menu-users" class="text-sm font-bold text-white group-hover:text-cyan-400 transition">จัดการผู้ใช้งาน & สิทธิ์</h4>
+              <p id="desc-menu-users" class="text-xs text-slate-400 mt-1 leading-relaxed">เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านของพนักงานในระบบ</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-cyan-300">
+              <span class="text-[11px] text-cyan-400 font-medium">จัดการรายชื่อผู้ใช้</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- CARD 9: LOGIN AUDIT LOGS -->
+          <div id="card-menu-logs" onclick="navigateTo('logs')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition duration-200">
+                  <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">เฉพาะ Admin</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-indigo-400 transition">บันทึกความปลอดภัยระบบ</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">ตรวจสอบบันทึกการล็อกอิน วันที่ เวลา IP และสถานะความปลอดภัย</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-indigo-300">
+              <span class="text-[11px] text-indigo-400 font-medium">ตรวจสอบประวัติระบบ</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </div>
+          </div>
+
+          <!-- CARD 10: COMPANY SETTINGS -->
+          <div id="card-menu-settings" onclick="navigateTo('settings')" class="group cursor-pointer bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-pink-500/60 rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-pink-950/40 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-pink-600 group-hover:text-white transition duration-200">
+                  <i data-lucide="store" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-pink-500/20 text-pink-300 border border-pink-500/30">เฉพาะ Admin</span>
+              </div>
+              <h4 class="text-sm font-bold text-white group-hover:text-pink-400 transition">ข้อมูลกิจการ & แบบเอกสาร</h4>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">ตั้งค่าชื่อร้านค้า ("สหธรรม"), สโลแกน, เลขผู้เสียภาษี และหัวเอกสาร</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400 group-hover:text-pink-300">
+              <span class="text-[11px] text-pink-400 font-medium">จัดการข้อมูลร้าน</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ======================================================== -->
@@ -2081,6 +2343,7 @@
     </section>
 
   </main>
+  </div> <!-- /app-body-container -->
 
   <!-- ======================================================== -->
   <!-- MODAL: PRINTABLE BILLING NOTE VOUCHER (A4) -->
