@@ -427,6 +427,32 @@ export default {
         }
       }
 
+      // 8.1 POST /api/customers (Create customer)
+      if (pathname === '/api/customers' && method === 'POST') {
+        if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
+        try {
+          const body = await request.json();
+          const result = await googleSheets.addCustomer(body, currentUser);
+          return jsonResponse(result, 201);
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 400);
+        }
+      }
+
+      // 8.2 POST /api/customers/:id/update or PUT /api/customers/:id (Update customer)
+      const updateCustMatch = pathname.match(/^\/api\/customers\/([^\/]+)(?:\/update)?$/);
+      if (updateCustMatch && (method === 'PUT' || (method === 'POST' && pathname.endsWith('/update')))) {
+        if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
+        const customerId = decodeURIComponent(updateCustMatch[1]);
+        try {
+          const body = await request.json();
+          const result = await googleSheets.updateCustomer(customerId, body, currentUser);
+          return jsonResponse(result, 200);
+        } catch (err) {
+          return jsonResponse({ success: false, message: err.message }, 400);
+        }
+      }
+
       // 9. POST /api/delivery/inbox & /api/delivery/direct
       if ((pathname === '/api/delivery/inbox' || pathname === '/api/delivery/direct') && method === 'POST') {
         if (!currentUser) return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบ' }, 401);
