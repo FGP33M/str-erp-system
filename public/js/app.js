@@ -250,7 +250,7 @@ function renderDashboard() {
     cardUsers.classList.add('hidden');
     cardLogs.classList.add('hidden');
 
-    roleDesc.innerText = "สิทธิ์พนักงาน: เข้าถึง 2 เมนู (ค้นหาข้อมูลสินค้า และ บันทึกใบส่งของ • ซ่อนราคาทุน)";
+    roleDesc.innerText = "สิทธิ์พนักงาน: เข้าถึง 2 เมนูหลัก (ค้นหาข้อมูลสินค้า และ บันทึกใบส่งของ)";
     menuScopeBadge.innerText = "พนักงาน: เข้าถึง 2 เมนู";
   } else if (role === 'manager') {
     // ผู้จัดการ: เห็นทั้งหมด และจัดการพนักงานได้
@@ -265,7 +265,7 @@ function renderDashboard() {
     titleUsers.innerText = "จัดการพนักงาน";
     descUsers.innerText = "เพิ่ม ลบ แก้ไขสิทธิ์ และรีเซ็ตรหัสผ่านของพนักงานหน้าร้าน";
 
-    roleDesc.innerText = "สิทธิ์ผู้จัดการ: เข้าถึงทุกเมนู, เห็นราคาทุนและผลกำไร, สามารถจัดการบัญชีพนักงานได้";
+    roleDesc.innerText = "สิทธิ์ผู้จัดการ: เข้าถึงทุกเมนูงานขายและคลังสินค้า พร้อมสิทธิ์จัดการบัญชีพนักงาน";
     menuScopeBadge.innerText = "ผู้จัดการ: สิทธิ์จัดการพนักงาน & เข้าถึงทุกเมนู";
   } else if (role === 'admin') {
     // Admin: เห็นทุกอย่าง + จัดการผู้ใช้ทุกคน + ดู Login Logs
@@ -292,23 +292,14 @@ function renderDashboard() {
 function initSearchPage() {
   const isManagerOrAdmin = currentUser && (currentUser.role === 'manager' || currentUser.role === 'admin');
   const thCost = document.getElementById('th-cost-price');
-  const costIndicator = document.getElementById('cost-visibility-indicator');
-  const costStatusText = document.getElementById('cost-status-text');
-  const costIcon = document.getElementById('cost-icon');
   const refreshBtn = document.getElementById('btn-refresh-cache');
 
   if (isManagerOrAdmin) {
     if (thCost) thCost.classList.remove('hidden');
     if (refreshBtn) refreshBtn.classList.remove('hidden');
-    if (costStatusText) costStatusText.innerText = "แสดงราคาทุน (สิทธิ์ผู้จัดการ / Admin)";
-    if (costIndicator) costIndicator.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-amber-500/10 border border-amber-500/30 text-amber-300";
-    if (costIcon) costIcon.setAttribute('data-lucide', 'eye');
   } else {
     if (thCost) thCost.classList.add('hidden');
     if (refreshBtn) refreshBtn.classList.add('hidden');
-    if (costStatusText) costStatusText.innerText = "ซ่อนราคาทุน (สิทธิ์พนักงาน)";
-    if (costIndicator) costIndicator.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-900/80 border border-slate-700 text-slate-400";
-    if (costIcon) costIcon.setAttribute('data-lucide', 'eye-off');
   }
 
   refreshIcons();
@@ -442,11 +433,6 @@ function renderProductItems(items, isManagerOrAdmin) {
 
     detailsHtml += '</div>';
 
-    const stockNum = parseInt(p.stock_qty) || 0;
-    const stockBadge = stockNum > 0
-      ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-emerald-500/30">${p.stock_qty || 0}</span>`
-      : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/30">หมด</span>`;
-
     // Desktop Row
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-700/30 transition duration-150';
@@ -455,8 +441,8 @@ function renderProductItems(items, isManagerOrAdmin) {
     if (isManagerOrAdmin) {
       costTd = `
         <td class="py-3 px-4 text-right font-mono">
-          <div class="text-xs font-semibold text-amber-400">฿${p.cost_price || '0'}</div>
-          ${p.profit && p.profit !== '-' ? `<div class="text-[10px] text-blue-400 font-medium">+฿${p.profit}</div>` : ''}
+          <div class="text-xs font-semibold text-amber-400">${p.cost_price || '0'}</div>
+          ${p.profit && p.profit !== '-' ? `<div class="text-[10px] text-blue-400 font-medium">+${p.profit}</div>` : ''}
         </td>
       `;
     }
@@ -474,9 +460,8 @@ function renderProductItems(items, isManagerOrAdmin) {
       <td class="py-3 px-4">${detailsHtml}</td>
       ${costTd}
       <td class="py-3 px-4 text-right font-mono font-bold text-blue-400 text-sm">
-        ฿${p.sale_price || '0'}
+        ${p.sale_price || '0'}
       </td>
-      <td class="py-3 px-4 text-center">${stockBadge}</td>
     `;
     tbody.appendChild(tr);
 
@@ -490,8 +475,8 @@ function renderProductItems(items, isManagerOrAdmin) {
         <div class="flex items-center justify-between text-xs py-1 border-t border-slate-700/40 mt-2">
           <span class="text-slate-400">ราคาทุน:</span>
           <div class="text-right">
-            <span class="font-mono font-semibold text-amber-400">฿${p.cost_price || '0'}</span>
-            ${p.profit && p.profit !== '-' ? `<span class="text-[10px] text-blue-400 ml-1.5">(กำไร ฿${p.profit})</span>` : ''}
+            <span class="font-mono font-semibold text-amber-400">${p.cost_price || '0'}</span>
+            ${p.profit && p.profit !== '-' ? `<span class="text-[10px] text-blue-400 ml-1.5">(กำไร ${p.profit})</span>` : ''}
           </div>
         </div>
       `;
@@ -500,7 +485,6 @@ function renderProductItems(items, isManagerOrAdmin) {
     card.innerHTML = `
       <div class="flex items-start justify-between gap-2 mb-2">
         <div class="font-mono text-xs font-semibold text-blue-400 select-all">${p.barcode || '-'}</div>
-        <div>${stockBadge}</div>
       </div>
       <div class="font-bold text-slate-100 text-sm mb-2 leading-snug">${p.name || '-'}</div>
       <div class="mb-3">${detailsHtml}</div>
@@ -508,7 +492,7 @@ function renderProductItems(items, isManagerOrAdmin) {
         <span class="text-slate-400">ร้านค้า: <strong class="text-slate-200">${p.supplier || '-'}</strong></span>
         <div class="text-right">
           <span class="text-[10px] text-slate-400 mr-1">ราคาขาย:</span>
-          <span class="font-mono font-bold text-base text-blue-400">฿${p.sale_price || '0'}</span>
+          <span class="font-mono font-bold text-base text-blue-400">${p.sale_price || '0'}</span>
         </div>
       </div>
       ${mobileCostHtml}
@@ -663,13 +647,13 @@ function openUserModal(user = null) {
 
   // Populate Role Select options based on currentUser
   roleSelect.innerHTML = `
-    <option value="staff">พนักงานทั่วไป (Staff) - เห็น 2 เมนู, ซ่อนราคาทุน</option>
-    <option value="senior_staff">พนักงานอาวุโส (Senior Staff) - เห็น 2 เมนู, ซ่อนราคาทุน</option>
+    <option value="staff">พนักงานทั่วไป (Staff)</option>
+    <option value="senior_staff">พนักงานอาวุโส (Senior Staff)</option>
   `;
   if (currentUser.role === 'admin') {
     roleSelect.innerHTML += `
-      <option value="manager">ผู้จัดการ (Manager) - เห็นครบ, จัดการพนักงานได้</option>
-      <option value="admin">ผู้ดูแลระบบ (Admin) - สิทธิ์ทั้งหมด</option>
+      <option value="manager">ผู้จัดการ (Manager)</option>
+      <option value="admin">ผู้ดูแลระบบ (Admin)</option>
     `;
   }
 
